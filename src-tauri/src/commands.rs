@@ -60,6 +60,27 @@ pub fn open_file(path: String) -> Result<(), String> {
 }
 
 // ---------------------------------------------------------------------------
+// Icon commands
+// ---------------------------------------------------------------------------
+
+/// Extract the application icon for a macOS `.app` bundle.
+///
+/// Returns a `data:image/png;base64,…` URI, or `null` if unavailable.
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn get_app_icon(path: String) -> Option<String> {
+    #[cfg(target_os = "macos")]
+    {
+        crate::icons::extract_app_icon(&path)
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = path;
+        None
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Platform-specific open helpers
 // ---------------------------------------------------------------------------
 

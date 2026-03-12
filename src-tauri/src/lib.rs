@@ -4,6 +4,7 @@
 //! global hotkey, system tray, and background file indexing.
 
 mod commands;
+mod icons;
 pub mod indexer;
 pub mod search;
 mod tray;
@@ -47,6 +48,7 @@ pub fn run() {
             commands::hide_window,
             commands::search_files,
             commands::open_file,
+            commands::get_app_icon,
         ])
         .setup(|app| {
             // Register global hotkey (CmdOrCtrl+Shift+Space).

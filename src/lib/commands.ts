@@ -20,3 +20,7 @@ export async function searchFiles(query: string): Promise<SearchResult[]> {
 export async function openFile(path: string): Promise<void> {
   return invoke("open_file", { path });
 }
+
+export async function getAppIcon(path: string): Promise<string | null> {
+  return invoke("get_app_icon", { path });
+}

@@ -1,13 +1,20 @@
 import { useCallback, useEffect, useRef, type KeyboardEvent } from "react";
 import { useSearchStore, type SearchResult } from "../stores/searchStore";
 import { openFile, hideWindow } from "../lib/commands";
+import { useAppIcon } from "../hooks/useAppIcon";
 import styles from "./ResultsList.module.css";
 
 interface ResultsListProps {
   onEscape: () => void;
 }
 
-function KindIcon({ kind }: { kind: SearchResult["kind"] }) {
+function KindIcon({ kind, path }: { kind: SearchResult["kind"]; path: string }) {
+  const appIcon = useAppIcon(path, kind);
+
+  if (kind === "application" && appIcon) {
+    return <img className={styles.appIcon} src={appIcon} alt="" aria-hidden="true" />;
+  }
+
   if (kind === "directory") {
     return (
       <svg
@@ -141,7 +148,7 @@ export default function ResultsList({ onEscape }: ResultsListProps) {
             openResult(result);
           }}
         >
-          <KindIcon kind={result.kind} />
+          <KindIcon kind={result.kind} path={result.path} />
           <div className={styles.details}>
             <span className={styles.name}>{result.name}</span>
             <span className={styles.path}>{result.path}</span>

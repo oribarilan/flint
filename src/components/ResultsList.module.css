@@ -49,6 +49,14 @@
   color: var(--text-secondary);
 }
 
+.appIcon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+}
+
 .itemSelected .kindIcon {
   color: var(--accent);
 }
