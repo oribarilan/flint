@@ -1,0 +1,53 @@
+//! Flint — AI-native application launcher.
+//!
+//! This crate wires up the Tauri application: plugins, commands,
+//! global hotkey, and system tray.
+
+mod commands;
+mod tray;
+mod window;
+
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
+use tracing_subscriber::EnvFilter;
+
+/// Boot the Tauri application.
+///
+/// Initialises tracing, registers plugins, commands, hotkey, and the
+/// system tray, then enters the event loop.
+pub fn run() {
+    // Initialise structured logging; default to `info` if RUST_LOG is unset.
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
+        )
+        .init();
+
+    tauri::Builder::default()
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(|app, _shortcut, event| {
+                    if event.state == ShortcutState::Pressed {
+                        let _ = window::toggle(app);
+                    }
+                })
+                .build(),
+        )
+        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_os::init())
+        .invoke_handler(tauri::generate_handler![
+            commands::toggle_window,
+            commands::show_window,
+            commands::hide_window,
+        ])
+        .setup(|app| {
+            // Register global hotkey (CmdOrCtrl+Shift+Space).
+            app.global_shortcut().register("CmdOrCtrl+Shift+Space").map_err(|e| e.to_string())?;
+
+            // Build system tray icon + menu.
+            tray::setup(app)?;
+
+            Ok(())
+        })
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
+}

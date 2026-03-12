@@ -1,0 +1,137 @@
+import { useEffect, useRef, type KeyboardEvent } from "react";
+import { useSearchStore, type SearchResult } from "../stores/searchStore";
+import styles from "./ResultsList.module.css";
+
+interface ResultsListProps {
+  onEscape: () => void;
+}
+
+function KindIcon({ kind }: { kind: SearchResult["kind"] }) {
+  if (kind === "directory") {
+    return (
+      <svg
+        className={styles.kindIcon}
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 20 20"
+        fill="currentColor"
+        aria-hidden="true"
+      >
+        <path d="M3.75 3A1.75 1.75 0 002 4.75v10.5c0 .966.784 1.75 1.75 1.75h12.5A1.75 1.75 0 0018 15.25v-8.5A1.75 1.75 0 0016.25 5h-4.836a.25.25 0 01-.177-.073L9.823 3.513A1.75 1.75 0 008.586 3H3.75z" />
+      </svg>
+    );
+  }
+
+  if (kind === "application") {
+    return (
+      <svg
+        className={styles.kindIcon}
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 20 20"
+        fill="currentColor"
+        aria-hidden="true"
+      >
+        <path
+          fillRule="evenodd"
+          d="M3.25 3A2.25 2.25 0 001 5.25v9.5A2.25 2.25 0 003.25 17h13.5A2.25 2.25 0 0019 14.75v-7.5A2.25 2.25 0 0016.75 5H10.5l-1.72-1.72A2.25 2.25 0 007.2 2.5H3.25zM10 10a1 1 0 011-1h.01a1 1 0 110 2H11a1 1 0 01-1-1zm-4 0a1 1 0 011-1h.01a1 1 0 110 2H7a1 1 0 01-1-1z"
+          clipRule="evenodd"
+        />
+      </svg>
+    );
+  }
+
+  // Default: file icon
+  return (
+    <svg
+      className={styles.kindIcon}
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M3 3.5A1.5 1.5 0 014.5 2h6.879a1.5 1.5 0 011.06.44l3.122 3.12a1.5 1.5 0 01.439 1.061V16.5A1.5 1.5 0 0114.5 18h-10A1.5 1.5 0 013 16.5v-13z" />
+    </svg>
+  );
+}
+
+export default function ResultsList({ onEscape }: ResultsListProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const results = useSearchStore((s) => s.results);
+  const query = useSearchStore((s) => s.query);
+  const selectedIndex = useSearchStore((s) => s.selectedIndex);
+  const moveSelection = useSearchStore((s) => s.moveSelection);
+  const setSelectedIndex = useSearchStore((s) => s.setSelectedIndex);
+
+  // Scroll selected item into view
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const selected = container.children[selectedIndex] as HTMLElement | undefined;
+    selected?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [selectedIndex]);
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        moveSelection("down");
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        if (selectedIndex === 0) {
+          onEscape();
+        } else {
+          moveSelection("up");
+        }
+        break;
+      case "Enter":
+        e.preventDefault();
+        // Phase 3: open the selected result via Tauri command
+        break;
+      case "Escape":
+        e.preventDefault();
+        onEscape();
+        break;
+    }
+  };
+
+  if (results.length === 0 && query.length === 0) {
+    return null;
+  }
+
+  if (results.length === 0 && query.length > 0) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.emptyState}>No results found</div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      ref={containerRef}
+      className={styles.container}
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+      role="listbox"
+      aria-label="Search results"
+    >
+      {results.map((result, index) => (
+        <div
+          key={result.id}
+          className={index === selectedIndex ? styles.itemSelected : styles.item}
+          role="option"
+          aria-selected={index === selectedIndex}
+          onMouseEnter={() => {
+            setSelectedIndex(index);
+          }}
+        >
+          <KindIcon kind={result.kind} />
+          <div className={styles.details}>
+            <span className={styles.name}>{result.name}</span>
+            <span className={styles.path}>{result.path}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
