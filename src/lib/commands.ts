@@ -24,3 +24,39 @@ export async function openFile(path: string): Promise<void> {
 export async function getAppIcon(path: string): Promise<string | null> {
   return invoke("get_app_icon", { path });
 }
+
+// ── Auth commands ──────────────────────────────────────────────
+
+export interface DeviceCodeResponse {
+  device_code: string;
+  user_code: string;
+  verification_uri: string;
+  interval: number;
+}
+
+export interface AuthStatus {
+  authenticated: boolean;
+  username: string | null;
+}
+
+export async function startCopilotAuth(): Promise<DeviceCodeResponse> {
+  return invoke("start_copilot_auth");
+}
+
+export async function completeCopilotAuth(deviceCode: string, interval: number): Promise<void> {
+  return invoke("complete_copilot_auth", { device_code: deviceCode, interval });
+}
+
+export async function getAuthStatus(): Promise<AuthStatus> {
+  return invoke("get_auth_status");
+}
+
+// ── Chat commands ──────────────────────────────────────────────
+
+export async function sendChatMessage(message: string): Promise<void> {
+  return invoke("send_chat_message", { message });
+}
+
+export async function signOut(): Promise<void> {
+  return invoke("sign_out");
+}

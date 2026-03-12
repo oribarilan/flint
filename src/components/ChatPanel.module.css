@@ -1,0 +1,64 @@
+.container {
+  max-height: 360px;
+  overflow-y: auto;
+  border-top: 1px solid var(--border-subtle);
+  padding: 12px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.userMessage {
+  align-self: flex-end;
+  max-width: 85%;
+  background: var(--accent);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: var(--radius-md) var(--radius-md) var(--radius-sm) var(--radius-md);
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.assistantMessage {
+  align-self: flex-start;
+  max-width: 85%;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 8px 14px;
+  border-radius: var(--radius-md) var(--radius-md) var(--radius-md) var(--radius-sm);
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.error {
+  align-self: flex-start;
+  max-width: 85%;
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.thinking {
+  align-self: flex-start;
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: 4px 0;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}

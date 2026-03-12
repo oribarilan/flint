@@ -1,10 +1,21 @@
-//! Tauri IPC commands for window management, file search, and file opening.
+//! Tauri IPC commands for window management, file search, file opening,
+//! and Copilot chat.
 
 use tauri::{AppHandle, State};
 
 use crate::indexer::FileIndex;
+use crate::providers;
+use crate::providers::copilot::auth::DeviceCodeResponse;
+use crate::providers::{AuthStatus, ChatMessage};
 use crate::search::SearchResult;
 use crate::window;
+
+// ---------------------------------------------------------------------------
+// Copilot state
+// ---------------------------------------------------------------------------
+
+/// Managed Tauri state wrapping the Copilot provider.
+pub struct CopilotProviderState(pub providers::copilot::CopilotProvider);
 
 // ---------------------------------------------------------------------------
 // Window commands
@@ -78,6 +89,60 @@ pub fn get_app_icon(path: String) -> Option<String> {
         let _ = path;
         None
     }
+}
+
+// ---------------------------------------------------------------------------
+// Copilot commands
+// ---------------------------------------------------------------------------
+
+/// Start the Copilot device-flow auth.
+///
+/// Returns the user code and verification URL for the caller to present.
+#[tauri::command]
+pub async fn start_copilot_auth(
+    provider: State<'_, CopilotProviderState>,
+) -> Result<DeviceCodeResponse, String> {
+    provider.0.start_auth().await
+}
+
+/// Complete the auth flow by polling for the access token.
+///
+/// Blocks until the user authorises or the code expires.
+#[tauri::command]
+pub async fn complete_copilot_auth(
+    provider: State<'_, CopilotProviderState>,
+    device_code: String,
+    interval: u64,
+) -> Result<(), String> {
+    provider.0.complete_auth(&device_code, interval).await
+}
+
+/// Check whether the user is authenticated with Copilot.
+#[tauri::command]
+pub async fn get_auth_status(
+    provider: State<'_, CopilotProviderState>,
+) -> Result<AuthStatus, String> {
+    Ok(AuthStatus { authenticated: provider.0.is_authenticated().await, username: None })
+}
+
+/// Send chat messages and stream the response via Tauri events.
+///
+/// Emits `chat:token`, `chat:done`, and `chat:error` events.
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)] // Tauri injects AppHandle by value
+pub async fn send_chat_message(
+    app: AppHandle,
+    provider: State<'_, CopilotProviderState>,
+    messages: Vec<ChatMessage>,
+) -> Result<(), String> {
+    provider.0.send_message(&messages, &app).await
+}
+
+/// Sign out and clear all stored Copilot tokens.
+#[tauri::command]
+pub async fn sign_out(provider: State<'_, CopilotProviderState>) -> Result<(), String> {
+    provider.0.sign_out().await;
+    Ok(())
 }
 
 // ---------------------------------------------------------------------------

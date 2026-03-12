@@ -7,6 +7,7 @@ mod commands;
 mod error;
 mod icons;
 pub mod indexer;
+pub mod providers;
 pub mod search;
 mod tray;
 mod window;
@@ -52,6 +53,11 @@ pub fn run() {
             commands::search_files,
             commands::open_file,
             commands::get_app_icon,
+            commands::start_copilot_auth,
+            commands::complete_copilot_auth,
+            commands::get_auth_status,
+            commands::send_chat_message,
+            commands::sign_out,
         ])
         .setup(|app| {
             // Register global hotkey (CmdOrCtrl+Shift+Space).
@@ -59,6 +65,10 @@ pub fn run() {
 
             // Build system tray icon + menu.
             tray::setup(app)?;
+
+            // Initialise Copilot provider as managed state.
+            let copilot = providers::copilot::CopilotProvider::new();
+            app.manage(commands::CopilotProviderState(copilot));
 
             // Initialise file index as managed state and populate in background.
             let index = Arc::new(RwLock::new(Vec::new()));
