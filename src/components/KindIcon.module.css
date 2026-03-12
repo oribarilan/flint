@@ -1,0 +1,19 @@
+.kindIcon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  color: var(--text-secondary);
+}
+
+.kindIconSelected {
+  composes: kindIcon;
+  color: var(--accent);
+}
+
+.appIcon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+}

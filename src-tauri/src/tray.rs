@@ -7,33 +7,29 @@ use tauri::{
     App,
 };
 
+use crate::error::StringResult;
 use crate::window;
 
 /// Build the system tray icon and attach a menu with event handlers.
 pub fn setup(app: &App) -> Result<(), String> {
-    let show =
-        MenuItemBuilder::with_id("show", "Show Flint").build(app).map_err(|e| e.to_string())?;
+    let show = MenuItemBuilder::with_id("show", "Show Flint").build(app).str_err()?;
 
-    let sep1 = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
+    let sep1 = PredefinedMenuItem::separator(app).str_err()?;
 
-    let settings = MenuItemBuilder::with_id("settings", "Settings...")
-        .build(app)
-        .map_err(|e| e.to_string())?;
+    let settings = MenuItemBuilder::with_id("settings", "Settings...").build(app).str_err()?;
 
-    let sign_in =
-        MenuItemBuilder::with_id("sign_in", "Sign In").build(app).map_err(|e| e.to_string())?;
+    let sign_in = MenuItemBuilder::with_id("sign_in", "Sign In").build(app).str_err()?;
 
-    let sep2 = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
+    let sep2 = PredefinedMenuItem::separator(app).str_err()?;
 
-    let quit =
-        MenuItemBuilder::with_id("quit", "Quit Flint").build(app).map_err(|e| e.to_string())?;
+    let quit = MenuItemBuilder::with_id("quit", "Quit Flint").build(app).str_err()?;
 
     let menu = MenuBuilder::new(app)
         .items(&[&show, &sep1, &settings, &sign_in, &sep2, &quit])
         .build()
-        .map_err(|e| e.to_string())?;
+        .str_err()?;
 
-    let icon = Image::from_path("icons/icon.png").map_err(|e| e.to_string())?;
+    let icon = Image::from_path("icons/icon.png").str_err()?;
 
     TrayIconBuilder::new()
         .icon(icon.clone())
@@ -43,7 +39,7 @@ pub fn setup(app: &App) -> Result<(), String> {
         .show_menu_on_left_click(true)
         .on_menu_event(handle_menu_event)
         .build(app)
-        .map_err(|e| e.to_string())?;
+        .str_err()?;
 
     Ok(())
 }

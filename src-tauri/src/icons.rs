@@ -101,3 +101,114 @@ fn parse_icns_entries(data: &[u8]) -> Vec<([u8; 4], &[u8])> {
 
     entries
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn build_icns(entries: &[(&[u8; 4], &[u8])]) -> Vec<u8> {
+        let mut data = Vec::new();
+        data.extend_from_slice(b"icns");
+        let total_size_pos = data.len();
+        data.extend_from_slice(&[0; 4]); // placeholder
+        for (type_code, payload) in entries {
+            data.extend_from_slice(*type_code);
+            let entry_size = u32::try_from(payload.len() + 8).unwrap();
+            data.extend_from_slice(&entry_size.to_be_bytes());
+            data.extend_from_slice(payload);
+        }
+        let total = u32::try_from(data.len()).unwrap();
+        data[total_size_pos..total_size_pos + 4].copy_from_slice(&total.to_be_bytes());
+        data
+    }
+
+    fn png_bytes() -> Vec<u8> {
+        let mut b = vec![0x89, 0x50, 0x4E, 0x47]; // PNG magic
+        b.extend_from_slice(&[0; 20]); // dummy payload
+        b
+    }
+
+    #[test]
+    fn should_reject_empty_data() {
+        assert!(extract_png_from_icns(&[]).is_none());
+    }
+
+    #[test]
+    fn should_reject_invalid_magic() {
+        let data = build_icns(&[]);
+        let mut bad = data;
+        bad[0..4].copy_from_slice(b"nope");
+        assert!(extract_png_from_icns(&bad).is_none());
+    }
+
+    #[test]
+    fn should_reject_too_short_data() {
+        assert!(extract_png_from_icns(&[0x69, 0x63, 0x6E, 0x73, 0x00]).is_none());
+    }
+
+    #[test]
+    fn should_parse_single_entry() {
+        let payload = b"hello world";
+        let data = build_icns(&[(b"ic07", payload.as_slice())]);
+        let entries = parse_icns_entries(&data);
+        assert_eq!(entries.len(), 1);
+        assert_eq!(&entries[0].0, b"ic07");
+        assert_eq!(entries[0].1, payload);
+    }
+
+    #[test]
+    fn should_parse_multiple_entries() {
+        let p1 = b"first";
+        let p2 = b"second";
+        let data = build_icns(&[(b"ic07", p1.as_slice()), (b"ic08", p2.as_slice())]);
+        let entries = parse_icns_entries(&data);
+        assert_eq!(entries.len(), 2);
+        assert_eq!(&entries[0].0, b"ic07");
+        assert_eq!(entries[0].1, p1.as_slice());
+        assert_eq!(&entries[1].0, b"ic08");
+        assert_eq!(entries[1].1, p2.as_slice());
+    }
+
+    #[test]
+    fn should_extract_png_from_preferred_type() {
+        let png = png_bytes();
+        let data = build_icns(&[(b"ic07", &png)]);
+        let result = extract_png_from_icns(&data);
+        assert!(result.is_some());
+        assert!(result.unwrap().starts_with(PNG_MAGIC));
+    }
+
+    #[test]
+    fn should_fallback_to_any_png_entry() {
+        let png = png_bytes();
+        let data = build_icns(&[(b"icXX", &png)]);
+        let result = extract_png_from_icns(&data);
+        assert!(result.is_some());
+        assert!(result.unwrap().starts_with(PNG_MAGIC));
+    }
+
+    #[test]
+    fn should_skip_non_png_entries() {
+        let non_png = vec![0x00, 0x00, 0x00, 0x00, 0x00];
+        let data = build_icns(&[(b"ic07", &non_png)]);
+        assert!(extract_png_from_icns(&data).is_none());
+    }
+
+    #[test]
+    fn should_prefer_ic07_over_others() {
+        let png07 = {
+            let mut b = png_bytes();
+            b.push(0x07); // tag to distinguish
+            b
+        };
+        let png08 = {
+            let mut b = png_bytes();
+            b.push(0x08);
+            b
+        };
+        // ic08 appears first in the file, but ic07 should be preferred
+        let data = build_icns(&[(b"ic08", &png08), (b"ic07", &png07)]);
+        let result = extract_png_from_icns(&data).unwrap();
+        assert_eq!(*result.last().unwrap(), 0x07);
+    }
+}

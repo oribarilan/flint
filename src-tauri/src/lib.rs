@@ -4,6 +4,7 @@
 //! global hotkey, system tray, and background file indexing.
 
 mod commands;
+mod error;
 mod icons;
 pub mod indexer;
 pub mod search;
@@ -14,6 +15,8 @@ use std::sync::{Arc, RwLock};
 
 use tauri::Manager;
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
+
+use error::StringResult;
 use tracing_subscriber::EnvFilter;
 
 use indexer::FileIndex;
@@ -52,7 +55,7 @@ pub fn run() {
         ])
         .setup(|app| {
             // Register global hotkey (CmdOrCtrl+Shift+Space).
-            app.global_shortcut().register("CmdOrCtrl+Shift+Space").map_err(|e| e.to_string())?;
+            app.global_shortcut().register("CmdOrCtrl+Shift+Space").str_err()?;
 
             // Build system tray icon + menu.
             tray::setup(app)?;

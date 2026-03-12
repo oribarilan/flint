@@ -42,25 +42,6 @@
   background: var(--bg-selected);
 }
 
-.kindIcon {
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  color: var(--text-secondary);
-}
-
-.appIcon {
-  flex-shrink: 0;
-  width: 24px;
-  height: 24px;
-  border-radius: var(--radius-sm);
-  object-fit: contain;
-}
-
-.itemSelected .kindIcon {
-  color: var(--accent);
-}
-
 .details {
   flex: 1;
   min-width: 0;

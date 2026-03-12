@@ -223,3 +223,191 @@ fn classify(entry: &walkdir::DirEntry, raw_name: &str) -> (String, EntryKind) {
 fn home_dir() -> Option<PathBuf> {
     std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(PathBuf::from)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::tempdir;
+    use walkdir::WalkDir;
+
+    /// Return the root `DirEntry` for `path` (depth 0).
+    fn get_entry(path: &std::path::Path) -> walkdir::DirEntry {
+        WalkDir::new(path).into_iter().next().unwrap().unwrap()
+    }
+
+    /// Return the `DirEntry` whose file name matches `child_name`.
+    fn get_child_entry(parent: &std::path::Path, child_name: &str) -> walkdir::DirEntry {
+        WalkDir::new(parent)
+            .into_iter()
+            .filter_map(Result::ok)
+            .find(|e| e.file_name().to_string_lossy() == child_name)
+            .unwrap()
+    }
+
+    // ----- is_excluded tests -----
+
+    #[test]
+    fn should_exclude_hidden_dirs() {
+        let tmp = tempdir().unwrap();
+        fs::create_dir(tmp.path().join(".hidden")).unwrap();
+        let entry = get_child_entry(tmp.path(), ".hidden");
+        assert!(is_excluded(&entry));
+    }
+
+    #[test]
+    fn should_exclude_node_modules() {
+        let tmp = tempdir().unwrap();
+        fs::create_dir(tmp.path().join("node_modules")).unwrap();
+        let entry = get_child_entry(tmp.path(), "node_modules");
+        assert!(is_excluded(&entry));
+    }
+
+    #[test]
+    fn should_not_exclude_normal_dir() {
+        let tmp = tempdir().unwrap();
+        fs::create_dir(tmp.path().join("my_project")).unwrap();
+        let entry = get_child_entry(tmp.path(), "my_project");
+        assert!(!is_excluded(&entry));
+    }
+
+    #[test]
+    fn should_not_exclude_root_hidden() {
+        let tmp = tempdir().unwrap();
+        let hidden = tmp.path().join(".dotroot");
+        fs::create_dir(&hidden).unwrap();
+        // Walking from .dotroot itself makes it depth 0.
+        let entry = get_entry(&hidden);
+        assert!(!is_excluded(&entry));
+    }
+
+    // ----- is_package_dir tests -----
+
+    #[test]
+    fn should_detect_app_package_dir() {
+        let tmp = tempdir().unwrap();
+        fs::create_dir(tmp.path().join("Test.app")).unwrap();
+        let entry = get_child_entry(tmp.path(), "Test.app");
+        if cfg!(target_os = "macos") {
+            assert!(is_package_dir(&entry));
+        } else {
+            assert!(!is_package_dir(&entry));
+        }
+    }
+
+    #[test]
+    fn should_detect_framework_package() {
+        let tmp = tempdir().unwrap();
+        fs::create_dir(tmp.path().join("Test.framework")).unwrap();
+        let entry = get_child_entry(tmp.path(), "Test.framework");
+        if cfg!(target_os = "macos") {
+            assert!(is_package_dir(&entry));
+        } else {
+            assert!(!is_package_dir(&entry));
+        }
+    }
+
+    #[test]
+    fn should_not_detect_normal_dir_as_package() {
+        let tmp = tempdir().unwrap();
+        fs::create_dir(tmp.path().join("mydir")).unwrap();
+        let entry = get_child_entry(tmp.path(), "mydir");
+        assert!(!is_package_dir(&entry));
+    }
+
+    // ----- classify tests -----
+
+    #[test]
+    fn should_classify_app_as_application() {
+        let tmp = tempdir().unwrap();
+        fs::create_dir(tmp.path().join("Cool.app")).unwrap();
+        let entry = get_child_entry(tmp.path(), "Cool.app");
+        let (name, kind) = classify(&entry, "Cool.app");
+        if cfg!(target_os = "macos") {
+            assert_eq!(name, "Cool");
+            assert_eq!(kind, EntryKind::Application);
+        } else {
+            assert_eq!(name, "Cool.app");
+            assert_eq!(kind, EntryKind::Directory);
+        }
+    }
+
+    #[test]
+    fn should_classify_dir_as_directory() {
+        let tmp = tempdir().unwrap();
+        fs::create_dir(tmp.path().join("stuff")).unwrap();
+        let entry = get_child_entry(tmp.path(), "stuff");
+        let (name, kind) = classify(&entry, "stuff");
+        assert_eq!(name, "stuff");
+        assert_eq!(kind, EntryKind::Directory);
+    }
+
+    #[test]
+    fn should_classify_file_as_file() {
+        let tmp = tempdir().unwrap();
+        fs::File::create(tmp.path().join("readme.txt")).unwrap();
+        let entry = get_child_entry(tmp.path(), "readme.txt");
+        let (name, kind) = classify(&entry, "readme.txt");
+        assert_eq!(name, "readme.txt");
+        assert_eq!(kind, EntryKind::File);
+    }
+
+    // ----- home_dir test -----
+
+    #[test]
+    fn should_resolve_home_dir() {
+        let home = home_dir();
+        assert!(home.is_some(), "$HOME or $USERPROFILE should be set");
+    }
+
+    // ----- walk_directory integration tests -----
+
+    #[test]
+    fn should_walk_directory_respecting_excludes() {
+        let tmp = tempdir().unwrap();
+        let root = tmp.path();
+
+        fs::create_dir(root.join("visible")).unwrap();
+        fs::File::create(root.join("visible").join("file.txt")).unwrap();
+        fs::create_dir(root.join(".hidden")).unwrap();
+        fs::File::create(root.join(".hidden").join("secret.txt")).unwrap();
+        fs::create_dir(root.join("node_modules")).unwrap();
+        fs::File::create(root.join("node_modules").join("pkg.js")).unwrap();
+        fs::File::create(root.join("top.txt")).unwrap();
+
+        let entries = walk_directory(root);
+        let names: Vec<&str> = entries.iter().map(|e| e.name.as_str()).collect();
+
+        assert!(names.contains(&"visible"), "should include visible dir");
+        assert!(names.contains(&"file.txt"), "should include nested file");
+        assert!(names.contains(&"top.txt"), "should include top-level file");
+        assert!(!names.contains(&".hidden"), "should exclude hidden dir");
+        assert!(!names.contains(&"secret.txt"), "should exclude hidden child");
+        assert!(!names.contains(&"node_modules"), "should exclude node_modules");
+        assert!(!names.contains(&"pkg.js"), "should exclude node_modules child");
+    }
+
+    #[test]
+    fn should_not_recurse_into_package_dirs() {
+        let tmp = tempdir().unwrap();
+        let root = tmp.path();
+
+        let app_dir = root.join("Test.app");
+        let contents_dir = app_dir.join("Contents");
+        fs::create_dir_all(&contents_dir).unwrap();
+        fs::File::create(contents_dir.join("Info.plist")).unwrap();
+
+        let entries = walk_directory(root);
+        let names: Vec<&str> = entries.iter().map(|e| e.name.as_str()).collect();
+
+        if cfg!(target_os = "macos") {
+            // On macOS, Test.app is classified as Application — display name strips ".app".
+            assert!(names.contains(&"Test"), "should include Test.app as 'Test'");
+            assert!(!names.contains(&"Contents"), "should not recurse into .app");
+            assert!(!names.contains(&"Info.plist"), "should not recurse into .app");
+        } else {
+            // On other platforms it's just a normal directory.
+            assert!(names.contains(&"Test.app"), "should include Test.app dir");
+        }
+    }
+}

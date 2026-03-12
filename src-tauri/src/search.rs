@@ -69,3 +69,98 @@ pub fn search(query: &str, entries: &[FileEntry], max_results: usize) -> Vec<Sea
         })
         .collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::indexer::{EntryKind, FileEntry};
+
+    fn make_entry(name: &str, path: &str, kind: EntryKind) -> FileEntry {
+        FileEntry {
+            path: path.to_string(),
+            name: name.to_string(),
+            kind,
+            lowercase_name: name.to_lowercase(),
+        }
+    }
+
+    #[test]
+    fn should_return_empty_for_empty_query() {
+        let entries = vec![make_entry("Slack", "/app/Slack", EntryKind::Application)];
+        let results = search("", &entries, 10);
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn should_return_empty_for_no_matches() {
+        let entries = vec![make_entry("Slack", "/app/Slack", EntryKind::Application)];
+        let results = search("zzzzxxx", &entries, 10);
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn should_find_exact_match() {
+        let entries = vec![
+            make_entry("Slack", "/app/Slack", EntryKind::Application),
+            make_entry("Notes", "/app/Notes", EntryKind::Application),
+        ];
+        let results = search("slack", &entries, 10);
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].name, "Slack");
+    }
+
+    #[test]
+    fn should_find_fuzzy_match() {
+        let entries = vec![
+            make_entry("Slack", "/app/Slack", EntryKind::Application),
+            make_entry("Notes", "/app/Notes", EntryKind::Application),
+        ];
+        let results = search("slk", &entries, 10);
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].name, "Slack");
+    }
+
+    #[test]
+    fn should_respect_max_results() {
+        let entries: Vec<FileEntry> = (0..5)
+            .map(|i| make_entry(&format!("file{i}"), &format!("/tmp/file{i}"), EntryKind::File))
+            .collect();
+        let results = search("file", &entries, 2);
+        assert_eq!(results.len(), 2);
+    }
+
+    #[test]
+    fn should_sort_by_score_descending() {
+        let entries = vec![
+            make_entry("slack_helper", "/app/slack_helper", EntryKind::File),
+            make_entry("Slack", "/app/Slack", EntryKind::Application),
+            make_entry("my_slack_util", "/app/my_slack_util", EntryKind::File),
+        ];
+        let results = search("slack", &entries, 10);
+        assert!(!results.is_empty());
+        // The exact match "Slack" should rank first.
+        assert_eq!(results[0].name, "Slack");
+    }
+
+    #[test]
+    fn should_handle_case_insensitive_query() {
+        // Entries with mixed-case names are found via a lowercase query because
+        // the search operates on `lowercase_name` with `CaseMatching::Smart`.
+        let entries = vec![make_entry("SLaCK", "/app/SLaCK", EntryKind::Application)];
+        let results = search("slack", &entries, 10);
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].name, "SLaCK");
+    }
+
+    #[test]
+    fn should_preserve_entry_metadata() {
+        let entries = vec![make_entry("Documents", "/home/user/Documents", EntryKind::Directory)];
+        let results = search("documents", &entries, 10);
+        assert_eq!(results.len(), 1);
+        let r = &results[0];
+        assert_eq!(r.id, "/home/user/Documents");
+        assert_eq!(r.name, "Documents");
+        assert_eq!(r.path, "/home/user/Documents");
+        assert_eq!(r.kind, EntryKind::Directory);
+    }
+}

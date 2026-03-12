@@ -2,6 +2,8 @@
 
 use tauri::{AppHandle, Manager};
 
+use crate::error::StringResult;
+
 /// The label assigned to the main launcher window in `tauri.conf.json`.
 const MAIN_WINDOW_LABEL: &str = "main";
 
@@ -11,27 +13,27 @@ const MAIN_WINDOW_LABEL: &str = "main";
 pub fn toggle(app: &AppHandle) -> Result<(), String> {
     let win = get_main_window(app)?;
 
-    if win.is_visible().map_err(|e| e.to_string())? {
-        win.hide().map_err(|e| e.to_string())
+    if win.is_visible().str_err()? {
+        win.hide().str_err()
     } else {
-        win.center().map_err(|e| e.to_string())?;
-        win.show().map_err(|e| e.to_string())?;
-        win.set_focus().map_err(|e| e.to_string())
+        win.center().str_err()?;
+        win.show().str_err()?;
+        win.set_focus().str_err()
     }
 }
 
 /// Show the main window — center it, make it visible, and focus it.
 pub fn show(app: &AppHandle) -> Result<(), String> {
     let win = get_main_window(app)?;
-    win.center().map_err(|e| e.to_string())?;
-    win.show().map_err(|e| e.to_string())?;
-    win.set_focus().map_err(|e| e.to_string())
+    win.center().str_err()?;
+    win.show().str_err()?;
+    win.set_focus().str_err()
 }
 
 /// Hide the main window.
 pub fn hide(app: &AppHandle) -> Result<(), String> {
     let win = get_main_window(app)?;
-    win.hide().map_err(|e| e.to_string())
+    win.hide().str_err()
 }
 
 /// Retrieve the main `WebviewWindow` by label.
