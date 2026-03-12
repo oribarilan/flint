@@ -14,8 +14,25 @@ use walkdir::WalkDir;
 /// Directories under `$HOME` to index.
 const HOME_DIRS: &[&str] = &["Desktop", "Documents", "Downloads"];
 
-/// Directory names to skip entirely.
-const EXCLUDED_DIRS: &[&str] = &["node_modules", ".git", "target", "__pycache__", ".Trash"];
+/// Directory names to skip entirely (all platforms).
+const EXCLUDED_DIRS: &[&str] =
+    &["node_modules", ".git", "target", "__pycache__", ".Trash", "venv", "env", "bower_components"];
+
+/// macOS bundle extensions — index the package as a leaf but never recurse in.
+#[cfg(target_os = "macos")]
+const MACOS_PACKAGE_EXTENSIONS: &[&str] = &[
+    "app",
+    "framework",
+    "bundle",
+    "plugin",
+    "prefpane",
+    "kext",
+    "photoslibrary",
+    "musiclibrary",
+    "xcodeproj",
+    "xcworkspace",
+    "playground",
+];
 
 /// Maximum directory depth to walk.
 const MAX_DEPTH: usize = 6;
@@ -99,14 +116,36 @@ fn append_platform_roots(roots: &mut Vec<PathBuf>) {
 }
 
 /// Walk a single root directory and return all matching entries.
+///
+/// Uses a manual iterator loop so we can call `skip_current_dir()` on
+/// package directories (index the package itself but skip its children).
 fn walk_directory(root: &Path) -> Vec<FileEntry> {
-    WalkDir::new(root)
-        .max_depth(MAX_DEPTH)
-        .into_iter()
-        .filter_entry(|e| !is_excluded(e))
-        .filter_map(std::result::Result::ok)
-        .filter_map(|entry| to_file_entry(&entry, root))
-        .collect()
+    let mut entries = Vec::new();
+    let mut it = WalkDir::new(root).max_depth(MAX_DEPTH).into_iter();
+
+    while let Some(result) = it.next() {
+        let Ok(entry) = result else { continue };
+
+        if is_excluded(&entry) {
+            if entry.file_type().is_dir() {
+                it.skip_current_dir();
+            }
+            continue;
+        }
+
+        let is_package = is_package_dir(&entry);
+
+        if let Some(fe) = to_file_entry(&entry, root) {
+            entries.push(fe);
+        }
+
+        // Index the package entry but do not walk into it.
+        if is_package {
+            it.skip_current_dir();
+        }
+    }
+
+    entries
 }
 
 /// Decide whether a `walkdir` entry should be excluded.
@@ -121,6 +160,25 @@ fn is_excluded(entry: &walkdir::DirEntry) -> bool {
     // Skip known noisy directories.
     if entry.file_type().is_dir() && EXCLUDED_DIRS.contains(&name.as_ref()) {
         return true;
+    }
+
+    false
+}
+
+/// Check whether a directory is a macOS package bundle that should be indexed
+/// as a leaf node (no recursion into its contents).
+fn is_package_dir(entry: &walkdir::DirEntry) -> bool {
+    if !entry.file_type().is_dir() {
+        return false;
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        if let Some(ext) = std::path::Path::new(&*entry.file_name().to_string_lossy()).extension() {
+            return MACOS_PACKAGE_EXTENSIONS
+                .iter()
+                .any(|pkg_ext| ext.eq_ignore_ascii_case(pkg_ext));
+        }
     }
 
     false
@@ -145,13 +203,13 @@ fn to_file_entry(entry: &walkdir::DirEntry, root: &Path) -> Option<FileEntry> {
 /// Classify the entry kind and compute the display name.
 fn classify(entry: &walkdir::DirEntry, raw_name: &str) -> (String, EntryKind) {
     #[cfg(target_os = "macos")]
-    if entry.file_type().is_dir()
-        && std::path::Path::new(raw_name)
-            .extension()
-            .is_some_and(|ext| ext.eq_ignore_ascii_case("app"))
-    {
-        let display = raw_name.strip_suffix(".app").unwrap_or(raw_name);
-        return (display.to_owned(), EntryKind::Application);
+    if entry.file_type().is_dir() {
+        if let Some(ext) = std::path::Path::new(raw_name).extension() {
+            if ext.eq_ignore_ascii_case("app") {
+                let display = raw_name.strip_suffix(".app").unwrap_or(raw_name);
+                return (display.to_owned(), EntryKind::Application);
+            }
+        }
     }
 
     if entry.file_type().is_dir() {
