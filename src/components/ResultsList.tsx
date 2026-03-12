@@ -1,5 +1,6 @@
-import { useEffect, useRef, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useRef, type KeyboardEvent } from "react";
 import { useSearchStore, type SearchResult } from "../stores/searchStore";
+import { openFile, hideWindow } from "../lib/commands";
 import styles from "./ResultsList.module.css";
 
 interface ResultsListProps {
@@ -61,6 +62,14 @@ export default function ResultsList({ onEscape }: ResultsListProps) {
   const moveSelection = useSearchStore((s) => s.moveSelection);
   const setSelectedIndex = useSearchStore((s) => s.setSelectedIndex);
 
+  const openResult = useCallback((result: SearchResult) => {
+    openFile(result.path)
+      .then(() => hideWindow())
+      .catch((err: unknown) => {
+        console.error("Failed to open file:", err);
+      });
+  }, []);
+
   // Scroll selected item into view
   useEffect(() => {
     const container = containerRef.current;
@@ -83,10 +92,14 @@ export default function ResultsList({ onEscape }: ResultsListProps) {
           moveSelection("up");
         }
         break;
-      case "Enter":
+      case "Enter": {
         e.preventDefault();
-        // Phase 3: open the selected result via Tauri command
+        const selected = results[selectedIndex];
+        if (selected) {
+          openResult(selected);
+        }
         break;
+      }
       case "Escape":
         e.preventDefault();
         onEscape();
@@ -123,6 +136,9 @@ export default function ResultsList({ onEscape }: ResultsListProps) {
           aria-selected={index === selectedIndex}
           onMouseEnter={() => {
             setSelectedIndex(index);
+          }}
+          onClick={() => {
+            openResult(result);
           }}
         >
           <KindIcon kind={result.kind} />

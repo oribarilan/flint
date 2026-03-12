@@ -4,9 +4,11 @@ import SearchBar from "./components/SearchBar";
 import ResultsList from "./components/ResultsList";
 import { useSearchStore } from "./stores/searchStore";
 import { hideWindow } from "./lib/commands";
+import { useSearch } from "./hooks/useSearch";
 import styles from "./App.module.css";
 
 export default function App() {
+  useSearch();
   const searchBarRef = useRef<HTMLInputElement | null>(null);
   const query = useSearchStore((s) => s.query);
   const clearSearch = useSearchStore((s) => s.clearSearch);

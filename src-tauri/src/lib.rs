@@ -1,19 +1,26 @@
 //! Flint — AI-native application launcher.
 //!
 //! This crate wires up the Tauri application: plugins, commands,
-//! global hotkey, and system tray.
+//! global hotkey, system tray, and background file indexing.
 
 mod commands;
+pub mod indexer;
+pub mod search;
 mod tray;
 mod window;
 
+use std::sync::{Arc, RwLock};
+
+use tauri::Manager;
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 use tracing_subscriber::EnvFilter;
+
+use indexer::FileIndex;
 
 /// Boot the Tauri application.
 ///
 /// Initialises tracing, registers plugins, commands, hotkey, and the
-/// system tray, then enters the event loop.
+/// system tray, spawns background file indexing, then enters the event loop.
 pub fn run() {
     // Initialise structured logging; default to `info` if RUST_LOG is unset.
     tracing_subscriber::fmt()
@@ -38,6 +45,8 @@ pub fn run() {
             commands::toggle_window,
             commands::show_window,
             commands::hide_window,
+            commands::search_files,
+            commands::open_file,
         ])
         .setup(|app| {
             // Register global hotkey (CmdOrCtrl+Shift+Space).
@@ -45,6 +54,17 @@ pub fn run() {
 
             // Build system tray icon + menu.
             tray::setup(app)?;
+
+            // Initialise file index as managed state and populate in background.
+            let index = Arc::new(RwLock::new(Vec::new()));
+            app.manage(FileIndex(index.clone()));
+
+            std::thread::spawn(move || {
+                let entries = indexer::build_index();
+                if let Ok(mut lock) = index.write() {
+                    *lock = entries;
+                }
+            });
 
             Ok(())
         })
