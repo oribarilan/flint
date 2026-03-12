@@ -1,0 +1,101 @@
+# Flint — Agent Instructions
+
+## Project Overview
+
+Flint is an AI-native application launcher built with Tauri v2. It provides a global hotkey-activated overlay for file search and AI chat, powered by a GitHub Copilot subscription via OAuth Device Flow.
+
+## Architecture
+
+- **Rust backend** (`src-tauri/`): File indexing, fuzzy search (nucleo), Copilot auth + chat API, window management, hotkey registration.
+- **React frontend** (`src/`): Search bar, results list, AI chat panel. State via Zustand. Bundled with Vite.
+- **IPC bridge**: All I/O and business logic lives in Rust. Frontend calls Rust via `tauri::command` invoke. Never use Node.js APIs for I/O.
+
+## Tech Stack
+
+| Layer | Choice |
+|-------|--------|
+| Shell | Tauri v2 (Rust) |
+| Frontend | React 18 + TypeScript (strict) + Vite |
+| State | Zustand |
+| AI | GitHub Copilot (OAuth Device Flow, shared client ID) |
+| Fuzzy search | `nucleo` crate |
+| HTTP | `reqwest` + `tokio` |
+| Secrets | `keyring` crate (OS keychain) |
+| Serialization | `serde` + `serde_json` |
+| FS events | `notify` crate (cross-platform) |
+
+## Commands
+
+```bash
+# Build
+cargo build                          # Rust backend
+npm run build                        # Frontend
+cargo tauri build                    # Full app bundle
+
+# Dev
+cargo tauri dev                      # Dev mode with hot reload
+
+# Test
+cargo test --all-features            # Rust tests
+npm run test                         # Frontend tests (Vitest)
+
+# Lint
+cargo clippy --all-targets --all-features -- -D warnings
+cargo fmt --check
+npm run lint                         # ESLint (strict)
+npm run format:check                 # Prettier
+```
+
+## Rust Conventions
+
+- **Error handling**: Use `Result`/`Option` everywhere. `thiserror` for library-style errors, `anyhow` only in top-level command handlers. Never `unwrap()`/`expect()` in production code.
+- **Naming**: `snake_case` for modules, functions, variables. Types are `PascalCase`.
+- **Structure**: One responsibility per module. Keep functions under 50 lines. Split early.
+- **Immutability**: Prefer `let` over `let mut`. Clone only when borrowing is not feasible.
+- **Iteration**: Prefer iterators and combinators over manual loops. Don't `.collect()` too early.
+- **Documentation**: `///` doc comments on all public items. `//!` for module-level docs.
+- **Linting**: Code must pass `cargo clippy -- -D warnings` and `cargo fmt --check`.
+- **Unsafe**: Never use `unsafe` unless there is a clear, documented justification.
+- **Dependencies**: Pin major versions in `Cargo.toml`. Audit new crates before adding.
+
+## TypeScript / React Conventions
+
+- **Components**: Functional only. PascalCase filenames and component names.
+- **Types**: Strict mode enabled. Explicit interfaces/types for props, state, and API responses. No `any`.
+- **Hooks**: Extract reusable logic into custom hooks (`useSearch`, `useAuth`, `useCopilotChat`). Prefix with `use`.
+- **State**: Local state by default. Zustand for cross-cutting concerns only.
+- **Naming**: `camelCase` functions/variables, `PascalCase` components/types, `UPPER_SNAKE` constants.
+- **Styling**: CSS Modules. No global styles in component files.
+- **Imports**: Use Vite path aliases. No `require()`. Environment via `import.meta.env`.
+
+## Tauri v2 Patterns
+
+- Every Rust-side capability is a `#[tauri::command]` function. Each command gets a matching TypeScript wrapper in `src/lib/commands.ts`.
+- Validate all IPC parameters on the Rust side before processing.
+- Use Tauri's plugin system (`tauri-plugin-global-shortcut`, `tauri-plugin-shell`, etc.) instead of reimplementing OS integrations.
+- Window configuration (borderless, always-on-top, transparent) is defined in `tauri.conf.json`, not programmatically unless dynamic behavior is needed.
+- Tokens and secrets go in the OS keychain via `keyring`. Never in localStorage, files, or frontend state.
+
+## Cross-Platform
+
+This app targets macOS, Windows, and Linux. All platform-specific code must use `#[cfg]` attributes (not `cfg!()` macro) with imports scoped inside conditional blocks. Prefer `unix`/`windows` families over specific OS names when possible. Isolate platform code into `mod platform` submodules with a shared interface. See `.claude/skills/crossplatform/` for detailed patterns.
+
+## Testing
+
+- **Rust**: Unit tests in same file (`#[cfg(test)] mod tests`). Integration tests in `tests/` dir. Cover all public functions with positive + negative cases.
+- **Frontend**: Vitest + React Testing Library. At least one test per component/hook. `describe`/`it` structure.
+- **Naming**: Descriptive test names — `should_return_empty_when_query_is_blank`, not `test1`.
+- **Mocking**: Mock Tauri IPC calls in frontend tests. Mock filesystem/network in Rust tests.
+
+## Security
+
+- Minimal OAuth scope: `read:user` only.
+- Tokens stored exclusively in OS keychain. Never logged, never sent to frontend state.
+- All user input validated at the Rust IPC boundary.
+- No secrets in source code. Use environment variables for dev-only config.
+- Dependencies audited via `cargo audit` and `npm audit`.
+
+## Git
+
+- Conventional commits: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`.
+- Small, focused commits. One logical change per commit.
