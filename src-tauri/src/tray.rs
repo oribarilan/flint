@@ -1,6 +1,7 @@
 //! System tray setup and menu event handling.
 
 use tauri::{
+    image::Image,
     menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem},
     tray::TrayIconBuilder,
     App,
@@ -32,8 +33,15 @@ pub fn setup(app: &App) -> Result<(), String> {
         .build()
         .map_err(|e| e.to_string())?;
 
+    let icon =
+        Image::from_path("icons/icon.png").map_err(|e| e.to_string())?;
+
     TrayIconBuilder::new()
+        .icon(icon.clone())
+        .icon_as_template(true)
+        .tooltip("Flint")
         .menu(&menu)
+        .show_menu_on_left_click(true)
         .on_menu_event(handle_menu_event)
         .build(app)
         .map_err(|e| e.to_string())?;
