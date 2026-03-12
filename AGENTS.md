@@ -4,6 +4,17 @@
 
 Flint is an AI-native application launcher built with Tauri v2. It provides a global hotkey-activated overlay for file search and AI chat, powered by a GitHub Copilot subscription via OAuth Device Flow.
 
+## Engineering Principles
+
+These are non-negotiable. When any of these are at risk, raise a red flag.
+
+1. **Single Responsibility.** Every class, struct, function, file, and module has one job. Files should stay under 500 LOC. When something grows beyond its scope, split it.
+2. **DRY.** One source of truth. Don't duplicate logic, constants, types, or configuration. Extract shared code early.
+3. **KISS.** Both implementation and UX must be simple and elegant. Prefer the straightforward solution. Complexity must justify itself.
+4. **Clean Code.** Readable, intention-revealing names. No dead code, no commented-out code. Small functions. Code should explain itself; comments explain *why*, not *what*.
+5. **Unit Tests.** Every module ships with isolated unit tests. Coverage should be very high — all public functions, positive + negative cases, edge cases. Tests are not optional.
+6. **TDD When Debugging.** When an issue surfaces, write a failing test first if feasible, then fix and see it go green. Regression tests are mandatory for bugs.
+
 ## Architecture
 
 - **Rust backend** (`src-tauri/`): File indexing, fuzzy search (nucleo), Copilot auth + chat API, window management, hotkey registration.
