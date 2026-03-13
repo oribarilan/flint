@@ -1,17 +1,30 @@
+import { useState } from "react";
 import type { FlintConfig } from "../../lib/commands";
 import styles from "./settings.module.css";
 
 interface GeneralSettingsProps {
   config: FlintConfig;
   onUpdate: (config: FlintConfig) => Promise<void>;
+  onResetSection: (section: keyof FlintConfig) => Promise<FlintConfig | undefined>;
 }
 
-export default function GeneralSettings({ config, onUpdate }: GeneralSettingsProps) {
+export default function GeneralSettings({
+  config,
+  onUpdate,
+  onResetSection,
+}: GeneralSettingsProps) {
+  const [confirming, setConfirming] = useState(false);
+
   const handleLaunchToggle = () => {
     void onUpdate({
       ...config,
       general: { ...config.general, launch_at_login: !config.general.launch_at_login },
     });
+  };
+
+  const handleResetDefaults = async () => {
+    await onResetSection("general");
+    setConfirming(false);
   };
 
   return (
@@ -37,6 +50,34 @@ export default function GeneralSettings({ config, onUpdate }: GeneralSettingsPro
           />
         </div>
       </section>
+
+      <div className={styles.resetRow}>
+        {confirming ? (
+          <>
+            <span className={styles.resetConfirmText}>Reset general settings to defaults?</span>
+            <button className={styles.buttonGhost} onClick={() => void handleResetDefaults()}>
+              Confirm
+            </button>
+            <button
+              className={styles.buttonGhost}
+              onClick={() => {
+                setConfirming(false);
+              }}
+            >
+              Cancel
+            </button>
+          </>
+        ) : (
+          <button
+            className={styles.buttonGhost}
+            onClick={() => {
+              setConfirming(true);
+            }}
+          >
+            Restore Defaults
+          </button>
+        )}
+      </div>
     </div>
   );
 }

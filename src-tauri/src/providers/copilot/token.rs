@@ -1,16 +1,16 @@
-//! Copilot token storage (keychain) and refresh logic.
+//! Copilot token storage and refresh logic.
 //!
 //! Manages two credentials:
-//! - **GitHub access token** — long-lived, stored in OS keychain.
-//! - **Copilot API token** — short-lived (~30 min), cached in memory + keychain.
+//! - **GitHub access token** — long-lived, stored via [`credential_store`](super::credential_store).
+//! - **Copilot API token** — short-lived (~30 min), cached in memory + credential store.
 
 use std::sync::Arc;
 
 use tokio::sync::RwLock;
 
 use super::auth::{self, CopilotToken};
+use super::credential_store;
 
-const KEYRING_SERVICE: &str = "sh.oribi.flint";
 const GITHUB_TOKEN_KEY: &str = "github_access_token";
 const COPILOT_TOKEN_KEY: &str = "copilot_token";
 
@@ -30,9 +30,9 @@ pub enum TokenError {
     /// The Copilot token refresh failed.
     #[error("token refresh failed: {0}")]
     RefreshFailed(String),
-    /// An OS keychain operation failed.
-    #[error("keychain error: {0}")]
-    Keychain(String),
+    /// A credential storage operation failed.
+    #[error("storage error: {0}")]
+    Storage(String),
 }
 
 // ---------------------------------------------------------------------------
@@ -57,10 +57,10 @@ pub struct TokenManager {
 }
 
 impl TokenManager {
-    /// Create a new manager, loading any persisted tokens from the keychain.
+    /// Create a new manager, loading any persisted tokens from the credential store.
     pub fn new(client: reqwest::Client) -> Self {
-        let github_token = load_from_keychain(GITHUB_TOKEN_KEY);
-        let copilot_token = load_from_keychain(COPILOT_TOKEN_KEY)
+        let github_token = credential_store::load(GITHUB_TOKEN_KEY);
+        let copilot_token = credential_store::load(COPILOT_TOKEN_KEY)
             .and_then(|json| serde_json::from_str::<CopilotToken>(&json).ok());
 
         let state = TokenState { github_token, copilot_token };
@@ -70,7 +70,7 @@ impl TokenManager {
 
     /// Persist a GitHub access token after a successful device-flow auth.
     pub async fn store_github_token(&self, token: &str) -> Result<(), TokenError> {
-        save_to_keychain(GITHUB_TOKEN_KEY, token)?;
+        credential_store::save(GITHUB_TOKEN_KEY, token).map_err(TokenError::Storage)?;
         self.state.write().await.github_token = Some(token.to_owned());
         tracing::info!("github access token stored");
         Ok(())
@@ -78,9 +78,8 @@ impl TokenManager {
 
     /// Persist a Copilot token after a successful exchange.
     pub async fn store_copilot_token(&self, token: CopilotToken) -> Result<(), TokenError> {
-        let json =
-            serde_json::to_string(&token).map_err(|e| TokenError::Keychain(e.to_string()))?;
-        save_to_keychain(COPILOT_TOKEN_KEY, &json)?;
+        let json = serde_json::to_string(&token).map_err(|e| TokenError::Storage(e.to_string()))?;
+        credential_store::save(COPILOT_TOKEN_KEY, &json).map_err(TokenError::Storage)?;
         self.state.write().await.copilot_token = Some(token);
         tracing::info!("copilot token stored");
         Ok(())
@@ -113,8 +112,8 @@ impl TokenManager {
 
     /// Clear all stored tokens (sign out).
     pub async fn sign_out(&self) {
-        delete_from_keychain(GITHUB_TOKEN_KEY);
-        delete_from_keychain(COPILOT_TOKEN_KEY);
+        credential_store::delete(GITHUB_TOKEN_KEY);
+        credential_store::delete(COPILOT_TOKEN_KEY);
         *self.state.write().await = TokenState::default();
         tracing::info!("signed out — all tokens cleared");
     }
@@ -149,24 +148,4 @@ impl TokenManager {
 fn is_expired(token: &CopilotToken) -> bool {
     let now = chrono::Utc::now().timestamp();
     token.expires_at - REFRESH_BUFFER_SECS <= now
-}
-
-/// Load a value from the OS keychain. Returns `None` on any failure.
-fn load_from_keychain(key: &str) -> Option<String> {
-    keyring::Entry::new(KEYRING_SERVICE, key).ok().and_then(|entry| entry.get_password().ok())
-}
-
-/// Save a value to the OS keychain.
-fn save_to_keychain(key: &str, value: &str) -> Result<(), TokenError> {
-    keyring::Entry::new(KEYRING_SERVICE, key)
-        .map_err(|e| TokenError::Keychain(e.to_string()))?
-        .set_password(value)
-        .map_err(|e| TokenError::Keychain(e.to_string()))
-}
-
-/// Delete a value from the OS keychain. Silently ignores errors.
-fn delete_from_keychain(key: &str) {
-    if let Ok(entry) = keyring::Entry::new(KEYRING_SERVICE, key) {
-        let _ = entry.delete_credential();
-    }
 }

@@ -3,10 +3,12 @@ import { renderHook, act, cleanup, waitFor } from "@testing-library/react";
 import type { FlintConfig } from "../../lib/commands";
 
 const mockGetConfig = vi.fn<() => Promise<FlintConfig>>();
+const mockGetDefaultConfig = vi.fn<() => Promise<FlintConfig>>();
 const mockUpdateConfig = vi.fn<(config: FlintConfig) => Promise<void>>();
 
 vi.mock("../../lib/commands", () => ({
   getConfig: (...args: unknown[]) => mockGetConfig(...(args as [])),
+  getDefaultConfig: (...args: unknown[]) => mockGetDefaultConfig(...(args as [])),
   updateConfig: (...args: unknown[]) => mockUpdateConfig(...(args as [FlintConfig])),
 }));
 
@@ -14,7 +16,7 @@ import { useConfig } from "../useConfig";
 
 const DEFAULT_CONFIG: FlintConfig = {
   general: { hotkey: "CmdOrCtrl+Space", launch_at_login: false },
-  appearance: { font_size: "medium" },
+  appearance: { font_size: "medium", theme: "flint" },
   search: { directories: ["/Users/test"], exclude: ["node_modules"], max_depth: 5 },
   chat: { default_model: "gpt-4o" },
   kits: {},
@@ -88,5 +90,40 @@ describe("useConfig", () => {
 
     expect(mockUpdateConfig).toHaveBeenCalledWith(updated);
     expect(result.current.config).toEqual(updated);
+  });
+
+  it("should reset a section to defaults", async () => {
+    const DEFAULTS: FlintConfig = {
+      general: { hotkey: "CmdOrCtrl+Shift+Space", launch_at_login: false },
+      appearance: { font_size: "small", theme: "flint" },
+      search: { directories: ["~/Desktop"], exclude: ["node_modules"], max_depth: 6 },
+      chat: { default_model: "gpt-4.1" },
+      kits: {},
+    };
+    mockGetDefaultConfig.mockResolvedValue(DEFAULTS);
+
+    const { result } = renderHook(() => useConfig());
+    await waitFor(() => {
+      expect(result.current.config).toEqual(DEFAULT_CONFIG);
+    });
+
+    await act(async () => {
+      const updated = await result.current.resetSection("chat");
+      expect(updated?.chat).toEqual(DEFAULTS.chat);
+    });
+
+    expect(mockGetDefaultConfig).toHaveBeenCalledOnce();
+    expect(mockUpdateConfig).toHaveBeenCalled();
+    expect(result.current.config?.chat.default_model).toBe("gpt-4.1");
+  });
+
+  it("should return undefined when resetting before config loads", async () => {
+    mockGetConfig.mockImplementation(() => new Promise(() => {})); // never resolves
+    const { result } = renderHook(() => useConfig());
+
+    // Config is still null
+    const returned = await result.current.resetSection("general");
+    expect(returned).toBeUndefined();
+    expect(mockGetDefaultConfig).not.toHaveBeenCalled();
   });
 });

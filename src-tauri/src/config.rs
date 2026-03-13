@@ -39,6 +39,8 @@ pub struct GeneralConfig {
 pub struct AppearanceConfig {
     /// Font size preset: "extra-small", "small", "medium", or "large".
     pub font_size: String,
+    /// Color theme: "flint", "tokyonight", "catppuccin", "rosepine", or "gruvbox".
+    pub theme: String,
 }
 
 /// File search settings.
@@ -90,7 +92,7 @@ impl Default for GeneralConfig {
 
 impl Default for AppearanceConfig {
     fn default() -> Self {
-        Self { font_size: "small".to_owned() }
+        Self { font_size: "small".to_owned(), theme: "flint".to_owned() }
     }
 }
 
@@ -268,6 +270,7 @@ launch_at_login = true
 
 [appearance]
 font_size = "large"
+theme = "tokyonight"
 
 [search]
 directories = ["~/Projects"]
@@ -281,6 +284,7 @@ default_model = "gpt-4o"
         assert_eq!(config.general.hotkey, "Ctrl+Space");
         assert!(config.general.launch_at_login);
         assert_eq!(config.appearance.font_size, "large");
+        assert_eq!(config.appearance.theme, "tokyonight");
         assert_eq!(config.search.directories, vec!["~/Projects"]);
         assert_eq!(config.search.exclude, vec![".git"]);
         assert_eq!(config.search.max_depth, 3);
@@ -296,6 +300,17 @@ hotkey = "Alt+Space"
         let config: FlintConfig = toml::from_str(toml_str).unwrap();
         assert_eq!(config.general.hotkey, "Alt+Space");
         assert!(!config.general.launch_at_login);
+    }
+
+    #[test]
+    fn should_default_theme_when_missing() {
+        let toml_str = r#"
+[appearance]
+font_size = "large"
+"#;
+        let config: FlintConfig = toml::from_str(toml_str).unwrap();
+        assert_eq!(config.appearance.font_size, "large");
+        assert_eq!(config.appearance.theme, "flint");
     }
 
     #[test]

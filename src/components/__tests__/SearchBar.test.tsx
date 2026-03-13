@@ -80,6 +80,37 @@ describe("SearchBar", () => {
     expect(onArrowDown).toHaveBeenCalledTimes(1);
   });
 
+  it("Enter in search mode calls onSubmitSearch", () => {
+    const onSubmitSearch = vi.fn();
+    render(<SearchBar onArrowDown={vi.fn()} onSubmitSearch={onSubmitSearch} />);
+
+    const input = screen.getByRole("textbox");
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(onSubmitSearch).toHaveBeenCalledTimes(1);
+  });
+
+  it("ArrowUp calls onArrowUp in search mode", () => {
+    const onArrowUp = vi.fn();
+    render(<SearchBar onArrowDown={vi.fn()} onArrowUp={onArrowUp} />);
+
+    const input = screen.getByRole("textbox");
+    fireEvent.keyDown(input, { key: "ArrowUp" });
+
+    expect(onArrowUp).toHaveBeenCalledTimes(1);
+  });
+
+  it("ArrowUp does not call onArrowUp in chat mode", () => {
+    useSearchStore.setState({ mode: "chat" });
+    const onArrowUp = vi.fn();
+    render(<SearchBar onArrowDown={vi.fn()} onArrowUp={onArrowUp} />);
+
+    const input = screen.getByRole("textbox");
+    fireEvent.keyDown(input, { key: "ArrowUp" });
+
+    expect(onArrowUp).not.toHaveBeenCalled();
+  });
+
   it("shows search placeholder in search mode", () => {
     render(<SearchBar onArrowDown={vi.fn()} />);
 

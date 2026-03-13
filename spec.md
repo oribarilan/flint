@@ -29,6 +29,8 @@ Flint has two modes, toggled with **Tab**:
 
 Standard launcher behavior:
 - Type → fuzzy match against indexed files and apps → arrow keys to navigate → Enter to open.
+- The first result is auto-selected. Enter immediately opens it without needing to arrow-down first.
+- The cursor stays in the search bar at all times — arrow keys move the selection while keeping the input focused for continued typing.
 - Results appear instantly (sub-10ms target per keystroke).
 - Escape clears query or dismisses window (see Escape layering below).
 
@@ -58,7 +60,7 @@ Each press handles exactly one layer.
 
 ## Settings
 
-A separate, persistent window opened from the tray menu ("Settings...") or via a Tauri command. Same visual language as the launcher — dark theme, glassmorphism, system font — but in a standard windowed layout with sidebar navigation.
+A separate, persistent window opened from the tray menu ("Settings…"), via **Cmd+,** (macOS) / **Ctrl+,**, or via a Tauri command. Same visual language as the launcher — themed, glassmorphism, system font — but in a standard windowed layout with sidebar navigation.
 
 ### Structure
 
@@ -69,8 +71,10 @@ Sidebar on the left lists setting categories. Content area on the right shows th
 | Category | Description | Initial Settings |
 |----------|-------------|------------------|
 | **General** | App behavior & system integration | Launch at login, global hotkey configuration |
+| **Appearance** | Visual customization | Color theme (7 dark + 2 light themes), font size preset |
 | **Chat** | AI provider connections & model preferences | Provider auth (GitHub Copilot), default model, future: additional providers |
 | **Search** | File indexing scope & filtering | Indexed directories, exclude patterns, max depth |
+| **Kits** | First-party and third-party kit management | Per-kit enable/disable toggle |
 
 #### Design Principles
 
@@ -87,6 +91,10 @@ Location: `~/.config/flint/config.toml` (follows XDG on Linux/macOS, `%APPDATA%\
 [general]
 hotkey = "CmdOrCtrl+Shift+Space"
 launch_at_login = false
+
+[appearance]
+font_size = "small"       # extra-small | small | medium | large
+theme = "flint"           # flint | tokyonight | catppuccin | rosepine | gruvbox | github-light | catppuccin-latte
 
 [search]
 directories = ["~/Desktop", "~/Documents", "~/Downloads", "/Applications"]
@@ -118,9 +126,15 @@ default_model = "gpt-4.1"
 └──────────────────────────────────────────┘
 ```
 
+#### Appearance Settings Detail
+
+- **Theme**: Grid of swatches showing each theme's accent + background colors. Clicking applies instantly. 5 dark themes (Flint, Tokyo Night, Catppuccin Mocha, Rosé Pine, Gruvbox) + 2 light themes (GitHub Light, Catppuccin Latte).
+- **Font size**: Segmented control — Extra Small / Small / Medium / Large.
+
 #### Chat Settings Detail
 
-- **Provider section**: Shows connected providers with status (Connected / Not connected), sign in / sign out buttons. Currently only GitHub Copilot.
+- **Provider section**: GitHub Copilot shown as a provider card with icon, name, description, and connection status. When connected, the model selector appears within the card. When disconnected, a "Connect" button triggers the device flow.
+- **Device flow**: Click Connect → user code displayed prominently with a Copy button → 7-second countdown → browser opens to GitHub device login → polling until authorized.
 - **Model selection**: Dropdown to choose the default model (e.g., gpt-4.1, claude-sonnet-4). Populated from the provider's known model list.
 - Future: additional provider cards (OpenAI API key, Anthropic, etc.) appear as new rows in the same section.
 
@@ -128,13 +142,17 @@ default_model = "gpt-4.1"
 
 - **Launch at login**: Toggle (on/off). Uses platform autostart APIs.
 - **Global hotkey**: Editable shortcut field. Default: `Cmd+Shift+Space`.
-- Future: theme, notification preferences, etc.
 
 #### Search Settings Detail
 
 - **Indexed directories**: List with add/remove. Default: `~/Desktop`, `~/Documents`, `~/Downloads`, `/Applications`.
 - **Exclude patterns**: Editable list. Default: `node_modules`, `.git`, `target`, etc.
-- Future: max depth, re-index button, index stats.
+- **Max depth**: Number input (1–10). Default: 6.
+- Future: re-index button, index stats.
+
+#### Restore Defaults
+
+Each settings page has a "Restore Defaults" button at the bottom. Clicking shows an inline confirmation, then resets that section to compile-time defaults. Side-effects (font size, theme) are applied immediately.
 
 ## Future (deferred)
 

@@ -5,6 +5,7 @@ import styles from "./settings.module.css";
 interface SearchSettingsProps {
   config: FlintConfig;
   onUpdate: (config: FlintConfig) => Promise<void>;
+  onResetSection: (section: keyof FlintConfig) => Promise<FlintConfig | undefined>;
 }
 
 function useInlineAdd(onAdd: (value: string) => void) {
@@ -37,7 +38,9 @@ function useInlineAdd(onAdd: (value: string) => void) {
   return { isAdding, setIsAdding, inputValue, setInputValue, inputRef, handleKeyDown, handleBlur };
 }
 
-export default function SearchSettings({ config, onUpdate }: SearchSettingsProps) {
+export default function SearchSettings({ config, onUpdate, onResetSection }: SearchSettingsProps) {
+  const [confirming, setConfirming] = useState(false);
+
   const dirs = useInlineAdd((value) => {
     const updated = [...config.search.directories, value];
     void onUpdate({ ...config, search: { ...config.search, directories: updated } });
@@ -62,6 +65,11 @@ export default function SearchSettings({ config, onUpdate }: SearchSettingsProps
     const clamped = Math.max(1, Math.min(10, value));
     void onUpdate({ ...config, search: { ...config.search, max_depth: clamped } });
   }
+
+  const handleResetDefaults = async () => {
+    await onResetSection("search");
+    setConfirming(false);
+  };
 
   return (
     <div className={styles.page}>
@@ -180,6 +188,34 @@ export default function SearchSettings({ config, onUpdate }: SearchSettingsProps
           />
         </div>
       </section>
+
+      <div className={styles.resetRow}>
+        {confirming ? (
+          <>
+            <span className={styles.resetConfirmText}>Reset search settings to defaults?</span>
+            <button className={styles.buttonGhost} onClick={() => void handleResetDefaults()}>
+              Confirm
+            </button>
+            <button
+              className={styles.buttonGhost}
+              onClick={() => {
+                setConfirming(false);
+              }}
+            >
+              Cancel
+            </button>
+          </>
+        ) : (
+          <button
+            className={styles.buttonGhost}
+            onClick={() => {
+              setConfirming(true);
+            }}
+          >
+            Restore Defaults
+          </button>
+        )}
+      </div>
     </div>
   );
 }

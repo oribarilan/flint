@@ -264,8 +264,9 @@
 
 .statusBadge {
   color: var(--color-success);
-  font-size: var(--font-md);
+  font-size: var(--font-sm);
   font-weight: 500;
+  flex-shrink: 0;
 }
 
 .statusBadge::before {
@@ -275,7 +276,8 @@
 
 .statusDisconnected {
   color: var(--text-secondary);
-  font-size: var(--font-md);
+  font-size: var(--font-sm);
+  flex-shrink: 0;
 }
 
 /* ── Buttons ──────────────────────────────────────────────── */
@@ -307,11 +309,76 @@
   opacity: 1;
 }
 
+/* ── Provider card ────────────────────────────────────────── */
+
+.providerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding-bottom: var(--space-md);
+  margin-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.providerInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+.providerIcon {
+  width: var(--icon-lg);
+  height: var(--icon-lg);
+  flex-shrink: 0;
+  color: var(--text-primary);
+}
+
+.providerName {
+  display: block;
+  font-size: var(--font-md);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.providerDesc {
+  display: block;
+  font-size: var(--font-xs);
+  color: var(--text-secondary);
+  margin-top: 1px;
+}
+
+.providerConnect {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) 0 var(--space-xs);
+}
+
+.providerPlaceholder {
+  border: 1px dashed var(--border-active);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg) var(--space-2xl);
+  text-align: center;
+}
+
+.providerPlaceholderText {
+  font-size: var(--font-sm);
+  color: var(--text-placeholder);
+}
+
 /* ── Device flow ──────────────────────────────────────────── */
 
 .deviceFlow {
   text-align: center;
-  padding: var(--space-md) 0;
+  padding: var(--space-lg) 0 var(--space-sm);
+}
+
+.deviceFlowStep {
+  font-size: var(--font-md);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-xs);
 }
 
 .code {
@@ -321,12 +388,49 @@
   font-family: var(--font-mono);
   color: var(--accent);
   letter-spacing: 0.15em;
-  margin: var(--space-md) auto 14px;
+  margin: var(--space-sm) auto var(--space-sm);
   padding: var(--space-md) var(--space-xl);
   background: var(--bg-accent-subtle);
   border: 1px solid rgba(99, 102, 241, 0.15);
   border-radius: var(--radius-md);
   width: fit-content;
+}
+
+.codeRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.copyButton {
+  padding: var(--space-xs) var(--space-md);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--font-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.copyButton:hover {
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+  background: var(--bg-hover);
+}
+
+.copyButtonDone {
+  composes: copyButton;
+  color: var(--color-success);
+  border-color: var(--color-success);
+}
+
+.countdown {
+  font-size: var(--font-md);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
 .waiting {
@@ -358,6 +462,79 @@
   position: absolute;
   left: 0;
   top: 0;
+}
+
+/* ── Reset row ────────────────────────────────────────────── */
+
+.resetRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding-top: var(--space-sm);
+}
+
+.resetConfirmText {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+}
+
+/* ── Segmented control ────────────────────────────────────── */
+
+.themeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: var(--space-md);
+}
+
+.themeCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.themeCard:hover {
+  background: var(--bg-hover);
+}
+
+.themeCardActive {
+  composes: themeCard;
+  background: var(--bg-accent-subtle);
+}
+
+.themeSwatch {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius-sm);
+  border: 2px solid transparent;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: var(--space-xs);
+  transition: border-color var(--transition-fast);
+}
+
+.themeAccent {
+  width: 20px;
+  height: 4px;
+  border-radius: var(--radius-full);
+}
+
+.themeLabel {
+  font-size: var(--font-xs);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.themeCardActive .themeLabel {
+  color: var(--text-primary);
+  font-weight: 500;
 }
 
 /* ── Segmented control ────────────────────────────────────── */

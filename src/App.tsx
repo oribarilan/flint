@@ -7,8 +7,9 @@ import AuthPrompt from "./components/AuthPrompt";
 import HintBar from "./components/HintBar";
 import { useSearchStore } from "./stores/searchStore";
 import { useChatStore } from "./stores/chatStore";
-import { hideWindow, getAuthStatus, sendChatMessage } from "./lib/commands";
-import { focusSearchBar } from "./lib/focus";
+import { hideWindow, getAuthStatus, sendChatMessage, getConfig } from "./lib/commands";
+import { focusSearchBar, shouldHideOnBlur } from "./lib/focus";
+import { applyFontSize, applyTheme } from "./lib/applyTheme";
 import { useSearch } from "./hooks/useSearch";
 import { useChat } from "./hooks/useChat";
 import { useKeybindings } from "./hooks/useKeybindings";
@@ -49,6 +50,7 @@ export default function App() {
     if (text.length === 0) return;
 
     addUserMessage(text);
+    useSearchStore.getState().setQuery("");
     sendChatMessage(text).catch((err: unknown) => {
       console.error("Failed to send chat message:", err);
     });
@@ -82,10 +84,20 @@ export default function App() {
 
       const unlisten = await appWindow.onFocusChanged(({ payload: focused }) => {
         if (!focused) {
-          void hideWindow();
+          if (shouldHideOnBlur()) {
+            void hideWindow();
+          }
         } else {
           refreshAuth();
           focusSearchBar();
+          // Re-apply appearance in case settings changed in another window
+          getConfig()
+            .then((cfg) => {
+              applyFontSize(cfg.appearance.font_size);
+              applyTheme(cfg.appearance.theme);
+            })
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
+            .catch(() => {});
           // Preserve active chat sessions across hide/show
           const hasChat = useChatStore.getState().messages.length > 0;
           if (!hasChat) {
@@ -109,10 +121,17 @@ export default function App() {
     <div className={styles.launcher}>
       <SearchBar
         onArrowDown={() => {
-          const list = document.querySelector<HTMLDivElement>("[role='listbox']");
-          list?.focus();
+          useSearchStore.getState().moveSelection("down");
+        }}
+        onArrowUp={() => {
+          useSearchStore.getState().moveSelection("up");
         }}
         onSendChat={handleSendChat}
+        onSubmitSearch={() => {
+          const { results, selectedIndex } = useSearchStore.getState();
+          const result = results[selectedIndex];
+          if (result) executeDefaultAction(result);
+        }}
       />
       {showAuthPrompt && <AuthPrompt />}
       {showChat && <ChatPanel />}

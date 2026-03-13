@@ -6,6 +6,7 @@
 mod commands;
 pub mod config;
 mod error;
+mod focus;
 mod icons;
 pub mod indexer;
 pub mod kits;
@@ -64,6 +65,7 @@ pub fn run() {
             commands::send_chat_message,
             commands::sign_out,
             commands::get_config,
+            commands::get_default_config,
             commands::update_config,
             commands::get_kit_manifests,
         ])

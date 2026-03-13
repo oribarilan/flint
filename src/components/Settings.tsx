@@ -19,7 +19,7 @@ const PAGES: { id: SettingsPage; label: string }[] = [
 
 export default function Settings() {
   const [activePage, setActivePage] = useState<SettingsPage>("general");
-  const { config, isLoading, update } = useConfig();
+  const { config, isLoading, update, resetSection } = useConfig();
 
   if (isLoading || !config) {
     return <div className={styles.container}>Loading…</div>;
@@ -43,10 +43,18 @@ export default function Settings() {
         <div className={styles.version}>v0.1.0</div>
       </nav>
       <main className={styles.content}>
-        {activePage === "general" && <GeneralSettings config={config} onUpdate={update} />}
-        {activePage === "appearance" && <AppearanceSettings config={config} onUpdate={update} />}
-        {activePage === "chat" && <ChatSettings config={config} onUpdate={update} />}
-        {activePage === "search" && <SearchSettings config={config} onUpdate={update} />}
+        {activePage === "general" && (
+          <GeneralSettings config={config} onUpdate={update} onResetSection={resetSection} />
+        )}
+        {activePage === "appearance" && (
+          <AppearanceSettings config={config} onUpdate={update} onResetSection={resetSection} />
+        )}
+        {activePage === "chat" && (
+          <ChatSettings config={config} onUpdate={update} onResetSection={resetSection} />
+        )}
+        {activePage === "search" && (
+          <SearchSettings config={config} onUpdate={update} onResetSection={resetSection} />
+        )}
         {activePage === "kits" && <KitsSettings config={config} onUpdate={update} />}
       </main>
     </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { open } from "@tauri-apps/plugin-shell";
 import {
   startCopilotAuth,
@@ -20,53 +20,131 @@ const COPILOT_MODELS = [
   { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
 ];
 
+/** Countdown duration before opening the browser (seconds). */
+const COUNTDOWN_SECONDS = 7;
+
 interface ChatSettingsProps {
   config: FlintConfig;
   onUpdate: (config: FlintConfig) => Promise<void>;
+  onResetSection: (section: keyof FlintConfig) => Promise<FlintConfig | undefined>;
 }
 
-export default function ChatSettings({ config, onUpdate }: ChatSettingsProps) {
+// ---------------------------------------------------------------------------
+// Device flow hook — encapsulates the countdown + clipboard + polling logic
+// ---------------------------------------------------------------------------
+
+type DeviceFlowPhase = "idle" | "code-shown" | "polling" | "done";
+
+function useDeviceFlow(onAuthComplete: () => void) {
+  const [phase, setPhase] = useState<DeviceFlowPhase>("idle");
+  const [deviceInfo, setDeviceInfo] = useState<DeviceCodeResponse | null>(null);
+  const [countdown, setCountdown] = useState(0);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const cleanup = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => cleanup, [cleanup]);
+
+  const start = useCallback(async () => {
+    cleanup();
+    setError(null);
+    setCopied(false);
+
+    try {
+      const info = await startCopilotAuth();
+      setDeviceInfo(info);
+      setPhase("code-shown");
+
+      // Start countdown
+      setCountdown(COUNTDOWN_SECONDS);
+      let remaining = COUNTDOWN_SECONDS;
+
+      timerRef.current = setInterval(() => {
+        remaining -= 1;
+        setCountdown(remaining);
+
+        if (remaining <= 0) {
+          cleanup();
+          setPhase("polling");
+          void open(info.verification_uri);
+
+          // Start polling for authorization
+          completeCopilotAuth(info.device_code, info.interval)
+            .then(() => {
+              setPhase("done");
+              onAuthComplete();
+            })
+            .catch((err: unknown) => {
+              const message = err instanceof Error ? err.message : String(err);
+              setError(message);
+              setPhase("idle");
+            });
+        }
+      }, 1000);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message);
+      setPhase("idle");
+    }
+  }, [cleanup, onAuthComplete]);
+
+  const reset = useCallback(() => {
+    cleanup();
+    setPhase("idle");
+    setDeviceInfo(null);
+    setCountdown(0);
+    setCopied(false);
+    setError(null);
+  }, [cleanup]);
+
+  const copyCode = useCallback(async () => {
+    if (!deviceInfo) return;
+    try {
+      await navigator.clipboard.writeText(deviceInfo.user_code);
+      setCopied(true);
+    } catch {
+      // Clipboard access denied — user can copy manually
+    }
+  }, [deviceInfo]);
+
+  return { phase, deviceInfo, countdown, copied, error, start, reset, copyCode };
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
+export default function ChatSettings({ config, onUpdate, onResetSection }: ChatSettingsProps) {
   const [authStatus, setAuthStatus] = useState<AuthStatus>({
     authenticated: false,
     username: null,
   });
-  const [deviceInfo, setDeviceInfo] = useState<DeviceCodeResponse | null>(null);
-  const [isPolling, setIsPolling] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
-  useEffect(() => {
+  const refreshAuth = useCallback(() => {
     getAuthStatus()
       .then(setAuthStatus)
-      .catch(() => {
-        // Auth check is best-effort
-      });
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      .catch(() => {});
   }, []);
 
-  const handleSignIn = async () => {
-    setError(null);
-    try {
-      const info = await startCopilotAuth();
-      setDeviceInfo(info);
+  useEffect(() => {
+    refreshAuth();
+  }, [refreshAuth]);
 
-      await open(info.verification_uri);
-
-      setIsPolling(true);
-      await completeCopilotAuth(info.device_code, info.interval);
-
-      const status = await getAuthStatus();
-      setAuthStatus(status);
-      setDeviceInfo(null);
-      setIsPolling(false);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      setError(message);
-      setIsPolling(false);
-    }
-  };
+  const deviceFlow = useDeviceFlow(refreshAuth);
 
   const handleSignOut = async () => {
     await signOut();
     setAuthStatus({ authenticated: false, username: null });
+    deviceFlow.reset();
   };
 
   const handleModelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -76,55 +154,146 @@ export default function ChatSettings({ config, onUpdate }: ChatSettingsProps) {
     });
   };
 
+  const handleResetDefaults = async () => {
+    await onResetSection("chat");
+    setConfirming(false);
+  };
+
   return (
     <div className={styles.page}>
       <h2 className={styles.pageTitle}>Chat</h2>
 
+      {/* ── GitHub Copilot provider card ─────────────────────── */}
       <section className={styles.section}>
-        <h3 className={styles.sectionTitle}>Provider</h3>
-
-        {authStatus.authenticated ? (
-          <div className={styles.row}>
+        <div className={styles.providerHeader}>
+          <div className={styles.providerInfo}>
+            <svg
+              className={styles.providerIcon}
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.604-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.268 2.75 1.026A9.578 9.578 0 0112 6.836a9.59 9.59 0 012.504.337c1.909-1.294 2.747-1.026 2.747-1.026.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.162 22 16.416 22 12c0-5.523-4.477-10-10-10z" />
+            </svg>
+            <div>
+              <span className={styles.providerName}>GitHub Copilot</span>
+              <span className={styles.providerDesc}>
+                Models from OpenAI, Anthropic, and Google via your GitHub subscription
+              </span>
+            </div>
+          </div>
+          {authStatus.authenticated ? (
             <span className={styles.statusBadge}>Connected</span>
-            <button className={styles.buttonGhost} onClick={() => void handleSignOut()}>
-              Sign Out
-            </button>
-          </div>
-        ) : deviceInfo ? (
-          <div className={styles.deviceFlow}>
-            <p className={styles.label}>Enter this code on GitHub:</p>
-            <code className={styles.code}>{deviceInfo.user_code}</code>
-            {isPolling && <p className={styles.waiting}>Waiting for authorization…</p>}
-            {error && <p className={styles.error}>{error}</p>}
-          </div>
-        ) : (
-          <div className={styles.row}>
+          ) : (
             <span className={styles.statusDisconnected}>Not connected</span>
-            <button className={styles.button} onClick={() => void handleSignIn()}>
-              Sign in with GitHub
-            </button>
-          </div>
+          )}
+        </div>
+
+        {/* Connection controls */}
+        {authStatus.authenticated ? (
+          <>
+            <div className={styles.row}>
+              <span className={styles.label}>Default model</span>
+              <select
+                className={styles.select}
+                value={config.chat.default_model}
+                onChange={handleModelChange}
+              >
+                {COPILOT_MODELS.map((model) => (
+                  <option key={model.id} value={model.id}>
+                    {model.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className={styles.row}>
+              <span />
+              <button className={styles.buttonGhost} onClick={() => void handleSignOut()}>
+                Disconnect
+              </button>
+            </div>
+          </>
+        ) : (
+          <DeviceFlowUI flow={deviceFlow} />
         )}
-        {!deviceInfo && error && <p className={styles.error}>{error}</p>}
       </section>
 
-      <section className={styles.section}>
-        <h3 className={styles.sectionTitle}>Model</h3>
-        <div className={styles.row}>
-          <span className={styles.label}>Default model</span>
-          <select
-            className={styles.select}
-            value={config.chat.default_model}
-            onChange={handleModelChange}
-          >
-            {COPILOT_MODELS.map((model) => (
-              <option key={model.id} value={model.id}>
-                {model.label}
-              </option>
-            ))}
-          </select>
-        </div>
+      {/* ── Future providers placeholder ────────────────────── */}
+      <section className={styles.providerPlaceholder}>
+        <span className={styles.providerPlaceholderText}>More providers coming soon</span>
       </section>
+
+      <div className={styles.resetRow}>
+        {confirming ? (
+          <>
+            <span className={styles.resetConfirmText}>Reset chat settings to defaults?</span>
+            <button className={styles.buttonGhost} onClick={() => void handleResetDefaults()}>
+              Confirm
+            </button>
+            <button
+              className={styles.buttonGhost}
+              onClick={() => {
+                setConfirming(false);
+              }}
+            >
+              Cancel
+            </button>
+          </>
+        ) : (
+          <button
+            className={styles.buttonGhost}
+            onClick={() => {
+              setConfirming(true);
+            }}
+          >
+            Restore Defaults
+          </button>
+        )}
+      </div>
     </div>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Device flow sub-component
+// ---------------------------------------------------------------------------
+
+function DeviceFlowUI({ flow }: { flow: ReturnType<typeof useDeviceFlow> }) {
+  const { phase, deviceInfo, countdown, copied, error, start, copyCode } = flow;
+
+  if (phase === "idle") {
+    return (
+      <div className={styles.providerConnect}>
+        <button className={styles.button} onClick={() => void start()}>
+          Connect
+        </button>
+        {error && <p className={styles.error}>{error}</p>}
+      </div>
+    );
+  }
+
+  if ((phase === "code-shown" || phase === "polling") && deviceInfo) {
+    return (
+      <div className={styles.deviceFlow}>
+        <p className={styles.deviceFlowStep}>Enter this code on GitHub:</p>
+        <div className={styles.codeRow}>
+          <code className={styles.code}>{deviceInfo.user_code}</code>
+          <button
+            className={copied ? styles.copyButtonDone : styles.copyButton}
+            onClick={() => void copyCode()}
+            aria-label="Copy code"
+          >
+            {copied ? "Copied ✓" : "Copy"}
+          </button>
+        </div>
+        {phase === "code-shown" && (
+          <p className={styles.countdown}>Opening GitHub in {countdown}…</p>
+        )}
+        {phase === "polling" && <p className={styles.waiting}>Waiting for authorization…</p>}
+        {error && <p className={styles.error}>{error}</p>}
+      </div>
+    );
+  }
+
+  return null;
 }

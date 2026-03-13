@@ -235,6 +235,12 @@ pub fn get_config(config: State<'_, AppConfig>) -> FlintConfig {
     config.get()
 }
 
+/// Get the compile-time default config.
+#[tauri::command]
+pub fn get_default_config() -> FlintConfig {
+    FlintConfig::default()
+}
+
 /// Update the application config and persist to disk.
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]

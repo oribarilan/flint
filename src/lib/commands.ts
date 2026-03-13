@@ -79,6 +79,7 @@ export interface GeneralConfig {
 
 export interface AppearanceConfig {
   font_size: string;
+  theme: string;
 }
 
 export interface SearchConfig {
@@ -106,6 +107,10 @@ export interface FlintConfig {
 
 export async function getConfig(): Promise<FlintConfig> {
   return invoke("get_config");
+}
+
+export async function getDefaultConfig(): Promise<FlintConfig> {
+  return invoke("get_default_config");
 }
 
 export async function updateConfig(config: FlintConfig): Promise<void> {

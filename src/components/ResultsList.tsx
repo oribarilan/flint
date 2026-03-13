@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, type KeyboardEvent } from "react";
+import { useEffect, useRef } from "react";
 import { useSearchStore } from "../stores/searchStore";
 import { openFile, hideWindow } from "../lib/commands";
 import { focusSearchBar } from "../lib/focus";
@@ -48,7 +48,6 @@ export default function ResultsList() {
   const results = useSearchStore((s) => s.results);
   const query = useSearchStore((s) => s.query);
   const selectedIndex = useSearchStore((s) => s.selectedIndex);
-  const moveSelection = useSearchStore((s) => s.moveSelection);
   const setSelectedIndex = useSearchStore((s) => s.setSelectedIndex);
 
   // Scroll selected item into view
@@ -58,34 +57,6 @@ export default function ResultsList() {
     const selected = container.children[selectedIndex] as HTMLElement | undefined;
     selected?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [selectedIndex]);
-
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLDivElement>) => {
-      switch (e.key) {
-        case "ArrowDown":
-          e.preventDefault();
-          moveSelection("down");
-          break;
-        case "ArrowUp":
-          e.preventDefault();
-          if (selectedIndex === 0) {
-            focusSearchBar();
-          } else {
-            moveSelection("up");
-          }
-          break;
-        case "Enter": {
-          e.preventDefault();
-          const selected = results[selectedIndex];
-          if (selected) {
-            executeDefaultAction(selected);
-          }
-          break;
-        }
-      }
-    },
-    [results, selectedIndex, moveSelection],
-  );
 
   if (results.length === 0 && query.length === 0) {
     return null;
@@ -100,14 +71,7 @@ export default function ResultsList() {
   }
 
   return (
-    <div
-      ref={containerRef}
-      className={styles.container}
-      tabIndex={0}
-      onKeyDown={handleKeyDown}
-      role="listbox"
-      aria-label="Search results"
-    >
+    <div ref={containerRef} className={styles.container} role="listbox" aria-label="Search results">
       {results.map((result, index) => {
         const { SearchResult } = getKitComponents(result.kitId);
         return (

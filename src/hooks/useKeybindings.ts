@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useSearchStore } from "../stores/searchStore";
 import { useChatStore } from "../stores/chatStore";
 import { hideWindow, openSettings } from "../lib/commands";
+import { suppressNextBlurHide } from "../lib/focus";
 import { isMac } from "../lib/platform";
 
 /** Map of Ctrl+{key} → arrow key name for vim-style navigation. */
@@ -60,6 +61,7 @@ export function useKeybindings(actions: KeybindingActions): void {
       // ── CmdOrCtrl+, → Open settings ───────────────────────
       if (isCmdOrCtrl(e) && e.key === ",") {
         e.preventDefault();
+        suppressNextBlurHide();
         openSettings().catch(() => {
           // Settings open is best-effort
         });

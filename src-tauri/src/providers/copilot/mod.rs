@@ -4,6 +4,7 @@
 //! from the Copilot API using server-sent events.
 
 pub mod auth;
+pub mod credential_store;
 pub mod token;
 
 use futures::StreamExt;

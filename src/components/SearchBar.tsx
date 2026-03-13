@@ -6,10 +6,17 @@ import styles from "./SearchBar.module.css";
 
 interface SearchBarProps {
   onArrowDown: () => void;
+  onArrowUp?: () => void;
   onSendChat?: () => void;
+  onSubmitSearch?: () => void;
 }
 
-export default function SearchBar({ onArrowDown, onSendChat }: SearchBarProps) {
+export default function SearchBar({
+  onArrowDown,
+  onArrowUp,
+  onSendChat,
+  onSubmitSearch,
+}: SearchBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const query = useSearchStore((s) => s.query);
   const isLoading = useSearchStore((s) => s.isLoading);
@@ -28,9 +35,15 @@ export default function SearchBar({ onArrowDown, onSendChat }: SearchBarProps) {
     if (e.key === "Enter" && chatMode && onSendChat) {
       e.preventDefault();
       onSendChat();
+    } else if (e.key === "Enter" && !chatMode && onSubmitSearch) {
+      e.preventDefault();
+      onSubmitSearch();
     } else if (e.key === "ArrowDown" && !chatMode) {
       e.preventDefault();
       onArrowDown();
+    } else if (e.key === "ArrowUp" && !chatMode && onArrowUp) {
+      e.preventDefault();
+      onArrowUp();
     }
     // Escape and Tab are handled by useKeybindings
   };
