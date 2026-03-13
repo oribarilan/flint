@@ -4,6 +4,7 @@
 //! global hotkey, system tray, and background file indexing.
 
 mod commands;
+pub mod config;
 mod error;
 mod icons;
 pub mod indexer;
@@ -59,10 +60,15 @@ pub fn run() {
             commands::get_auth_status,
             commands::send_chat_message,
             commands::sign_out,
+            commands::get_config,
+            commands::update_config,
         ])
         .setup(|app| {
-            // Register global hotkey (CmdOrCtrl+Shift+Space).
-            app.global_shortcut().register("CmdOrCtrl+Shift+Space").str_err()?;
+            // Load application config (or use defaults).
+            let cfg = config::load_or_default();
+
+            // Register global hotkey from config.
+            app.global_shortcut().register(cfg.general.hotkey.as_str()).str_err()?;
 
             // Build system tray icon + menu.
             tray::setup(app)?;
@@ -71,12 +77,19 @@ pub fn run() {
             let copilot = providers::copilot::CopilotProvider::new();
             app.manage(commands::CopilotProviderState(copilot));
 
+            // Manage application config and extract search params for background indexing.
+            let search_dirs = cfg.search.directories.clone();
+            let search_exclude = cfg.search.exclude.clone();
+            let search_depth = cfg.search.max_depth;
+            app.manage(config::AppConfig::new(cfg));
+
             // Initialise file index as managed state and populate in background.
             let index = Arc::new(RwLock::new(Vec::new()));
             app.manage(FileIndex(index.clone()));
 
             std::thread::spawn(move || {
-                let entries = indexer::build_index();
+                let entries =
+                    indexer::build_index_with_config(&search_dirs, &search_exclude, search_depth);
                 if let Ok(mut lock) = index.write() {
                     *lock = entries;
                 }

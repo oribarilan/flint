@@ -3,6 +3,7 @@
 
 use tauri::{AppHandle, State};
 
+use crate::config::{AppConfig, FlintConfig};
 use crate::indexer::FileIndex;
 use crate::providers;
 use crate::providers::copilot::auth::DeviceCodeResponse;
@@ -151,6 +152,24 @@ pub async fn send_chat_message(
 pub async fn sign_out(provider: State<'_, CopilotProviderState>) -> Result<(), String> {
     provider.0.sign_out().await;
     Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Config commands
+// ---------------------------------------------------------------------------
+
+/// Get the current application config.
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn get_config(config: State<'_, AppConfig>) -> FlintConfig {
+    config.get()
+}
+
+/// Update the application config and persist to disk.
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn update_config(config: State<'_, AppConfig>, new_config: FlintConfig) -> Result<(), String> {
+    config.update(new_config).map_err(|e| e.to_string())
 }
 
 // ---------------------------------------------------------------------------

@@ -90,6 +90,31 @@ pub fn build_index() -> Vec<FileEntry> {
     entries
 }
 
+/// Build the file index using custom configuration.
+///
+/// Resolves `~` in directory paths and uses the provided exclude list
+/// and depth limit.
+pub fn build_index_with_config(
+    directories: &[String],
+    exclude: &[String],
+    max_depth: usize,
+) -> Vec<FileEntry> {
+    let start = Instant::now();
+
+    let roots = resolve_directories(directories);
+    let exclude_refs: Vec<&str> = exclude.iter().map(String::as_str).collect();
+
+    let entries: Vec<FileEntry> = roots
+        .par_iter()
+        .flat_map(|root| walk_directory_configured(root, &exclude_refs, max_depth))
+        .collect();
+
+    let duration = start.elapsed();
+    tracing::info!("Indexed {} files in {duration:?}", entries.len());
+
+    entries
+}
+
 // ---------------------------------------------------------------------------
 // Internals
 // ---------------------------------------------------------------------------
@@ -115,18 +140,40 @@ fn append_platform_roots(roots: &mut Vec<PathBuf>) {
     }
 }
 
-/// Walk a single root directory and return all matching entries.
+/// Expand `~` prefixes and filter to existing directories.
+fn resolve_directories(dirs: &[String]) -> Vec<PathBuf> {
+    let home = home_dir();
+    dirs.iter()
+        .filter_map(|d| {
+            let path = if let Some(rest) = d.strip_prefix("~/") {
+                home.as_ref()?.join(rest)
+            } else if d == "~" {
+                home.clone()?
+            } else {
+                PathBuf::from(d)
+            };
+            path.is_dir().then_some(path)
+        })
+        .collect()
+}
+
+/// Walk a single root directory using the default exclude list and depth.
+fn walk_directory(root: &Path) -> Vec<FileEntry> {
+    walk_directory_configured(root, EXCLUDED_DIRS, MAX_DEPTH)
+}
+
+/// Walk a single root directory with a custom exclude list and depth limit.
 ///
 /// Uses a manual iterator loop so we can call `skip_current_dir()` on
 /// package directories (index the package itself but skip its children).
-fn walk_directory(root: &Path) -> Vec<FileEntry> {
+fn walk_directory_configured(root: &Path, exclude: &[&str], max_depth: usize) -> Vec<FileEntry> {
     let mut entries = Vec::new();
-    let mut it = WalkDir::new(root).max_depth(MAX_DEPTH).into_iter();
+    let mut it = WalkDir::new(root).max_depth(max_depth).into_iter();
 
     while let Some(result) = it.next() {
         let Ok(entry) = result else { continue };
 
-        if is_excluded(&entry) {
+        if is_excluded_from(&entry, exclude) {
             if entry.file_type().is_dir() {
                 it.skip_current_dir();
             }
@@ -148,8 +195,14 @@ fn walk_directory(root: &Path) -> Vec<FileEntry> {
     entries
 }
 
-/// Decide whether a `walkdir` entry should be excluded.
+/// Decide whether a `walkdir` entry should be excluded (using default list).
+#[cfg(test)]
 fn is_excluded(entry: &walkdir::DirEntry) -> bool {
+    is_excluded_from(entry, EXCLUDED_DIRS)
+}
+
+/// Decide whether a `walkdir` entry should be excluded with a custom list.
+fn is_excluded_from(entry: &walkdir::DirEntry, exclude: &[&str]) -> bool {
     let name = entry.file_name().to_string_lossy();
 
     // Skip hidden directories/files (starting with `.`), except the root itself.
@@ -158,7 +211,7 @@ fn is_excluded(entry: &walkdir::DirEntry) -> bool {
     }
 
     // Skip known noisy directories.
-    if entry.file_type().is_dir() && EXCLUDED_DIRS.contains(&name.as_ref()) {
+    if entry.file_type().is_dir() && exclude.contains(&name.as_ref()) {
         return true;
     }
 
@@ -409,5 +462,72 @@ mod tests {
             // On other platforms it's just a normal directory.
             assert!(names.contains(&"Test.app"), "should include Test.app dir");
         }
+    }
+
+    // ----- resolve_directories tests -----
+
+    #[test]
+    fn should_resolve_absolute_directories() {
+        let tmp = tempdir().unwrap();
+        let sub = tmp.path().join("subdir");
+        fs::create_dir(&sub).unwrap();
+
+        let dirs = vec![sub.to_string_lossy().into_owned()];
+        let resolved = resolve_directories(&dirs);
+        assert_eq!(resolved, vec![sub]);
+    }
+
+    #[test]
+    fn should_skip_nonexistent_directories() {
+        let dirs = vec!["/nonexistent/path/abc123".to_owned()];
+        let resolved = resolve_directories(&dirs);
+        assert!(resolved.is_empty());
+    }
+
+    // ----- build_index_with_config tests -----
+
+    #[test]
+    fn should_build_index_with_custom_config() {
+        let tmp = tempdir().unwrap();
+        let root = tmp.path();
+
+        fs::create_dir(root.join("mydir")).unwrap();
+        fs::File::create(root.join("mydir").join("file.txt")).unwrap();
+        fs::create_dir(root.join("excluded_dir")).unwrap();
+        fs::File::create(root.join("excluded_dir").join("hidden.txt")).unwrap();
+
+        let dirs = vec![root.to_string_lossy().into_owned()];
+        let exclude = vec!["excluded_dir".to_owned()];
+
+        let entries = build_index_with_config(&dirs, &exclude, 3);
+        let names: Vec<&str> = entries.iter().map(|e| e.name.as_str()).collect();
+
+        assert!(names.contains(&"mydir"));
+        assert!(names.contains(&"file.txt"));
+        assert!(!names.contains(&"excluded_dir"));
+        assert!(!names.contains(&"hidden.txt"));
+    }
+
+    #[test]
+    fn should_respect_max_depth_in_config() {
+        let tmp = tempdir().unwrap();
+        let root = tmp.path();
+
+        // Create nested dirs: root/a/b/c/deep.txt
+        let deep = root.join("a").join("b").join("c");
+        fs::create_dir_all(&deep).unwrap();
+        fs::File::create(deep.join("deep.txt")).unwrap();
+        fs::File::create(root.join("top.txt")).unwrap();
+
+        let dirs = vec![root.to_string_lossy().into_owned()];
+        let exclude: Vec<String> = Vec::new();
+
+        // max_depth 1 should only see immediate children
+        let entries = build_index_with_config(&dirs, &exclude, 1);
+        let names: Vec<&str> = entries.iter().map(|e| e.name.as_str()).collect();
+
+        assert!(names.contains(&"top.txt"));
+        assert!(names.contains(&"a"));
+        assert!(!names.contains(&"b"), "depth 1 should not reach b");
     }
 }
