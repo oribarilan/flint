@@ -17,6 +17,7 @@ use serde::{Deserialize, Serialize};
 #[serde(default)]
 pub struct FlintConfig {
     pub general: GeneralConfig,
+    pub appearance: AppearanceConfig,
     pub search: SearchConfig,
     pub chat: ChatConfig,
 }
@@ -27,6 +28,14 @@ pub struct FlintConfig {
 pub struct GeneralConfig {
     pub hotkey: String,
     pub launch_at_login: bool,
+}
+
+/// Appearance settings.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct AppearanceConfig {
+    /// Font size preset: "small", "medium", or "large".
+    pub font_size: String,
 }
 
 /// File search settings.
@@ -52,6 +61,12 @@ pub struct ChatConfig {
 impl Default for GeneralConfig {
     fn default() -> Self {
         Self { hotkey: "CmdOrCtrl+Shift+Space".to_owned(), launch_at_login: false }
+    }
+}
+
+impl Default for AppearanceConfig {
+    fn default() -> Self {
+        Self { font_size: "medium".to_owned() }
     }
 }
 
@@ -204,6 +219,7 @@ default_model = "claude-sonnet-4"
         let config: FlintConfig = toml::from_str(toml_str).unwrap();
         assert_eq!(config.chat.default_model, "claude-sonnet-4");
         assert_eq!(config.general, GeneralConfig::default());
+        assert_eq!(config.appearance, AppearanceConfig::default());
         assert_eq!(config.search, SearchConfig::default());
     }
 
@@ -222,6 +238,9 @@ default_model = "claude-sonnet-4"
 hotkey = "Ctrl+Space"
 launch_at_login = true
 
+[appearance]
+font_size = "large"
+
 [search]
 directories = ["~/Projects"]
 exclude = [".git"]
@@ -233,6 +252,7 @@ default_model = "gpt-4o"
         let config: FlintConfig = toml::from_str(toml_str).unwrap();
         assert_eq!(config.general.hotkey, "Ctrl+Space");
         assert!(config.general.launch_at_login);
+        assert_eq!(config.appearance.font_size, "large");
         assert_eq!(config.search.directories, vec!["~/Projects"]);
         assert_eq!(config.search.exclude, vec![".git"]);
         assert_eq!(config.search.max_depth, 3);

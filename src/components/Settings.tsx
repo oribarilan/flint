@@ -1,14 +1,16 @@
 import { useState } from "react";
 import GeneralSettings from "./settings/GeneralSettings";
+import AppearanceSettings from "./settings/AppearanceSettings";
 import ChatSettings from "./settings/ChatSettings";
 import SearchSettings from "./settings/SearchSettings";
 import { useConfig } from "../hooks/useConfig";
 import styles from "./Settings.module.css";
 
-type SettingsPage = "general" | "chat" | "search";
+type SettingsPage = "general" | "appearance" | "chat" | "search";
 
 const PAGES: { id: SettingsPage; label: string }[] = [
   { id: "general", label: "General" },
+  { id: "appearance", label: "Appearance" },
   { id: "chat", label: "Chat" },
   { id: "search", label: "Search" },
 ];
@@ -40,6 +42,7 @@ export default function Settings() {
       </nav>
       <main className={styles.content}>
         {activePage === "general" && <GeneralSettings config={config} onUpdate={update} />}
+        {activePage === "appearance" && <AppearanceSettings config={config} onUpdate={update} />}
         {activePage === "chat" && <ChatSettings config={config} onUpdate={update} />}
         {activePage === "search" && <SearchSettings config={config} onUpdate={update} />}
       </main>

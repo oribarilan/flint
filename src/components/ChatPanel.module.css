@@ -15,7 +15,7 @@
   color: #fff;
   padding: 8px 14px;
   border-radius: var(--radius-md) var(--radius-md) var(--radius-sm) var(--radius-md);
-  font-size: 14px;
+  font-size: var(--font-md);
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;
@@ -28,7 +28,7 @@
   color: var(--text-primary);
   padding: 8px 14px;
   border-radius: var(--radius-md) var(--radius-md) var(--radius-md) var(--radius-sm);
-  font-size: 14px;
+  font-size: var(--font-md);
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;
@@ -41,13 +41,13 @@
   color: #ef4444;
   padding: 8px 14px;
   border-radius: var(--radius-md);
-  font-size: 13px;
+  font-size: var(--font-base);
   line-height: 1.5;
 }
 
 .thinking {
   align-self: flex-start;
-  font-size: 13px;
+  font-size: var(--font-base);
   color: var(--text-secondary);
   padding: 4px 0;
   animation: pulse 1.5s ease-in-out infinite;

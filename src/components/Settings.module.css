@@ -19,7 +19,7 @@
 }
 
 .title {
-  font-size: 13px;
+  font-size: var(--font-base);
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
@@ -37,7 +37,7 @@
   border-left: 2px solid transparent;
   background: transparent;
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: var(--font-md);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   cursor: pointer;
   transition: all var(--transition-normal);
@@ -61,7 +61,7 @@
   margin-top: auto;
   padding: 12px 14px 4px;
   border-top: 1px solid var(--border-subtle);
-  font-size: 12px;
+  font-size: var(--font-sm);
   color: var(--text-secondary);
   font-family: var(--font-mono);
 }

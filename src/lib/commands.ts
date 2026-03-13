@@ -72,6 +72,10 @@ export interface GeneralConfig {
   launch_at_login: boolean;
 }
 
+export interface AppearanceConfig {
+  font_size: string;
+}
+
 export interface SearchConfig {
   directories: string[];
   exclude: string[];
@@ -84,6 +88,7 @@ export interface ChatConfig {
 
 export interface FlintConfig {
   general: GeneralConfig;
+  appearance: AppearanceConfig;
   search: SearchConfig;
   chat: ChatConfig;
 }

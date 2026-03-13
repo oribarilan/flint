@@ -11,7 +11,7 @@
   justify-content: center;
   padding: 24px 20px;
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: var(--font-md);
   user-select: none;
 }
 
@@ -51,7 +51,7 @@
 }
 
 .name {
-  font-size: 14px;
+  font-size: var(--font-md);
   font-weight: 500;
   color: var(--text-primary);
   white-space: nowrap;
@@ -60,7 +60,7 @@
 }
 
 .path {
-  font-size: 12px;
+  font-size: var(--font-sm);
   font-family: var(--font-mono);
   color: var(--text-secondary);
   white-space: nowrap;
