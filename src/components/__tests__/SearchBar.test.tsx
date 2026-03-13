@@ -6,6 +6,7 @@ import SearchBar from "../SearchBar";
 
 beforeEach(() => {
   useSearchStore.setState({
+    mode: "search",
     query: "",
     results: [],
     selectedIndex: 0,
@@ -32,7 +33,8 @@ describe("SearchBar", () => {
   });
 
   it("renders sparkle icon in chat mode", () => {
-    const { container } = render(<SearchBar onArrowDown={vi.fn()} chatMode />);
+    useSearchStore.setState({ mode: "chat" });
+    const { container } = render(<SearchBar onArrowDown={vi.fn()} />);
 
     const svg = container.querySelector("svg");
     expect(svg).toBeTruthy();
@@ -44,8 +46,9 @@ describe("SearchBar", () => {
   });
 
   it("Enter in chat mode calls onSendChat", () => {
+    useSearchStore.setState({ mode: "chat" });
     const onSendChat = vi.fn();
-    render(<SearchBar onArrowDown={vi.fn()} chatMode onSendChat={onSendChat} />);
+    render(<SearchBar onArrowDown={vi.fn()} onSendChat={onSendChat} />);
 
     const input = screen.getByRole("textbox");
     fireEvent.keyDown(input, { key: "Enter" });
@@ -63,17 +66,6 @@ describe("SearchBar", () => {
     expect(onSendChat).not.toHaveBeenCalled();
   });
 
-  it("Escape clears query when query has text", () => {
-    useSearchStore.setState({ query: "hello" });
-
-    render(<SearchBar onArrowDown={vi.fn()} />);
-
-    const input = screen.getByRole("textbox");
-    fireEvent.keyDown(input, { key: "Escape" });
-
-    expect(useSearchStore.getState().query).toBe("");
-  });
-
   it("ArrowDown calls onArrowDown in search mode", () => {
     const onArrowDown = vi.fn();
     render(<SearchBar onArrowDown={onArrowDown} />);
@@ -82,5 +74,18 @@ describe("SearchBar", () => {
     fireEvent.keyDown(input, { key: "ArrowDown" });
 
     expect(onArrowDown).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows search placeholder in search mode", () => {
+    render(<SearchBar onArrowDown={vi.fn()} />);
+
+    expect(screen.getByPlaceholderText("Search files...")).toBeTruthy();
+  });
+
+  it("shows chat placeholder in chat mode", () => {
+    useSearchStore.setState({ mode: "chat" });
+    render(<SearchBar onArrowDown={vi.fn()} />);
+
+    expect(screen.getByPlaceholderText("Ask anything...")).toBeTruthy();
   });
 });

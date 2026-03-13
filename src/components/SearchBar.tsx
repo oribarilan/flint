@@ -5,17 +5,18 @@ import styles from "./SearchBar.module.css";
 
 interface SearchBarProps {
   onArrowDown: () => void;
-  chatMode?: boolean;
   onSendChat?: () => void;
 }
 
-export default function SearchBar({ onArrowDown, chatMode, onSendChat }: SearchBarProps) {
+export default function SearchBar({ onArrowDown, onSendChat }: SearchBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const query = useSearchStore((s) => s.query);
   const isLoading = useSearchStore((s) => s.isLoading);
   const setQuery = useSearchStore((s) => s.setQuery);
-  const clearSearch = useSearchStore((s) => s.clearSearch);
+  const mode = useSearchStore((s) => s.mode);
   const isStreaming = useChatStore((s) => s.isStreaming);
+
+  const chatMode = mode === "chat";
 
   // Auto-focus on mount
   useEffect(() => {
@@ -29,12 +30,8 @@ export default function SearchBar({ onArrowDown, chatMode, onSendChat }: SearchB
     } else if (e.key === "ArrowDown" && !chatMode) {
       e.preventDefault();
       onArrowDown();
-    } else if (e.key === "Escape") {
-      if (query.length > 0) {
-        clearSearch();
-      }
-      // If query is empty, the global handler in App will hide the window
     }
+    // Escape is handled globally in App.tsx
   };
 
   // Chat mode: sparkle icon; search mode: magnifying glass
@@ -65,7 +62,7 @@ export default function SearchBar({ onArrowDown, chatMode, onSendChat }: SearchB
   );
 
   return (
-    <div className={styles.wrapper}>
+    <div className={chatMode ? styles.wrapperChat : styles.wrapper}>
       {icon}
 
       <input
@@ -77,7 +74,7 @@ export default function SearchBar({ onArrowDown, chatMode, onSendChat }: SearchB
           setQuery(e.target.value);
         }}
         onKeyDown={handleKeyDown}
-        placeholder="Search files or ask anything..."
+        placeholder={chatMode ? "Ask anything..." : "Search files..."}
         spellCheck={false}
         autoComplete="off"
         aria-label="Search"

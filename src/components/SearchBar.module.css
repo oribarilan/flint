@@ -5,6 +5,11 @@
   gap: 12px;
 }
 
+.wrapperChat {
+  composes: wrapper;
+  background: rgba(99, 102, 241, 0.08);
+}
+
 .icon {
   flex-shrink: 0;
   width: 20px;

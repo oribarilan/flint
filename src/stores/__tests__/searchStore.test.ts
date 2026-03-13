@@ -9,6 +9,7 @@ const mockResults: SearchResult[] = [
 
 beforeEach(() => {
   useSearchStore.setState({
+    mode: "search",
     query: "",
     results: [],
     selectedIndex: 0,
@@ -73,8 +74,9 @@ describe("searchStore", () => {
     expect(useSearchStore.getState().selectedIndex).toBe(0);
   });
 
-  it("clearSearch resets all state", () => {
+  it("clearSearch resets all state including mode", () => {
     useSearchStore.setState({
+      mode: "chat",
       query: "test",
       results: mockResults,
       selectedIndex: 2,
@@ -83,6 +85,7 @@ describe("searchStore", () => {
     useSearchStore.getState().clearSearch();
 
     const state = useSearchStore.getState();
+    expect(state.mode).toBe("search");
     expect(state.query).toBe("");
     expect(state.results).toEqual([]);
     expect(state.selectedIndex).toBe(0);
@@ -93,5 +96,31 @@ describe("searchStore", () => {
     useSearchStore.getState().setSelectedIndex(5);
 
     expect(useSearchStore.getState().selectedIndex).toBe(5);
+  });
+
+  it("toggleMode switches from search to chat", () => {
+    expect(useSearchStore.getState().mode).toBe("search");
+    useSearchStore.getState().toggleMode();
+
+    expect(useSearchStore.getState().mode).toBe("chat");
+  });
+
+  it("toggleMode switches from chat to search", () => {
+    useSearchStore.setState({ mode: "chat" });
+    useSearchStore.getState().toggleMode();
+
+    expect(useSearchStore.getState().mode).toBe("search");
+  });
+
+  it("setMode sets mode directly", () => {
+    useSearchStore.getState().setMode("chat");
+    expect(useSearchStore.getState().mode).toBe("chat");
+
+    useSearchStore.getState().setMode("search");
+    expect(useSearchStore.getState().mode).toBe("search");
+  });
+
+  it("defaults to search mode", () => {
+    expect(useSearchStore.getState().mode).toBe("search");
   });
 });

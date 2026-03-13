@@ -1,5 +1,7 @@
 import { create } from "zustand";
 
+export type AppMode = "search" | "chat";
+
 export interface SearchResult {
   id: string;
   name: string;
@@ -8,10 +10,13 @@ export interface SearchResult {
 }
 
 interface SearchState {
+  mode: AppMode;
   query: string;
   results: SearchResult[];
   selectedIndex: number;
   isLoading: boolean;
+  toggleMode: () => void;
+  setMode: (mode: AppMode) => void;
   setQuery: (query: string) => void;
   setResults: (results: SearchResult[]) => void;
   setSelectedIndex: (index: number) => void;
@@ -20,10 +25,19 @@ interface SearchState {
 }
 
 export const useSearchStore = create<SearchState>((set, get) => ({
+  mode: "search",
   query: "",
   results: [],
   selectedIndex: 0,
   isLoading: false,
+
+  toggleMode: () => {
+    set({ mode: get().mode === "search" ? "chat" : "search" });
+  },
+
+  setMode: (mode) => {
+    set({ mode });
+  },
 
   setQuery: (query) => {
     set({ query, selectedIndex: 0 });
@@ -50,6 +64,6 @@ export const useSearchStore = create<SearchState>((set, get) => ({
   },
 
   clearSearch: () => {
-    set({ query: "", results: [], selectedIndex: 0, isLoading: false });
+    set({ mode: "search", query: "", results: [], selectedIndex: 0, isLoading: false });
   },
 }));

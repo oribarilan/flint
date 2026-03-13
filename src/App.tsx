@@ -11,23 +11,20 @@ import { useSearch } from "./hooks/useSearch";
 import { useChat } from "./hooks/useChat";
 import styles from "./App.module.css";
 
-const AI_PREFIX = "/ai ";
-
 export default function App() {
   useSearch();
   useChat();
 
   const searchBarRef = useRef<HTMLInputElement | null>(null);
   const query = useSearchStore((s) => s.query);
-  const clearSearch = useSearchStore((s) => s.clearSearch);
+  const mode = useSearchStore((s) => s.mode);
+  const toggleMode = useSearchStore((s) => s.toggleMode);
 
   const authStatus = useChatStore((s) => s.authStatus);
   const setAuthStatus = useChatStore((s) => s.setAuthStatus);
   const isStreaming = useChatStore((s) => s.isStreaming);
   const addUserMessage = useChatStore((s) => s.addUserMessage);
-  const messages = useChatStore((s) => s.messages);
-  const isChatMode = query.toLowerCase().startsWith(AI_PREFIX) || query.toLowerCase() === "/ai";
-  const hasChatContent = messages.length > 0 || isStreaming;
+  const isChatMode = mode === "chat";
 
   // Check auth status on mount and on focus
   const refreshAuth = useCallback(() => {
@@ -46,10 +43,7 @@ export default function App() {
   const handleSendChat = useCallback(() => {
     if (isStreaming) return;
 
-    const text = query.startsWith(AI_PREFIX)
-      ? query.slice(AI_PREFIX.length).trim()
-      : query.replace(/^\/ai\s*/i, "").trim();
-
+    const text = query.trim();
     if (text.length === 0) return;
 
     addUserMessage(text);
@@ -58,26 +52,65 @@ export default function App() {
     });
   }, [query, isStreaming, addUserMessage]);
 
+  // Global Tab handler: toggle between search and chat mode
+  useEffect(() => {
+    const handleTabKey = (e: KeyboardEvent) => {
+      if (e.key === "Tab") {
+        e.preventDefault();
+        toggleMode();
+      }
+    };
+    window.addEventListener("keydown", handleTabKey);
+    return () => {
+      window.removeEventListener("keydown", handleTabKey);
+    };
+  }, [toggleMode]);
+
   // Focus the search bar (used when returning from results list)
   const focusSearchBar = useCallback(() => {
     const input = document.querySelector<HTMLInputElement>("input[aria-label='Search']");
     input?.focus();
   }, []);
 
-  // Global Escape handler: hide window when query is empty
+  // Global layered Escape handler — one layer per press:
+  // 1. Input has text → clear input
+  // 2. Chat session active → clear chat, return to search
+  // 3. Empty search mode → dismiss window
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && query.length === 0) {
-        hideWindow().catch(() => {
-          // Window hide is best-effort
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+
+      // Layer 1: clear input text (preserve current mode)
+      if (useSearchStore.getState().query.length > 0) {
+        useSearchStore.setState({
+          query: "",
+          results: [],
+          selectedIndex: 0,
+          isLoading: false,
         });
+        return;
       }
+
+      // Layer 2: clear chat session, return to search mode
+      const hasChat = useChatStore.getState().messages.length > 0;
+      const inChatMode = useSearchStore.getState().mode === "chat";
+      if (hasChat || inChatMode) {
+        useChatStore.getState().clearChat();
+        useSearchStore.getState().setMode("search");
+        return;
+      }
+
+      // Layer 3: dismiss window
+      hideWindow().catch(() => {
+        // Window hide is best-effort
+      });
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [query]);
+  }, []);
 
   // Tauri window events: blur → hide, focus → clear & refocus
   useEffect(() => {
@@ -92,9 +125,10 @@ export default function App() {
         } else {
           refreshAuth();
           focusSearchBar();
-          // Only clear search if no active chat session
-          if (useChatStore.getState().messages.length === 0) {
-            clearSearch();
+          // Preserve active chat sessions across hide/show
+          const hasChat = useChatStore.getState().messages.length > 0;
+          if (!hasChat) {
+            useSearchStore.getState().clearSearch();
           }
         }
       });
@@ -104,11 +138,11 @@ export default function App() {
 
     void setup();
     return () => unlistenFocus?.();
-  }, [clearSearch, focusSearchBar, refreshAuth]);
+  }, [focusSearchBar, refreshAuth]);
 
   const showAuthPrompt = isChatMode && !authStatus.authenticated;
-  const showChat = (isChatMode || hasChatContent) && authStatus.authenticated;
-  const showResults = !isChatMode && !hasChatContent;
+  const showChat = isChatMode && authStatus.authenticated;
+  const showResults = !isChatMode;
 
   return (
     <div className={styles.launcher} ref={searchBarRef}>
@@ -117,7 +151,6 @@ export default function App() {
           const list = document.querySelector<HTMLDivElement>("[role='listbox']");
           list?.focus();
         }}
-        chatMode={isChatMode || hasChatContent}
         onSendChat={handleSendChat}
       />
       {showAuthPrompt && <AuthPrompt />}

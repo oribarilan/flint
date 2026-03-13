@@ -64,3 +64,34 @@ export async function sendChatMessage(message: string): Promise<void> {
 export async function signOut(): Promise<void> {
   return invoke("sign_out");
 }
+
+// ── Config commands ────────────────────────────────────────────
+
+export interface GeneralConfig {
+  hotkey: string;
+  launch_at_login: boolean;
+}
+
+export interface SearchConfig {
+  directories: string[];
+  exclude: string[];
+  max_depth: number;
+}
+
+export interface ChatConfig {
+  default_model: string;
+}
+
+export interface FlintConfig {
+  general: GeneralConfig;
+  search: SearchConfig;
+  chat: ChatConfig;
+}
+
+export async function getConfig(): Promise<FlintConfig> {
+  return invoke("get_config");
+}
+
+export async function updateConfig(config: FlintConfig): Promise<void> {
+  return invoke("update_config", { newConfig: config });
+}
