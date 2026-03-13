@@ -4,6 +4,15 @@
 
 Flint is an AI-native application launcher built with Tauri v2. It provides a global hotkey-activated overlay for file search and AI chat, powered by a GitHub Copilot subscription via OAuth Device Flow.
 
+## Specs & Planning
+
+- **`spec.md`** — UX specification (modes, settings, interactions). This is the source of truth for product behavior. Always follow it. If an implementation decision conflicts with the spec, raise it rather than silently diverging.
+- **`plan.md`** — Implementation roadmap and phasing.
+- **`gaps.md`** — Known cross-platform and feature gaps.
+- **`.todo/`** — Standalone tasks with full context for future sessions.
+
+When proposing changes that would alter the spec (new modes, different interaction patterns, etc.), flag them for review rather than updating the spec directly.
+
 ## Engineering Principles
 
 These are non-negotiable. When any of these are at risk, raise a red flag.
