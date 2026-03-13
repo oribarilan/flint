@@ -117,6 +117,8 @@ pub async fn search_all(
     }
 
     // No kit matched — fall through to core file search + kit discovery.
+    // Kit discovery results go first (highest intent when typing a kit name),
+    // followed by core file results, capped at MAX_RESULTS total.
     let registry = registry_state.0.read().await;
     let kit_discovery = registry.discovery_results(&query);
     drop(registry);
@@ -126,8 +128,8 @@ pub async fn search_all(
         crate::search::search(&query, &entries, MAX_RESULTS)
     };
 
-    let mut results = KitSearchResult::from_core_search(core_results);
-    results.extend(kit_discovery);
+    let mut results = kit_discovery;
+    results.extend(KitSearchResult::from_core_search(core_results));
     results.truncate(MAX_RESULTS);
     Ok(results)
 }
