@@ -96,10 +96,20 @@ pub trait Kit: Send + Sync {
 
 ```rust
 pub struct KitManifest {
-    pub id: &'static str,          // "calculator", "stocks", "files"
+    pub id: &'static str,          // "calculator", "stocks", "clipboard"
     pub name: &'static str,        // "Calculator"
     pub description: &'static str, // "Evaluate math expressions"
     pub icon: KitIcon,             // Icon identifier or inline SVG
+}
+
+/// Visual representation for a kit or individual result.
+pub enum KitIcon {
+    /// An emoji character: "🧮", "📋"
+    Emoji(String),
+    /// A named icon from the built-in icon set.
+    Named(String),
+    /// Inline data URI (e.g., base64 PNG for app icons).
+    DataUri(String),
 }
 
 /// When a kit should activate during search.
@@ -175,12 +185,27 @@ pub enum ShortcutAction {
     Custom(serde_json::Value),       // Kit handles it entirely
 }
 
+/// Kit-scoped event emitter. Wraps AppHandle::emit with per-kit event namespacing.
+pub struct KitEventEmitter {
+    app: AppHandle,
+    kit_id: String,
+}
+
+impl KitEventEmitter {
+    /// Emit a typed event to the frontend, namespaced as "kit:{kit_id}:{event}".
+    pub fn emit<T: Serialize>(&self, event: &str, payload: T) -> Result<(), KitError> {
+        self.app.emit(&format!("kit:{}:{}", self.kit_id, event), payload)?;
+        Ok(())
+    }
+}
+
 /// Resources available to kits during init and execution.
 pub struct KitContext {
-    pub app: AppHandle,
+    pub app: AppHandle,                       // Tauri window management
     pub config: Arc<RwLock<FlintConfig>>,
     pub http: reqwest::Client,                // Shared HTTP client with connection pooling
     pub data_dir: PathBuf,                    // Per-kit persistent storage (~/.config/flint/kits/<id>/)
+    pub events: KitEventEmitter,              // Kit-scoped event emission to frontend
     pub task_manager: TaskManager,            // Spawn and track background tasks
 }
 ```
@@ -272,14 +297,16 @@ impl KitRegistry {
 
     /// Find which kit (if any) matches the query, and return its results.
     /// Returns None if no kit trigger matches (caller falls back to core file search).
-    /// Triggers lazy init on first match — returns empty results while init is in progress.
+    /// When a trigger matches but the kit isn't ready, returns empty results — never
+    /// falls through to core file search for an explicitly invoked kit.
     pub fn search(&self, query: &str) -> Option<(String, Vec<KitResult>)> {
         let (trigger, kit_id) = self.search_kits.iter()
             .find(|(trigger, _)| trigger.matches(query))?;
 
         if !matches!(self.kit_states.get(kit_id), Some(KitState::Ready)) {
-            // Kit not ready — trigger lazy init in background, return None for now
-            return None;
+            // Kit not ready — return empty results. The caller (search_all command)
+            // is responsible for spawning lazy init in the background.
+            return Some((kit_id.clone(), vec![]));
         }
 
         let effective_query = trigger.effective_query(query);
@@ -323,7 +350,7 @@ impl KitRegistry {
 
 ```typescript
 interface KitSearchResult {
-  kitId: string;                    // "files", "calculator", "stocks"
+  kitId: string;                    // "core" for file search, "calculator", "stocks", etc.
   id: string;                       // unique within kit
   title: string;
   subtitle?: string;
@@ -603,6 +630,7 @@ Define the core types in a new `kits` module:
 
 - `Kit` trait with default no-op impls for all surfaces (as designed above)
 - `KitManifest` — id, name, description, icon
+- `KitIcon` — Emoji, Named, DataUri
 - `SearchTrigger` — Prefix, Keyword (only two variants, both explicit)
   - `SearchTrigger::matches(&self, query) -> bool`
   - `SearchTrigger::effective_query(&self, query) -> &str` (strips prefix/keyword)
@@ -612,8 +640,9 @@ Define the core types in a new `kits` module:
 - `KitPreview` — Text, Markdown, Html
 - `ChatToolDef` — name, description, parameters (JSON Schema)
 - `KitShortcut`, `ShortcutAction`
-- `KitContext` — holds AppHandle, config, shared HTTP client, per-kit data dir, TaskManager
-- `KitContextBase` — shared parts (AppHandle, config, HTTP client, base data dir). `for_kit(id)` produces a scoped `KitContext`.
+- `KitContext` — holds AppHandle, config, shared HTTP client, per-kit data dir, KitEventEmitter, TaskManager
+- `KitContextBase` — shared parts (AppHandle, config, HTTP client, base data dir). `for_kit(id)` produces a scoped `KitContext` with kit-specific data dir, event emitter, and task manager.
+- `KitEventEmitter` — kit-scoped wrapper around AppHandle::emit, namespaces events as `kit:{id}:{event}`
 - `TaskManager` — spawn tracked background tasks, abort all on shutdown
 - `KitState` — Registered, Initializing, Ready, Failed
 - `KitError` — thiserror enum: ToolNotFound, KitNotFound, ShortcutNotFound, InitFailed, Internal
@@ -632,14 +661,14 @@ All types derive `Serialize` where they'll cross IPC. `KitAction` needs careful 
 - Methods:
   - `register(&mut self, kit: Box<dyn Kit>)` — insert + add to indexes, state = Registered
   - `ensure_init(&mut self, kit_id, base_ctx)` — lazy init on first use
-  - `search(&self, query) -> Option<(String, Vec<KitResult>)>` — find first matching trigger, dispatch. Returns `None` if no kit matches (caller falls through to core file search). Only dispatches to Ready kits.
+  - `search(&self, query) -> Option<(String, Vec<KitResult>)>` — find first matching trigger, dispatch. Returns `None` if no kit matches (caller falls through to core file search). Returns `Some((kit_id, vec![]))` if kit matches but isn't ready (never falls through for explicitly invoked kits).
   - `all_chat_tools() -> &[(String, ChatToolDef)]`
   - `invoke_chat_tool(kit_id, tool_name, args) -> Result<Value>` — ensures init before dispatch
   - `shutdown_all()` — calls `kit.shutdown()` + `task_manager.abort_all()` for every kit
 
 The registry is wrapped in `Arc<RwLock<KitRegistry>>` for Tauri state.
 
-**Tests**: Register mock kits, verify dispatch. Prefix kit only activates on prefix match. Keyword kit activates on keyword + space. No-match → returns None. Lazy init: kit not ready on first query → None, ready after init → returns results. Shutdown aborts all task managers.
+**Tests**: Register mock kits, verify dispatch. Prefix kit only activates on prefix match. Keyword kit activates on keyword + space. No-match → returns None. Kit matched but not ready → returns `Some((id, []))` (never falls through to core search). Lazy init: ready after init → returns results. Shutdown aborts all task managers.
 
 #### 1c. Rust: Application ranking boost in core search
 
@@ -654,11 +683,29 @@ Implementation: after nucleo scoring, add a bonus to `EntryKind::Application` re
 - Add `search_all` command in `commands.rs`:
   ```rust
   #[tauri::command]
-  fn search_all(query: &str, registry: State<KitRegistryState>, index: State<FileIndex>) -> Vec<KitSearchResult>
+  async fn search_all(
+      query: &str,
+      registry: State<'_, KitRegistryState>,
+      base_ctx: State<'_, KitContextBaseState>,
+      index: State<'_, FileIndex>,
+  ) -> Vec<KitSearchResult>
   ```
-  - First: check `registry.search(query)` — if a kit matches, use its results
-  - Otherwise: fall through to core file search (existing logic + app boost), wrap as `KitSearchResult` with `kitId: "core"`
+  - First: check `registry.read().search(query)` — if a kit matches:
+    - If kit state is `Registered`, spawn `ensure_init()` in the background (don't await — the kit will be Ready by the next keystroke). Return empty results for now.
+    - If kit state is `Ready`, return the kit's results.
+    - If kit state is `Initializing` or `Failed`, return empty results.
+  - Otherwise (no kit trigger matched): fall through to core file search (existing logic + app boost), wrap as `KitSearchResult` with `kitId: "core"`
   - Cap at 20 results
+
+  The lazy init spawn requires cloning the `Arc<RwLock<KitRegistry>>` and `KitContextBase` into the spawned task:
+  ```rust
+  let registry_clone = registry.inner().clone();
+  let ctx_clone = base_ctx.inner().clone();
+  tokio::spawn(async move {
+      let mut reg = registry_clone.write().await;
+      let _ = reg.ensure_init(&kit_id, &ctx_clone).await;
+  });
+  ```
 
 - `KitSearchResult` is the IPC type: `kit_id` + flattened `KitResult` fields. Core file search results are converted to this format too.
 
@@ -888,6 +935,15 @@ Phase 1g (config) <─── can happen in parallel with 1d-1f ─────�
 
 Phases 2, 3, 4 are independent of each other and can be done in any order after Phase 1.
 
+### Deferred Surface Commands
+
+Two of the four IPC surface commands (`open_kit_app`, `handle_kit_shortcut`) are **not implemented in Phases 1–4** because no kit in those phases uses them:
+
+- **`open_kit_app`** — needed when implementing the first kit with an app window (Clipboard history browser or Stocks dashboard). Add alongside that kit.
+- **`handle_kit_shortcut`** — needed when implementing the first kit with a global shortcut (Clipboard `CmdOrCtrl+Shift+V` or Windows `CmdOrCtrl+Shift+W`). Add alongside that kit.
+
+The types (`AppWindowConfig`, `KitShortcut`, `ShortcutAction`) are defined in Phase 1a so the trait is complete. The IPC wiring is deferred to avoid shipping dead code.
+
 ### Risks & Open Questions
 
 1. **`search()` is sync but `init()` is async** — the trait uses `async fn init()` but `fn search()` is sync (for the <10ms contract). Kits that need async data for search must cache it. Document this pattern clearly for kit authors.
@@ -898,9 +954,9 @@ Phases 2, 3, 4 are independent of each other and can be done in any order after 
 
 4. **`async_trait` crate** — the `Kit` trait has async methods (`init`, `shutdown`, `invoke_chat_tool`). Rust doesn't support async trait methods with dyn dispatch natively yet without boxing. Use `async_trait` crate or return `Pin<Box<dyn Future>>`. The `async_trait` crate is simpler.
 
-5. **KitIcon representation** — needs to work for both built-in icons (emoji, named icon from a set) and per-result icons (like file type icons, app icons). Probably an enum: `Emoji(String) | Named(String) | DataUri(String) | None`. Defer complex icon handling to when it's needed.
+5. **KitIcon representation** — defined as `Emoji(String) | Named(String) | DataUri(String)`. Covers built-in icons (emoji, named) and per-result icons (data URIs for app icons). May need extension later (e.g., SVG inline, icon packs) but this covers the launch set.
 
-6. **Lazy init on first search** — `search()` is sync and can't await `ensure_init()`. The first matching query returns None (caller falls through to core file search) and kicks off async init in the background. The kit is Ready by the next keystroke (~50ms later given debounce). Acceptable UX for explicit-prefix kits since the user is still typing.
+6. **Lazy init on first search** — `search()` is sync and can't await `ensure_init()`. When a kit trigger matches but the kit isn't Ready, `search()` returns `Some((kit_id, vec![]))` — empty results, but no fallback to core file search (the user explicitly invoked the kit). The `search_all` command handler (which is async) spawns `ensure_init()` in the background. The kit is Ready by the next keystroke (~50ms later given debounce). Acceptable UX for explicit-prefix kits since the user is still typing.
 
 7. **Chat tool budget at scale** — with 15 kits x 2-3 tools each, ~40 tool definitions go into every API request. This consumes context window tokens. Mitigations: only include tools from enabled kits. Deferred until it's a measured problem.
 
