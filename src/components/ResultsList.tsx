@@ -1,28 +1,27 @@
-import { useCallback, useEffect, useRef, type KeyboardEvent } from "react";
-import { useSearchStore, type SearchResult } from "../stores/searchStore";
+import { useEffect, useRef, type KeyboardEvent } from "react";
+import { useSearchStore } from "../stores/searchStore";
 import { openFile, hideWindow } from "../lib/commands";
+import { focusSearchBar } from "../lib/focus";
 import KindIcon from "./KindIcon";
+import Kbd from "./Kbd";
 import styles from "./ResultsList.module.css";
 
-interface ResultsListProps {
-  onEscape: () => void;
+/** Open a file and dismiss the launcher. */
+export function openResultByPath(path: string): void {
+  openFile(path)
+    .then(() => hideWindow())
+    .catch((err: unknown) => {
+      console.error("Failed to open file:", err);
+    });
 }
 
-export default function ResultsList({ onEscape }: ResultsListProps) {
+export default function ResultsList() {
   const containerRef = useRef<HTMLDivElement>(null);
   const results = useSearchStore((s) => s.results);
   const query = useSearchStore((s) => s.query);
   const selectedIndex = useSearchStore((s) => s.selectedIndex);
   const moveSelection = useSearchStore((s) => s.moveSelection);
   const setSelectedIndex = useSearchStore((s) => s.setSelectedIndex);
-
-  const openResult = useCallback((result: SearchResult) => {
-    openFile(result.path)
-      .then(() => hideWindow())
-      .catch((err: unknown) => {
-        console.error("Failed to open file:", err);
-      });
-  }, []);
 
   // Scroll selected item into view
   useEffect(() => {
@@ -41,7 +40,7 @@ export default function ResultsList({ onEscape }: ResultsListProps) {
       case "ArrowUp":
         e.preventDefault();
         if (selectedIndex === 0) {
-          onEscape();
+          focusSearchBar();
         } else {
           moveSelection("up");
         }
@@ -50,14 +49,10 @@ export default function ResultsList({ onEscape }: ResultsListProps) {
         e.preventDefault();
         const selected = results[selectedIndex];
         if (selected) {
-          openResult(selected);
+          openResultByPath(selected.path);
         }
         break;
       }
-      case "Escape":
-        e.preventDefault();
-        onEscape();
-        break;
     }
   };
 
@@ -92,7 +87,7 @@ export default function ResultsList({ onEscape }: ResultsListProps) {
             setSelectedIndex(index);
           }}
           onClick={() => {
-            openResult(result);
+            openResultByPath(result.path);
           }}
         >
           <KindIcon kind={result.kind} path={result.path} selected={index === selectedIndex} />
@@ -100,6 +95,7 @@ export default function ResultsList({ onEscape }: ResultsListProps) {
             <span className={styles.name}>{result.name}</span>
             <span className={styles.path}>{result.path}</span>
           </div>
+          {index < 9 && <Kbd keys={`CmdOrCtrl+${String(index + 1)}`} />}
         </div>
       ))}
     </div>

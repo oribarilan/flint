@@ -1,6 +1,7 @@
 import { useEffect, useRef, type KeyboardEvent } from "react";
 import { useSearchStore } from "../stores/searchStore";
 import { useChatStore } from "../stores/chatStore";
+import Kbd from "./Kbd";
 import styles from "./SearchBar.module.css";
 
 interface SearchBarProps {
@@ -31,7 +32,7 @@ export default function SearchBar({ onArrowDown, onSendChat }: SearchBarProps) {
       e.preventDefault();
       onArrowDown();
     }
-    // Escape is handled globally in App.tsx
+    // Escape and Tab are handled by useKeybindings
   };
 
   // Chat mode: sparkle icon; search mode: magnifying glass
@@ -83,6 +84,8 @@ export default function SearchBar({ onArrowDown, onSendChat }: SearchBarProps) {
       {(isLoading || (chatMode && isStreaming)) && (
         <div className={styles.spinner} aria-label="Loading" />
       )}
+
+      {!isLoading && !(chatMode && isStreaming) && <Kbd keys="Tab" />}
     </div>
   );
 }

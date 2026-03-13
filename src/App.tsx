@@ -1,21 +1,23 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import SearchBar from "./components/SearchBar";
-import ResultsList from "./components/ResultsList";
+import ResultsList, { openResultByPath } from "./components/ResultsList";
 import ChatPanel from "./components/ChatPanel";
 import AuthPrompt from "./components/AuthPrompt";
+import HintBar from "./components/HintBar";
 import { useSearchStore } from "./stores/searchStore";
 import { useChatStore } from "./stores/chatStore";
 import { hideWindow, getAuthStatus, sendChatMessage } from "./lib/commands";
+import { focusSearchBar } from "./lib/focus";
 import { useSearch } from "./hooks/useSearch";
 import { useChat } from "./hooks/useChat";
+import { useKeybindings } from "./hooks/useKeybindings";
 import styles from "./App.module.css";
 
 export default function App() {
   useSearch();
   useChat();
 
-  const searchBarRef = useRef<HTMLInputElement | null>(null);
   const query = useSearchStore((s) => s.query);
   const mode = useSearchStore((s) => s.mode);
   const toggleMode = useSearchStore((s) => s.toggleMode);
@@ -52,65 +54,24 @@ export default function App() {
     });
   }, [query, isStreaming, addUserMessage]);
 
-  // Global Tab handler: toggle between search and chat mode
-  useEffect(() => {
-    const handleTabKey = (e: KeyboardEvent) => {
-      if (e.key === "Tab") {
-        e.preventDefault();
-        toggleMode();
-      }
-    };
-    window.addEventListener("keydown", handleTabKey);
-    return () => {
-      window.removeEventListener("keydown", handleTabKey);
-    };
-  }, [toggleMode]);
-
-  // Focus the search bar (used when returning from results list)
-  const focusSearchBar = useCallback(() => {
-    const input = document.querySelector<HTMLInputElement>("input[aria-label='Search']");
-    input?.focus();
+  // Open the Nth search result directly (no-op if out of bounds)
+  const handleOpenResult = useCallback((index: number) => {
+    const { results } = useSearchStore.getState();
+    const result = results[index];
+    if (!result) return;
+    openResultByPath(result.path);
   }, []);
 
-  // Global layered Escape handler — one layer per press:
-  // 1. Input has text → clear input
-  // 2. Chat session active → clear chat, return to search
-  // 3. Empty search mode → dismiss window
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      e.preventDefault();
-
-      // Layer 1: clear input text (preserve current mode)
-      if (useSearchStore.getState().query.length > 0) {
-        useSearchStore.setState({
-          query: "",
-          results: [],
-          selectedIndex: 0,
-          isLoading: false,
-        });
-        return;
-      }
-
-      // Layer 2: clear chat session, return to search mode
-      const hasChat = useChatStore.getState().messages.length > 0;
-      const inChatMode = useSearchStore.getState().mode === "chat";
-      if (hasChat || inChatMode) {
-        useChatStore.getState().clearChat();
-        useSearchStore.getState().setMode("search");
-        return;
-      }
-
-      // Layer 3: dismiss window
-      hideWindow().catch(() => {
-        // Window hide is best-effort
-      });
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, []);
+  // Centralized keyboard handler
+  const keybindingActions = useMemo(
+    () => ({
+      onToggleMode: toggleMode,
+      onFocusSearchBar: focusSearchBar,
+      onOpenResult: handleOpenResult,
+    }),
+    [toggleMode, handleOpenResult],
+  );
+  useKeybindings(keybindingActions);
 
   // Tauri window events: blur → hide, focus → clear & refocus
   useEffect(() => {
@@ -145,7 +106,7 @@ export default function App() {
   const showResults = !isChatMode;
 
   return (
-    <div className={styles.launcher} ref={searchBarRef}>
+    <div className={styles.launcher}>
       <SearchBar
         onArrowDown={() => {
           const list = document.querySelector<HTMLDivElement>("[role='listbox']");
@@ -155,7 +116,8 @@ export default function App() {
       />
       {showAuthPrompt && <AuthPrompt />}
       {showChat && <ChatPanel />}
-      {showResults && <ResultsList onEscape={focusSearchBar} />}
+      {showResults && <ResultsList />}
+      <HintBar />
     </div>
   );
 }

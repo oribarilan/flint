@@ -4,6 +4,10 @@ import { useSearchStore } from "../../stores/searchStore";
 import { useChatStore } from "../../stores/chatStore";
 import SearchBar from "../SearchBar";
 
+vi.mock("../../lib/platform", () => ({
+  isMac: vi.fn(() => false),
+}));
+
 beforeEach(() => {
   useSearchStore.setState({
     mode: "search",
@@ -87,5 +91,30 @@ describe("SearchBar", () => {
     render(<SearchBar onArrowDown={vi.fn()} />);
 
     expect(screen.getByPlaceholderText("Ask anything...")).toBeTruthy();
+  });
+
+  it("shows Tab keybinding hint when not loading", () => {
+    const { container } = render(<SearchBar onArrowDown={vi.fn()} />);
+
+    const kbd = container.querySelector("kbd");
+    expect(kbd).toBeTruthy();
+    expect(kbd?.textContent).toBe("Tab");
+  });
+
+  it("hides Tab hint when loading in search mode", () => {
+    useSearchStore.setState({ isLoading: true });
+    const { container } = render(<SearchBar onArrowDown={vi.fn()} />);
+
+    const kbd = container.querySelector("kbd");
+    expect(kbd).toBeNull();
+  });
+
+  it("hides Tab hint when streaming in chat mode", () => {
+    useSearchStore.setState({ mode: "chat" });
+    useChatStore.setState({ isStreaming: true });
+    const { container } = render(<SearchBar onArrowDown={vi.fn()} />);
+
+    const kbd = container.querySelector("kbd");
+    expect(kbd).toBeNull();
   });
 });
