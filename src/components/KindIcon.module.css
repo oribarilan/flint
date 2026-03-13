@@ -1,7 +1,7 @@
 .kindIcon {
   flex-shrink: 0;
-  width: 18px;
-  height: 18px;
+  width: var(--icon-md);
+  height: var(--icon-md);
   color: var(--text-secondary);
 }
 
@@ -12,8 +12,8 @@
 
 .appIcon {
   flex-shrink: 0;
-  width: 24px;
-  height: 24px;
+  width: var(--icon-lg);
+  height: var(--icon-lg);
   border-radius: var(--radius-sm);
   object-fit: contain;
 }

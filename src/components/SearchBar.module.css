@@ -1,13 +1,13 @@
 .wrapper {
   display: flex;
   align-items: center;
-  padding: 16px 20px;
-  gap: 12px;
+  padding: var(--space-lg) var(--space-xl);
+  gap: var(--space-md);
 }
 
 .wrapperChat {
   composes: wrapper;
-  background: rgba(99, 102, 241, 0.08);
+  background: var(--bg-accent-subtle);
 }
 
 .icon {
@@ -27,7 +27,7 @@
   background: transparent;
   border: none;
   outline: none;
-  font-size: var(--font-xl);
+  font-size: min(var(--font-xl), 20px);
   font-weight: 400;
   color: var(--text-primary);
   caret-color: var(--accent);
@@ -40,8 +40,8 @@
 
 .spinner {
   flex-shrink: 0;
-  width: 18px;
-  height: 18px;
+  width: var(--icon-md);
+  height: var(--icon-md);
   border: 2px solid var(--border-subtle);
   border-top-color: var(--accent);
   border-radius: 50%;

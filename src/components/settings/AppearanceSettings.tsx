@@ -8,6 +8,7 @@ interface AppearanceSettingsProps {
 }
 
 const FONT_SIZES = [
+  { value: "extra-small", label: "Extra Small" },
   { value: "small", label: "Small" },
   { value: "medium", label: "Medium" },
   { value: "large", label: "Large" },

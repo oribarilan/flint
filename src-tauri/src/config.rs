@@ -34,7 +34,7 @@ pub struct GeneralConfig {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct AppearanceConfig {
-    /// Font size preset: "small", "medium", or "large".
+    /// Font size preset: "extra-small", "small", "medium", or "large".
     pub font_size: String,
 }
 
@@ -66,7 +66,7 @@ impl Default for GeneralConfig {
 
 impl Default for AppearanceConfig {
     fn default() -> Self {
-        Self { font_size: "medium".to_owned() }
+        Self { font_size: "small".to_owned() }
     }
 }
 

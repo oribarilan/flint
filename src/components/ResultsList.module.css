@@ -2,14 +2,14 @@
   max-height: 360px;
   overflow-y: auto;
   border-top: 1px solid var(--border-subtle);
-  padding: 6px 0;
+  padding: var(--space-xs) 0;
 }
 
 .emptyState {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px 20px;
+  padding: var(--space-2xl) var(--space-xl);
   color: var(--text-secondary);
   font-size: var(--font-md);
   user-select: none;
@@ -18,11 +18,11 @@
 .item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 20px;
+  gap: var(--space-md);
+  padding: 10px var(--space-xl);
   cursor: default;
   border-radius: var(--radius-sm);
-  margin: 0 6px;
+  margin: 0 var(--space-xs);
   transition:
     background var(--transition-fast),
     color var(--transition-fast);

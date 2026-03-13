@@ -2,7 +2,7 @@
   max-height: 360px;
   overflow-y: auto;
   border-top: 1px solid var(--border-subtle);
-  padding: 12px 20px;
+  padding: var(--space-md) var(--space-xl);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -12,8 +12,8 @@
   align-self: flex-end;
   max-width: 85%;
   background: var(--accent);
-  color: #fff;
-  padding: 8px 14px;
+  color: var(--text-on-accent);
+  padding: var(--space-sm) 14px;
   border-radius: var(--radius-md) var(--radius-md) var(--radius-sm) var(--radius-md);
   font-size: var(--font-md);
   line-height: 1.5;
@@ -26,7 +26,7 @@
   max-width: 85%;
   background: var(--bg-secondary);
   color: var(--text-primary);
-  padding: 8px 14px;
+  padding: var(--space-sm) 14px;
   border-radius: var(--radius-md) var(--radius-md) var(--radius-md) var(--radius-sm);
   font-size: var(--font-md);
   line-height: 1.5;
@@ -37,9 +37,9 @@
 .error {
   align-self: flex-start;
   max-width: 85%;
-  background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
-  padding: 8px 14px;
+  background: var(--color-error-bg);
+  color: var(--color-error);
+  padding: var(--space-sm) 14px;
   border-radius: var(--radius-md);
   font-size: var(--font-base);
   line-height: 1.5;
@@ -49,7 +49,7 @@
   align-self: flex-start;
   font-size: var(--font-base);
   color: var(--text-secondary);
-  padding: 4px 0;
+  padding: var(--space-xs) 0;
   animation: pulse 1.5s ease-in-out infinite;
 }
 

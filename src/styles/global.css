@@ -12,39 +12,73 @@
 
 :root {
   /* Font scale — controlled by data-font-size attribute on html */
-  --font-xs: 10px;
-  --font-sm: 11px;
-  --font-base: 13px;
-  --font-md: 14px;
-  --font-lg: 16px;
-  --font-xl: 18px;
+  /* Default matches "small" preset */
+  --font-xs: 9px;
+  --font-sm: 10px;
+  --font-base: 11px;
+  --font-md: 12px;
+  --font-lg: 14px;
+  --font-xl: 16px;
 
+  /* ── Colors ──────────────────────────────────────── */
   /* Backgrounds */
   --bg-primary: rgba(20, 20, 25, 0.85);
   --bg-secondary: rgba(35, 35, 45, 0.9);
   --bg-hover: rgba(60, 60, 75, 0.8);
   --bg-selected: rgba(80, 80, 100, 0.9);
+  --bg-solid: #141419;
+  --bg-accent-subtle: rgba(99, 102, 241, 0.08);
 
   /* Text */
   --text-primary: rgba(255, 255, 255, 0.95);
   --text-secondary: rgba(255, 255, 255, 0.55);
   --text-placeholder: rgba(255, 255, 255, 0.3);
+  --text-on-accent: #ffffff;
 
   /* Accent */
   --accent: #6366f1;
+  --accent-hover: #5558e6;
+
+  /* Semantic */
+  --color-success: #22c55e;
+  --color-error: #ef4444;
+  --color-error-bg: rgba(239, 68, 68, 0.15);
+  --color-warning: #f59e0b;
 
   /* Borders */
   --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.15);
+  --border-active: rgba(255, 255, 255, 0.12);
 
-  /* Radii */
-  --radius-lg: 16px;
-  --radius-md: 10px;
+  /* ── Spacing ─────────────────────────────────────── */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 20px;
+  --space-2xl: 24px;
+  --space-3xl: 32px;
+
+  /* ── Radii ───────────────────────────────────────── */
   --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
 
-  /* Shadows */
+  /* ── Shadows ─────────────────────────────────────── */
   --shadow-lg: 0 25px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
 
-  /* Fonts */
+  /* ── Scrollbar ───────────────────────────────────── */
+  --scrollbar-thumb: rgba(255, 255, 255, 0.08);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.14);
+
+  /* ── Sizes ───────────────────────────────────────── */
+  --icon-sm: 16px;
+  --icon-md: 18px;
+  --icon-lg: 24px;
+
+  /* ── Fonts ───────────────────────────────────────── */
   --font-sans:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans",
     "Droid Sans", "Helvetica Neue", Arial, sans-serif;
@@ -52,13 +86,24 @@
     "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", Menlo, Consolas, "DejaVu Sans Mono",
     monospace;
 
-  /* Transitions */
+  /* ── Transitions ─────────────────────────────────── */
   --transition-fast: 150ms ease;
   --transition-normal: 250ms ease;
 }
 
 /* ── Font size presets ─────────────────────────────────────── */
 
+/* Extra Small */
+html[data-font-size="extra-small"] {
+  --font-xs: 8px;
+  --font-sm: 9px;
+  --font-base: 10px;
+  --font-md: 11px;
+  --font-lg: 13px;
+  --font-xl: 15px;
+}
+
+/* Small (DEFAULT) */
 html[data-font-size="small"] {
   --font-xs: 9px;
   --font-sm: 10px;
@@ -68,6 +113,7 @@ html[data-font-size="small"] {
   --font-xl: 16px;
 }
 
+/* Medium */
 html[data-font-size="medium"] {
   --font-xs: 10px;
   --font-sm: 11px;
@@ -77,6 +123,7 @@ html[data-font-size="medium"] {
   --font-xl: 18px;
 }
 
+/* Large */
 html[data-font-size="large"] {
   --font-xs: 12px;
   --font-sm: 13px;
