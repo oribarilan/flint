@@ -1,7 +1,11 @@
 //! Calculator kit — evaluate math expressions inline.
 //!
 //! Activated by the `=` prefix: `= 2+3` → `5`.
+//! When the query is empty (just `=`), shows recent calculation history.
 //! Also exposes a `calculate` chat tool for the AI.
+
+use std::collections::VecDeque;
+use std::sync::Mutex;
 
 use async_trait::async_trait;
 
@@ -13,14 +17,32 @@ const ICON_SVG: &str = r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2
 /// The calculator kit prefix.
 const PREFIX: &str = "=";
 
+/// Maximum number of history entries to keep.
+const MAX_HISTORY: usize = 20;
+
+// ---------------------------------------------------------------------------
+// History
+// ---------------------------------------------------------------------------
+
+/// A past calculation.
+#[derive(Debug, Clone)]
+struct HistoryEntry {
+    expression: String,
+    result: String,
+}
+
 // ---------------------------------------------------------------------------
 // Kit implementation
 // ---------------------------------------------------------------------------
 
 /// Evaluates math expressions using the `meval` crate.
+///
+/// Maintains an in-memory history of recent calculations, shown when the
+/// user types just the prefix (`=`) with no expression.
 pub struct CalculatorKit {
     manifest: KitManifest,
     trigger: SearchTrigger,
+    history: Mutex<VecDeque<HistoryEntry>>,
 }
 
 impl CalculatorKit {
@@ -33,11 +55,51 @@ impl CalculatorKit {
                 icon: Self::icon(),
             },
             trigger: SearchTrigger::Prefix(PREFIX),
+            history: Mutex::new(VecDeque::new()),
         }
     }
 
     fn icon() -> KitIcon {
         KitIcon::DataUri(format!("data:image/svg+xml,{}", urlencoding::encode(ICON_SVG)))
+    }
+
+    /// Push a calculation to history (most recent first).
+    fn record(&self, expression: &str, result: &str) {
+        let Ok(mut history) = self.history.lock() else { return };
+
+        // Remove duplicate if same expression already exists.
+        history.retain(|e| e.expression != expression);
+
+        history.push_front(HistoryEntry {
+            expression: expression.to_string(),
+            result: result.to_string(),
+        });
+
+        if history.len() > MAX_HISTORY {
+            history.pop_back();
+        }
+    }
+
+    /// Return history entries as kit results.
+    fn history_results(&self) -> Vec<KitResult> {
+        let Ok(history) = self.history.lock() else {
+            return vec![];
+        };
+
+        history
+            .iter()
+            .enumerate()
+            .map(|(i, entry)| KitResult {
+                id: format!("calc-history-{i}"),
+                title: entry.result.clone(),
+                subtitle: Some(format_expression(&entry.expression)),
+                icon: Some(Self::icon()),
+                accessories: Vec::new(),
+                actions: vec![KitAction::Copy { text: entry.result.clone(), label: None }],
+                preview: None,
+                score: None,
+            })
+            .collect()
     }
 }
 
@@ -60,10 +122,11 @@ impl super::Kit for CalculatorKit {
     fn search(&self, query: &str) -> Vec<KitResult> {
         let expr = query.trim();
         if expr.is_empty() {
-            return vec![];
+            return self.history_results();
         }
 
         evaluate(expr).map_or_else(Vec::new, |result_str| {
+            self.record(expr, &result_str);
             vec![KitResult {
                 id: "calc-result".to_string(),
                 title: result_str.clone(),
@@ -247,7 +310,7 @@ mod tests {
     }
 
     #[test]
-    fn search_returns_empty_for_empty_query() {
+    fn search_returns_empty_for_empty_query_with_no_history() {
         let kit = CalculatorKit::new();
         assert!(kit.search("").is_empty());
         assert!(kit.search("   ").is_empty());
@@ -295,5 +358,75 @@ mod tests {
             kit.invoke_chat_tool("unknown", serde_json::json!({})).await;
 
         assert!(result.is_err());
+    }
+
+    // ── History ─────────────────────────────────────────────────
+
+    #[test]
+    fn search_records_history_and_shows_on_empty_query() {
+        let kit = CalculatorKit::new();
+
+        // Evaluate some expressions
+        kit.search("2+3");
+        kit.search("6*7");
+
+        // Empty query returns history, most recent first
+        let history = kit.search("");
+        assert_eq!(history.len(), 2);
+        assert_eq!(history[0].title, "42");
+        assert_eq!(history[1].title, "5");
+    }
+
+    #[test]
+    fn history_deduplicates_same_expression() {
+        let kit = CalculatorKit::new();
+
+        kit.search("2+3");
+        kit.search("6*7");
+        kit.search("2+3"); // duplicate — should move to front, not add twice
+
+        let history = kit.search("");
+        assert_eq!(history.len(), 2);
+        assert_eq!(history[0].title, "5"); // 2+3 is now most recent
+        assert_eq!(history[1].title, "42");
+    }
+
+    #[test]
+    fn history_entries_have_copy_action() {
+        let kit = CalculatorKit::new();
+        kit.search("2+3");
+
+        let history = kit.search("");
+        assert_eq!(history.len(), 1);
+        match &history[0].actions[0] {
+            KitAction::Copy { text, .. } => assert_eq!(text, "5"),
+            other => panic!("expected Copy action, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn history_respects_max_size() {
+        let kit = CalculatorKit::new();
+
+        // Fill beyond MAX_HISTORY
+        for i in 0..25 {
+            kit.search(&format!("{i}+1"));
+        }
+
+        let history = kit.search("");
+        assert!(history.len() <= MAX_HISTORY);
+    }
+
+    #[test]
+    fn invalid_expressions_are_not_recorded() {
+        let kit = CalculatorKit::new();
+
+        kit.search("2+3");
+        kit.search("invalid");
+        kit.search("hello world");
+
+        let history = kit.search("");
+        assert_eq!(history.len(), 1);
+        assert_eq!(history[0].title, "5");
     }
 }
