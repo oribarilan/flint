@@ -214,6 +214,8 @@ pub enum KitAction {
     Custom { id: String, label: String },
     /// Paste text (write to clipboard + simulate Cmd+V).
     Paste { text: String },
+    /// Activate a kit by filling its prefix into the search bar.
+    ActivateKit { prefix: String },
 }
 
 /// Right-side accessories on a result row.

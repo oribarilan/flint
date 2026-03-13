@@ -24,6 +24,10 @@ export function executeAction(action: KitAction): void {
           console.error("Failed to copy:", err);
         });
       break;
+    case "ActivateKit":
+      useSearchStore.getState().setQuery(action.prefix);
+      focusSearchBar();
+      break;
     default:
       // Other action types (FocusWindow, Paste, Custom, OpenApp)
       // will be implemented alongside the kits that use them.

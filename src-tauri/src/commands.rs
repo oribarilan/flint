@@ -116,12 +116,20 @@ pub async fn search_all(
         return Ok(kit_results);
     }
 
-    // No kit matched — fall through to core file search.
+    // No kit matched — fall through to core file search + kit discovery.
+    let registry = registry_state.0.read().await;
+    let kit_discovery = registry.discovery_results(&query);
+    drop(registry);
+
     let core_results = {
         let entries = index.0.read().map_err(|e| e.to_string())?;
         crate::search::search(&query, &entries, MAX_RESULTS)
     };
-    Ok(KitSearchResult::from_core_search(core_results))
+
+    let mut results = KitSearchResult::from_core_search(core_results);
+    results.extend(kit_discovery);
+    results.truncate(MAX_RESULTS);
+    Ok(results)
 }
 
 /// Open a file or application at `path` with the system default handler.

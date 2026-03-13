@@ -19,7 +19,8 @@ export type KitAction =
   | { type: "FocusWindow"; window_id: number }
   | { type: "OpenApp" }
   | { type: "Custom"; id: string; label: string }
-  | { type: "Paste"; text: string };
+  | { type: "Paste"; text: string }
+  | { type: "ActivateKit"; prefix: string };
 
 // ---------------------------------------------------------------------------
 // Accessories

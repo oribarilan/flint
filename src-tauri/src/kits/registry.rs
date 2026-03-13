@@ -227,6 +227,45 @@ impl KitRegistry {
             })
             .collect()
     }
+
+    /// Return kits whose name matches the query, as discoverable search results.
+    ///
+    /// These appear in bare search alongside file results so users can
+    /// discover kits by name. Selecting one fills the kit's prefix into
+    /// the search bar.
+    pub fn discovery_results(&self, query: &str) -> Vec<KitSearchResult> {
+        let query_lower = query.to_lowercase();
+        self.kits
+            .values()
+            .filter_map(|kit| {
+                let manifest = kit.manifest();
+                let trigger = kit.search_trigger()?;
+                let name_lower = manifest.name.to_lowercase();
+
+                // Simple substring match — fine for <20 kits.
+                if !name_lower.contains(&query_lower) {
+                    return None;
+                }
+
+                let prefix = match trigger {
+                    super::SearchTrigger::Prefix(p) => format!("{p} "),
+                    super::SearchTrigger::Keyword(kw) => format!("{kw} "),
+                };
+
+                Some(KitSearchResult {
+                    kit_id: manifest.id.to_string(),
+                    id: format!("kit-discovery:{}", manifest.id),
+                    title: manifest.name.to_string(),
+                    subtitle: Some(manifest.description.to_string()),
+                    icon: Some(manifest.icon.clone()),
+                    accessories: Vec::new(),
+                    actions: vec![super::KitAction::ActivateKit { prefix }],
+                    preview: None,
+                    score: None,
+                })
+            })
+            .collect()
+    }
 }
 
 /// Kit metadata sent to the frontend for the settings UI.
@@ -531,5 +570,44 @@ mod tests {
         assert_eq!(converted.kit_id, "my-kit");
         assert_eq!(converted.id, "r1");
         assert_eq!(converted.title, "Hello");
+    }
+
+    #[test]
+    fn discovery_returns_matching_kits() {
+        let mut registry = KitRegistry::new();
+        registry.register(Box::new(MockKit::new("calc", Some(SearchTrigger::Prefix("=")))));
+
+        let results = registry.discovery_results("calc");
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title, "calc"); // MockKit uses id as name
+        assert!(matches!(
+            &results[0].actions[0],
+            super::super::KitAction::ActivateKit { prefix } if prefix == "= "
+        ));
+    }
+
+    #[test]
+    fn discovery_is_case_insensitive() {
+        let mut registry = KitRegistry::new();
+        registry.register(Box::new(MockKit::new("calc", Some(SearchTrigger::Prefix("=")))));
+
+        assert_eq!(registry.discovery_results("CALC").len(), 1);
+        assert_eq!(registry.discovery_results("Calc").len(), 1);
+    }
+
+    #[test]
+    fn discovery_returns_empty_for_no_match() {
+        let mut registry = KitRegistry::new();
+        registry.register(Box::new(MockKit::new("calc", Some(SearchTrigger::Prefix("=")))));
+
+        assert!(registry.discovery_results("weather").is_empty());
+    }
+
+    #[test]
+    fn discovery_skips_kits_without_triggers() {
+        let mut registry = KitRegistry::new();
+        registry.register(Box::new(MockKit::new("chat-only", None)));
+
+        assert!(registry.discovery_results("chat").is_empty());
     }
 }
