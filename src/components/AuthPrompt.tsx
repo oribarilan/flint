@@ -5,6 +5,7 @@ import {
   startCopilotAuth,
   completeCopilotAuth,
   getAuthStatus,
+  showWindow,
   type DeviceCodeResponse,
 } from "../lib/commands";
 import styles from "./AuthPrompt.module.css";
@@ -23,7 +24,11 @@ export default function AuthPrompt() {
       setDeviceInfo(info);
       setAuthenticating(true);
 
+      // Open browser for the user to enter the code
       await open(info.verification_uri);
+
+      // Keep Flint visible while user is in the browser
+      await showWindow();
 
       setIsPolling(true);
       await completeCopilotAuth(info.device_code, info.interval);
