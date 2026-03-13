@@ -111,3 +111,17 @@ export async function getConfig(): Promise<FlintConfig> {
 export async function updateConfig(config: FlintConfig): Promise<void> {
   return invoke("update_config", { newConfig: config });
 }
+
+// ── Kit commands ───────────────────────────────────────────
+
+export interface KitManifestInfo {
+  id: string;
+  name: string;
+  description: string;
+  icon: import("../kits/types").KitIcon;
+  trigger: string | null;
+}
+
+export async function getKitManifests(): Promise<KitManifestInfo[]> {
+  return invoke("get_kit_manifests");
+}

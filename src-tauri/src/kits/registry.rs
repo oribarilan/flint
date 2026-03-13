@@ -206,6 +206,38 @@ impl KitRegistry {
     pub fn set_task_manager(&mut self, kit_id: &str, tm: TaskManager) {
         self.task_managers.insert(kit_id.to_string(), tm);
     }
+
+    /// Get metadata about all registered kits for the settings UI.
+    pub fn kit_infos(&self) -> Vec<KitInfo> {
+        self.kits
+            .values()
+            .map(|kit| {
+                let manifest = kit.manifest();
+                let trigger_label = kit.search_trigger().map(|t| match t {
+                    super::SearchTrigger::Prefix(p) => format!("Prefix: {p}"),
+                    super::SearchTrigger::Keyword(kw) => format!("Keyword: {kw}"),
+                });
+                KitInfo {
+                    id: manifest.id.to_string(),
+                    name: manifest.name.to_string(),
+                    description: manifest.description.to_string(),
+                    icon: manifest.icon.clone(),
+                    trigger: trigger_label,
+                }
+            })
+            .collect()
+    }
+}
+
+/// Kit metadata sent to the frontend for the settings UI.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct KitInfo {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub icon: super::KitIcon,
+    /// Human-readable trigger description (e.g., "Prefix: =").
+    pub trigger: Option<String>,
 }
 
 impl Default for KitRegistry {

@@ -3,16 +3,18 @@ import GeneralSettings from "./settings/GeneralSettings";
 import AppearanceSettings from "./settings/AppearanceSettings";
 import ChatSettings from "./settings/ChatSettings";
 import SearchSettings from "./settings/SearchSettings";
+import KitsSettings from "./settings/KitsSettings";
 import { useConfig } from "../hooks/useConfig";
 import styles from "./Settings.module.css";
 
-type SettingsPage = "general" | "appearance" | "chat" | "search";
+type SettingsPage = "general" | "appearance" | "chat" | "search" | "kits";
 
 const PAGES: { id: SettingsPage; label: string }[] = [
   { id: "general", label: "General" },
   { id: "appearance", label: "Appearance" },
   { id: "chat", label: "Chat" },
   { id: "search", label: "Search" },
+  { id: "kits", label: "Kits" },
 ];
 
 export default function Settings() {
@@ -45,6 +47,7 @@ export default function Settings() {
         {activePage === "appearance" && <AppearanceSettings config={config} onUpdate={update} />}
         {activePage === "chat" && <ChatSettings config={config} onUpdate={update} />}
         {activePage === "search" && <SearchSettings config={config} onUpdate={update} />}
+        {activePage === "kits" && <KitsSettings config={config} onUpdate={update} />}
       </main>
     </div>
   );

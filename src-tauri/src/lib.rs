@@ -65,6 +65,7 @@ pub fn run() {
             commands::sign_out,
             commands::get_config,
             commands::update_config,
+            commands::get_kit_manifests,
         ])
         .setup(|app| {
             // Load application config (or use defaults).

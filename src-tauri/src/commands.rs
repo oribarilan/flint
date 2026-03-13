@@ -7,7 +7,7 @@ use tauri::{AppHandle, State};
 
 use crate::config::{AppConfig, FlintConfig};
 use crate::indexer::FileIndex;
-use crate::kits::{KitContextBase, KitRegistryState, KitSearchResult, KitState};
+use crate::kits::{KitContextBase, KitInfo, KitRegistryState, KitSearchResult, KitState};
 use crate::providers;
 use crate::providers::copilot::auth::DeviceCodeResponse;
 use crate::providers::{AuthStatus, ChatMessage, ChatRole};
@@ -226,6 +226,19 @@ pub fn get_config(config: State<'_, AppConfig>) -> FlintConfig {
 #[allow(clippy::needless_pass_by_value)]
 pub fn update_config(config: State<'_, AppConfig>, new_config: FlintConfig) -> Result<(), String> {
     config.update(new_config).map_err(|e| e.to_string())
+}
+
+// ---------------------------------------------------------------------------
+// Kit commands
+// ---------------------------------------------------------------------------
+
+/// Get metadata for all registered kits.
+#[tauri::command]
+pub async fn get_kit_manifests(
+    registry: State<'_, KitRegistryState>,
+) -> Result<Vec<KitInfo>, String> {
+    let reg = registry.0.read().await;
+    Ok(reg.kit_infos())
 }
 
 // ---------------------------------------------------------------------------

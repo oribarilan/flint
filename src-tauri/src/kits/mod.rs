@@ -10,7 +10,7 @@ mod calculator;
 mod registry;
 
 pub use calculator::CalculatorKit;
-pub use registry::{KitRegistry, KitRegistryState, KitState};
+pub use registry::{KitInfo, KitRegistry, KitRegistryState, KitState};
 
 use std::path::PathBuf;
 
