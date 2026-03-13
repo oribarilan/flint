@@ -1,117 +1,95 @@
 .container {
-  padding: 24px;
-  max-width: 440px;
-  margin: 0 auto;
+  display: flex;
+  height: 100vh;
   font-family: var(--font-sans);
   color: var(--text-primary);
+  background: #141419;
+}
+
+/* ── Sidebar ──────────────────────────────────────────────── */
+
+.sidebar {
+  width: 180px;
+  padding: 28px 12px 16px;
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
 }
 
 .title {
-  font-size: 20px;
+  font-size: 13px;
   font-weight: 600;
-  margin-bottom: 24px;
-}
-
-.section {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 16px 20px;
-}
-
-.sectionTitle {
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 12px;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  padding: 0 12px;
+  margin-bottom: 16px;
 }
 
-.authInfo {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.statusBadge {
-  font-size: 13px;
-  font-weight: 500;
-  color: #22c55e;
-}
-
-.statusDisconnected {
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-.signInButton,
-.signOutButton {
-  padding: 6px 14px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-subtle);
-  background: var(--accent);
-  color: white;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: opacity var(--transition-fast);
-}
-
-.signInButton:hover,
-.signOutButton:hover {
-  opacity: 0.85;
-}
-
-.signOutButton {
+.navItem {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 9px 14px;
+  border: none;
+  border-left: 2px solid transparent;
   background: transparent;
   color: var(--text-secondary);
+  font-size: 14px;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  cursor: pointer;
+  transition: all var(--transition-normal);
 }
 
-.signOutButton:hover {
+.navItem:hover {
   color: var(--text-primary);
+  background: var(--bg-hover);
+  border-left-color: rgba(255, 255, 255, 0.12);
 }
 
-.deviceFlow {
-  text-align: center;
-  padding: 8px 0;
+.navItemActive {
+  composes: navItem;
+  color: var(--text-primary);
+  font-weight: 600;
+  background: rgba(99, 102, 241, 0.08);
+  border-left-color: var(--accent);
 }
 
-.label {
-  font-size: 13px;
+.version {
+  margin-top: auto;
+  padding: 12px 14px 4px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 12px;
   color: var(--text-secondary);
-  margin-bottom: 8px;
-}
-
-.code {
-  display: block;
-  font-size: 28px;
-  font-weight: 700;
   font-family: var(--font-mono);
-  color: var(--accent);
-  letter-spacing: 0.15em;
-  margin-bottom: 12px;
 }
 
-.waiting {
-  font-size: 13px;
-  color: var(--text-secondary);
-  animation: pulse 2s ease-in-out infinite;
+/* ── Content area ─────────────────────────────────────────── */
+
+.content {
+  flex: 1;
+  padding: 28px 32px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
 }
 
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+.content::-webkit-scrollbar {
+  display: block;
+  width: 6px;
 }
 
-.error {
-  font-size: 13px;
-  color: #ef4444;
-  margin-top: 8px;
+.content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+}
+
+.content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.14);
 }
