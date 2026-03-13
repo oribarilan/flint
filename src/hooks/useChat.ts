@@ -1,30 +1,32 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { useChatStore } from "../stores/chatStore";
 
+/**
+ * Subscribes to Tauri chat events and forwards them to the chat store.
+ *
+ * Uses `useChatStore.getState()` inside callbacks so the effect needs no
+ * dependencies and registers listeners exactly once. A local `cancelled`
+ * flag handles React StrictMode's double-mount by immediately unlistening
+ * if the effect was cleaned up while the async `listen()` calls were pending.
+ */
 export function useChat(): void {
-  const appendToken = useChatStore((s) => s.appendToken);
-  const finishResponse = useChatStore((s) => s.finishResponse);
-  const setError = useChatStore((s) => s.setError);
-  const cancelledRef = useRef(false);
-
   useEffect(() => {
-    cancelledRef.current = false;
+    let cancelled = false;
     const unlisteners: (() => void)[] = [];
 
     const setup = async () => {
       const tokenUn = await listen<string>("chat:token", (event) => {
-        appendToken(event.payload);
+        useChatStore.getState().appendToken(event.payload);
       });
       const doneUn = await listen("chat:done", () => {
-        finishResponse();
+        useChatStore.getState().finishResponse();
       });
       const errorUn = await listen<string>("chat:error", (event) => {
-        setError(event.payload);
+        useChatStore.getState().setError(event.payload);
       });
 
-      // If effect was cleaned up while awaiting, immediately unlisten.
-      if (cancelledRef.current) {
+      if (cancelled) {
         tokenUn();
         doneUn();
         errorUn();
@@ -35,10 +37,10 @@ export function useChat(): void {
 
     void setup();
     return () => {
-      cancelledRef.current = true;
+      cancelled = true;
       unlisteners.forEach((fn) => {
         fn();
       });
     };
-  }, [appendToken, finishResponse, setError]);
+  }, []);
 }
