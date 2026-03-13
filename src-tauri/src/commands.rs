@@ -189,16 +189,18 @@ pub async fn get_auth_status(
 
 /// Send chat messages and stream the response via Tauri events.
 ///
-/// Emits `chat:token`, `chat:done`, and `chat:error` events.
+/// Emits `chat:token`, `chat:tool-start`, `chat:tool-done`, `chat:done`,
+/// and `chat:error` events.
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)] // Tauri injects AppHandle by value
 pub async fn send_chat_message(
     app: AppHandle,
     provider: State<'_, CopilotProviderState>,
+    registry: State<'_, KitRegistryState>,
     message: String,
 ) -> Result<(), String> {
-    let messages = vec![ChatMessage { role: ChatRole::User, content: message }];
-    provider.0.send_message(&messages, &app).await
+    let messages = vec![ChatMessage::text(ChatRole::User, message)];
+    provider.0.send_message(&messages, &app, &registry).await
 }
 
 /// Sign out and clear all stored Copilot tokens.

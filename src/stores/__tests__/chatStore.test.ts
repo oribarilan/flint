@@ -7,6 +7,7 @@ beforeEach(() => {
     isStreaming: false,
     isAuthenticating: false,
     currentResponse: "",
+    activeToolCalls: [],
     authStatus: { authenticated: false, username: null },
   });
 });
@@ -133,5 +134,30 @@ describe("chatStore", () => {
       { role: "user", content: "question 2" },
       { role: "assistant", content: "answer 2" },
     ]);
+  });
+
+  it("addToolCall tracks active tool calls", () => {
+    useChatStore.getState().addToolCall({ kitId: "calculator", toolName: "calculate" });
+
+    expect(useChatStore.getState().activeToolCalls).toEqual([
+      { kitId: "calculator", toolName: "calculate" },
+    ]);
+  });
+
+  it("removeToolCall removes by tool name", () => {
+    useChatStore.getState().addToolCall({ kitId: "calculator", toolName: "calculate" });
+    useChatStore.getState().addToolCall({ kitId: "stocks", toolName: "get_price" });
+    useChatStore.getState().removeToolCall("calculate");
+
+    expect(useChatStore.getState().activeToolCalls).toEqual([
+      { kitId: "stocks", toolName: "get_price" },
+    ]);
+  });
+
+  it("clearChat also clears active tool calls", () => {
+    useChatStore.getState().addToolCall({ kitId: "calculator", toolName: "calculate" });
+    useChatStore.getState().clearChat();
+
+    expect(useChatStore.getState().activeToolCalls).toEqual([]);
   });
 });
