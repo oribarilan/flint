@@ -11,6 +11,7 @@ import styles from "./AuthPrompt.module.css";
 
 export default function AuthPrompt() {
   const setAuthStatus = useChatStore((s) => s.setAuthStatus);
+  const setAuthenticating = useChatStore((s) => s.setAuthenticating);
   const [deviceInfo, setDeviceInfo] = useState<DeviceCodeResponse | null>(null);
   const [isPolling, setIsPolling] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,6 +21,7 @@ export default function AuthPrompt() {
     try {
       const info = await startCopilotAuth();
       setDeviceInfo(info);
+      setAuthenticating(true);
 
       await open(info.verification_uri);
 
@@ -28,10 +30,12 @@ export default function AuthPrompt() {
 
       const status = await getAuthStatus();
       setAuthStatus(status);
+      setAuthenticating(false);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       setError(message);
       setIsPolling(false);
+      setAuthenticating(false);
     }
   };
 

@@ -88,11 +88,17 @@ export default function App() {
 
       const unlisten = await appWindow.onFocusChanged(({ payload: focused }) => {
         if (!focused) {
-          void hideWindow();
+          // Don't hide window during active auth flow
+          if (!useChatStore.getState().isAuthenticating) {
+            void hideWindow();
+          }
         } else {
-          clearSearch();
           refreshAuth();
           focusSearchBar();
+          // Only clear search if no active chat session
+          if (useChatStore.getState().messages.length === 0) {
+            clearSearch();
+          }
         }
       });
 

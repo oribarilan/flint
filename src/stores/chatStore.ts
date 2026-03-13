@@ -8,6 +8,7 @@ export interface ChatMessage {
 interface ChatState {
   messages: ChatMessage[];
   isStreaming: boolean;
+  isAuthenticating: boolean;
   currentResponse: string;
   authStatus: { authenticated: boolean; username: string | null };
 
@@ -16,6 +17,7 @@ interface ChatState {
   finishResponse: () => void;
   setError: (error: string) => void;
   setStreaming: (streaming: boolean) => void;
+  setAuthenticating: (authenticating: boolean) => void;
   setAuthStatus: (status: { authenticated: boolean; username: string | null }) => void;
   clearChat: () => void;
 }
@@ -23,6 +25,7 @@ interface ChatState {
 export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
   isStreaming: false,
+  isAuthenticating: false,
   currentResponse: "",
   authStatus: { authenticated: false, username: null },
 
@@ -60,6 +63,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   setStreaming: (streaming) => {
     set({ isStreaming: streaming });
+  },
+
+  setAuthenticating: (authenticating) => {
+    set({ isAuthenticating: authenticating });
   },
 
   setAuthStatus: (status) => {
