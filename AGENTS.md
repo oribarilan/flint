@@ -97,10 +97,23 @@ This app targets macOS, Windows, and Linux. All platform-specific code must use 
 
 ## Testing
 
-- **Rust**: Unit tests in same file (`#[cfg(test)] mod tests`). Integration tests in `tests/` dir. Cover all public functions with positive + negative cases.
-- **Frontend**: Vitest + React Testing Library. At least one test per component/hook. `describe`/`it` structure.
-- **Naming**: Descriptive test names — `should_return_empty_when_query_is_blank`, not `test1`.
+Three layers, each serving a different purpose:
+
+### Unit Tests
+- **Rust**: `#[cfg(test)] mod tests` in each source file. Cover all public functions with positive + negative + edge cases. Run via `just test-rust`.
+- **Frontend**: Vitest + React Testing Library. At least one test per component/hook. `describe`/`it` structure. Run via `just test-frontend`.
+- **Naming**: Descriptive — `should_return_empty_when_query_is_blank`, not `test1`.
 - **Mocking**: Mock Tauri IPC calls in frontend tests. Mock filesystem/network in Rust tests.
+
+### Integration Tests
+- **Rust**: `src-tauri/tests/` directory. Test multi-module flows: indexer → search pipeline, config file round-trip, SSE stream parsing end-to-end.
+- **Frontend**: Test component interactions: mode switching, Escape layering, store lifecycle. Mock the IPC boundary but test the full React tree.
+
+### E2E Smoke Tests
+- **Tool**: `tauri-driver` (WebDriver-compatible) for automated app launch + interaction.
+- **Scope**: A small set of critical-path tests — app launches, search returns results, settings window opens. Not comprehensive UI testing.
+- **Run**: `just test-e2e`. Intended for CI and pre-release validation.
+- **Location**: `tests/e2e/`.
 
 ## Security
 

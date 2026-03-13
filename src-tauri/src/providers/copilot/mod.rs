@@ -170,14 +170,17 @@ async fn stream_sse_response(response: reqwest::Response, app: &AppHandle) {
     let _ = app.emit("chat:done", ());
 }
 
-/// Extract and emit content deltas from complete SSE lines in the buffer.
+/// Parse SSE buffer and extract content deltas.
 ///
-/// Any incomplete trailing line is left in the buffer for the next chunk.
-fn process_sse_lines(buffer: &mut String, app: &AppHandle) -> usize {
-    let mut count = 0;
-    while let Some(pos) = buffer.find('\n') {
-        let line = buffer[..pos].trim().to_owned();
-        buffer.replace_range(..=pos, "");
+/// Returns `(tokens, remaining_buffer)`. This is the pure logic extracted
+/// from [`process_sse_lines`] for testability — no `AppHandle` required.
+pub fn extract_sse_tokens(buffer: &str) -> (Vec<String>, String) {
+    let mut tokens = Vec::new();
+    let mut remaining = buffer.to_owned();
+
+    while let Some(pos) = remaining.find('\n') {
+        let line = remaining[..pos].trim().to_owned();
+        remaining = remaining[pos + 1..].to_owned();
 
         let Some(data) = line.strip_prefix("data: ") else { continue };
         if data == "[DONE]" {
@@ -185,16 +188,27 @@ fn process_sse_lines(buffer: &mut String, app: &AppHandle) -> usize {
         }
 
         let Ok(parsed) = serde_json::from_str::<serde_json::Value>(data) else { continue };
-
         if let Some(choices) = parsed["choices"].as_array() {
             for choice in choices {
                 if let Some(delta) = choice["delta"]["content"].as_str() {
-                    tracing::debug!(token = delta, choice_index = choice["index"].as_u64(), "emit");
-                    let _ = app.emit("chat:token", delta);
-                    count += 1;
+                    tokens.push(delta.to_string());
                 }
             }
         }
     }
-    count
+
+    (tokens, remaining)
+}
+
+/// Extract and emit content deltas from complete SSE lines in the buffer.
+///
+/// Any incomplete trailing line is left in the buffer for the next chunk.
+fn process_sse_lines(buffer: &mut String, app: &AppHandle) -> usize {
+    let (tokens, remaining) = extract_sse_tokens(buffer);
+    *buffer = remaining;
+    for token in &tokens {
+        tracing::debug!(token = token.as_str(), "emit");
+        let _ = app.emit("chat:token", token.as_str());
+    }
+    tokens.len()
 }
