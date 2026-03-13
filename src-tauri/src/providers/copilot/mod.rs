@@ -99,7 +99,7 @@ impl CopilotProvider {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
             let err = format!("HTTP {status}: {text}");
-            let _ = app.emit("chat:error", &err);
+            let _ = app.emit_to("main", "chat:error", &err);
             return Err(err);
         }
 
@@ -160,14 +160,14 @@ async fn stream_sse_response(response: reqwest::Response, app: &AppHandle) {
                 token_count += process_sse_lines(&mut buffer, app);
             }
             Err(e) => {
-                let _ = app.emit("chat:error", e.to_string());
+                let _ = app.emit_to("main", "chat:error", e.to_string());
                 break;
             }
         }
     }
 
     tracing::info!(token_count, "SSE stream finished");
-    let _ = app.emit("chat:done", ());
+    let _ = app.emit_to("main", "chat:done", ());
 }
 
 /// Parse SSE buffer and extract content deltas.
@@ -208,7 +208,7 @@ fn process_sse_lines(buffer: &mut String, app: &AppHandle) -> usize {
     *buffer = remaining;
     for token in &tokens {
         tracing::debug!(token = token.as_str(), "emit");
-        let _ = app.emit("chat:token", token.as_str());
+        let _ = app.emit_to("main", "chat:token", token.as_str());
     }
     tokens.len()
 }
