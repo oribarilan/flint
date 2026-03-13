@@ -6,8 +6,10 @@
 //!
 //! See `specs/kits.md` for the full specification.
 
+mod calculator;
 mod registry;
 
+pub use calculator::CalculatorKit;
 pub use registry::{KitRegistry, KitRegistryState, KitState};
 
 use std::path::PathBuf;

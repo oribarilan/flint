@@ -87,7 +87,7 @@ pub fn run() {
             let app_config = config::AppConfig::new(cfg);
             app.manage(app_config.clone());
 
-            // Initialise kit registry (empty — no kits registered yet).
+            // Initialise kit registry and register built-in kits.
             let kit_ctx_base = KitContextBase {
                 app: app.handle().clone(),
                 config: app_config,
@@ -95,7 +95,10 @@ pub fn run() {
                 base_data_dir: config::config_base_dir().join("flint").join("kits"),
             };
             app.manage(kit_ctx_base);
-            app.manage(KitRegistryState(Arc::new(tokio::sync::RwLock::new(KitRegistry::new()))));
+
+            let mut registry = KitRegistry::new();
+            registry.register(Box::new(kits::CalculatorKit::new()));
+            app.manage(KitRegistryState(Arc::new(tokio::sync::RwLock::new(registry))));
 
             // Initialise file index as managed state and populate in background.
             let index = Arc::new(RwLock::new(Vec::new()));
