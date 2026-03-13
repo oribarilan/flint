@@ -130,7 +130,8 @@ fn build_headers(token: &str) -> Result<HeaderMap, reqwest::header::InvalidHeade
     headers.insert("Accept", HeaderValue::from_static("text/event-stream"));
     headers.insert("Openai-Intent", HeaderValue::from_static("conversation-edits"));
     headers.insert("User-Agent", HeaderValue::from_static(USER_AGENT));
-    headers.insert("editor-version", HeaderValue::from_static(USER_AGENT));
+    headers.insert("editor-version", HeaderValue::from_static("vscode/1.85.1"));
+    headers.insert("editor-plugin-version", HeaderValue::from_static("copilot/1.155.0"));
     Ok(headers)
 }
 
@@ -140,6 +141,7 @@ fn build_request_body(messages: &[ChatMessage]) -> serde_json::Value {
         "model": "gpt-4.1",
         "messages": messages,
         "stream": true,
+        "n": 1,
     })
 }
 
@@ -147,12 +149,15 @@ fn build_request_body(messages: &[ChatMessage]) -> serde_json::Value {
 async fn stream_sse_response(response: reqwest::Response, app: &AppHandle) {
     let mut stream = response.bytes_stream();
     let mut buffer = String::new();
+    let mut token_count: usize = 0;
 
     while let Some(chunk) = stream.next().await {
         match chunk {
             Ok(bytes) => {
-                buffer.push_str(&String::from_utf8_lossy(&bytes));
-                process_sse_lines(&mut buffer, app);
+                let text = String::from_utf8_lossy(&bytes);
+                tracing::debug!(chunk_len = bytes.len(), "SSE chunk received");
+                buffer.push_str(&text);
+                token_count += process_sse_lines(&mut buffer, app);
             }
             Err(e) => {
                 let _ = app.emit("chat:error", e.to_string());
@@ -161,13 +166,15 @@ async fn stream_sse_response(response: reqwest::Response, app: &AppHandle) {
         }
     }
 
+    tracing::info!(token_count, "SSE stream finished");
     let _ = app.emit("chat:done", ());
 }
 
 /// Extract and emit content deltas from complete SSE lines in the buffer.
 ///
 /// Any incomplete trailing line is left in the buffer for the next chunk.
-fn process_sse_lines(buffer: &mut String, app: &AppHandle) {
+fn process_sse_lines(buffer: &mut String, app: &AppHandle) -> usize {
+    let mut count = 0;
     while let Some(pos) = buffer.find('\n') {
         let line = buffer[..pos].trim().to_owned();
         buffer.replace_range(..=pos, "");
@@ -178,8 +185,16 @@ fn process_sse_lines(buffer: &mut String, app: &AppHandle) {
         }
 
         let Ok(parsed) = serde_json::from_str::<serde_json::Value>(data) else { continue };
-        if let Some(delta) = parsed["choices"][0]["delta"]["content"].as_str() {
-            let _ = app.emit("chat:token", delta);
+
+        if let Some(choices) = parsed["choices"].as_array() {
+            for choice in choices {
+                if let Some(delta) = choice["delta"]["content"].as_str() {
+                    tracing::debug!(token = delta, choice_index = choice["index"].as_u64(), "emit");
+                    let _ = app.emit("chat:token", delta);
+                    count += 1;
+                }
+            }
         }
     }
+    count
 }

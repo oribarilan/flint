@@ -6,7 +6,7 @@ use tauri::{AppHandle, State};
 use crate::indexer::FileIndex;
 use crate::providers;
 use crate::providers::copilot::auth::DeviceCodeResponse;
-use crate::providers::{AuthStatus, ChatMessage};
+use crate::providers::{AuthStatus, ChatMessage, ChatRole};
 use crate::search::SearchResult;
 use crate::window;
 
@@ -45,6 +45,13 @@ pub fn show_window(app: AppHandle) -> Result<(), String> {
 #[allow(clippy::needless_pass_by_value)]
 pub fn hide_window(app: AppHandle) -> Result<(), String> {
     window::hide(&app)
+}
+
+/// Open the settings window.
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn open_settings(app: AppHandle) -> Result<(), String> {
+    window::open_settings(&app)
 }
 
 // ---------------------------------------------------------------------------
@@ -133,8 +140,9 @@ pub async fn get_auth_status(
 pub async fn send_chat_message(
     app: AppHandle,
     provider: State<'_, CopilotProviderState>,
-    messages: Vec<ChatMessage>,
+    message: String,
 ) -> Result<(), String> {
+    let messages = vec![ChatMessage { role: ChatRole::User, content: message }];
     provider.0.send_message(&messages, &app).await
 }
 

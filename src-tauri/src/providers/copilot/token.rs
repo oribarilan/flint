@@ -10,7 +10,7 @@ use tokio::sync::RwLock;
 
 use super::auth::{self, CopilotToken};
 
-const KEYRING_SERVICE: &str = "com.flint.app";
+const KEYRING_SERVICE: &str = "sh.oribi.flint";
 const GITHUB_TOKEN_KEY: &str = "github_access_token";
 const COPILOT_TOKEN_KEY: &str = "copilot_token";
 

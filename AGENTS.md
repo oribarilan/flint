@@ -37,25 +37,20 @@ These are non-negotiable. When any of these are at risk, raise a red flag.
 
 ## Commands
 
+This project uses a `justfile` for common tasks. Run `just` to list all available recipes.
+
 ```bash
-# Build
-cargo build                          # Rust backend
-npm run build                        # Frontend
-cargo tauri build                    # Full app bundle
-
-# Dev
-cargo tauri dev                      # Dev mode with hot reload
-
-# Test
-cargo test --all-features            # Rust tests
-npm run test                         # Frontend tests (Vitest)
-
-# Lint
-cargo clippy --all-targets --all-features -- -D warnings
-cargo fmt --check
-npm run lint                         # ESLint (strict)
-npm run format:check                 # Prettier
+just                    # List all available commands
+just dev                # Dev mode with hot reload
+just check              # Run ALL checks (lint + format + test + build)
+just test               # Run all tests (Rust + frontend)
+just lint               # Run all linting (Clippy + ESLint)
+just format             # Check all formatting (rustfmt + Prettier)
+just build              # Build everything (frontend + Rust)
+just build-app          # Full Tauri app bundle
 ```
+
+Individual targets are also available (`just test-rust`, `just lint-frontend`, etc.).
 
 ## Rust Conventions
 
@@ -110,3 +105,4 @@ This app targets macOS, Windows, and Linux. All platform-specific code must use 
 
 - Conventional commits: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`.
 - Small, focused commits. One logical change per commit.
+- **Never commit or push without explicit user approval.** Present the changes and wait for confirmation before running `git commit` or `git push`.

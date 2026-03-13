@@ -18,16 +18,12 @@ pub fn setup(app: &App) -> Result<(), String> {
 
     let settings = MenuItemBuilder::with_id("settings", "Settings...").build(app).str_err()?;
 
-    let sign_in = MenuItemBuilder::with_id("sign_in", "Sign In").build(app).str_err()?;
-
     let sep2 = PredefinedMenuItem::separator(app).str_err()?;
 
     let quit = MenuItemBuilder::with_id("quit", "Quit Flint").build(app).str_err()?;
 
-    let menu = MenuBuilder::new(app)
-        .items(&[&show, &sep1, &settings, &sign_in, &sep2, &quit])
-        .build()
-        .str_err()?;
+    let menu =
+        MenuBuilder::new(app).items(&[&show, &sep1, &settings, &sep2, &quit]).build().str_err()?;
 
     let icon = Image::from_path("icons/icon.png").str_err()?;
 
@@ -51,10 +47,12 @@ fn handle_menu_event(app: &tauri::AppHandle, event: tauri::menu::MenuEvent) {
         "show" => {
             let _ = window::show(app);
         }
+        "settings" => {
+            let _ = window::open_settings(app);
+        }
         "quit" => {
             app.exit(0);
         }
-        // "settings" and "sign_in" will be handled in future phases.
         _ => {}
     }
 }

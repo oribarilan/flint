@@ -1,0 +1,117 @@
+.container {
+  padding: 24px;
+  max-width: 440px;
+  margin: 0 auto;
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 24px;
+}
+
+.section {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+}
+
+.sectionTitle {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.authInfo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.statusBadge {
+  font-size: 13px;
+  font-weight: 500;
+  color: #22c55e;
+}
+
+.statusDisconnected {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.signInButton,
+.signOutButton {
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--accent);
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.signInButton:hover,
+.signOutButton:hover {
+  opacity: 0.85;
+}
+
+.signOutButton {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.signOutButton:hover {
+  color: var(--text-primary);
+}
+
+.deviceFlow {
+  text-align: center;
+  padding: 8px 0;
+}
+
+.label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.code {
+  display: block;
+  font-size: 28px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--accent);
+  letter-spacing: 0.15em;
+  margin-bottom: 12px;
+}
+
+.waiting {
+  font-size: 13px;
+  color: var(--text-secondary);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.error {
+  font-size: 13px;
+  color: #ef4444;
+  margin-top: 8px;
+}

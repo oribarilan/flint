@@ -50,6 +50,7 @@ pub fn run() {
             commands::toggle_window,
             commands::show_window,
             commands::hide_window,
+            commands::open_settings,
             commands::search_files,
             commands::open_file,
             commands::get_app_icon,

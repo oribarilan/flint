@@ -6,7 +6,7 @@ import ChatPanel from "./components/ChatPanel";
 import AuthPrompt from "./components/AuthPrompt";
 import { useSearchStore } from "./stores/searchStore";
 import { useChatStore } from "./stores/chatStore";
-import { hideWindow, showWindow, getAuthStatus, sendChatMessage } from "./lib/commands";
+import { hideWindow, getAuthStatus, sendChatMessage } from "./lib/commands";
 import { useSearch } from "./hooks/useSearch";
 import { useChat } from "./hooks/useChat";
 import styles from "./App.module.css";
@@ -88,12 +88,7 @@ export default function App() {
 
       const unlisten = await appWindow.onFocusChanged(({ payload: focused }) => {
         if (!focused) {
-          // During auth flow, keep window visible (re-show after focus loss)
-          if (useChatStore.getState().isAuthenticating) {
-            void showWindow();
-          } else {
-            void hideWindow();
-          }
+          void hideWindow();
         } else {
           refreshAuth();
           focusSearchBar();

@@ -25,6 +25,10 @@ export async function getAppIcon(path: string): Promise<string | null> {
   return invoke("get_app_icon", { path });
 }
 
+export async function openSettings(): Promise<void> {
+  return invoke("open_settings");
+}
+
 // ── Auth commands ──────────────────────────────────────────────
 
 export interface DeviceCodeResponse {
@@ -44,7 +48,7 @@ export async function startCopilotAuth(): Promise<DeviceCodeResponse> {
 }
 
 export async function completeCopilotAuth(deviceCode: string, interval: number): Promise<void> {
-  return invoke("complete_copilot_auth", { device_code: deviceCode, interval });
+  return invoke("complete_copilot_auth", { deviceCode, interval });
 }
 
 export async function getAuthStatus(): Promise<AuthStatus> {
