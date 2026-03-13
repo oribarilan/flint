@@ -8,6 +8,7 @@ pub mod config;
 mod error;
 mod icons;
 pub mod indexer;
+pub mod kits;
 pub mod providers;
 pub mod search;
 mod tray;
@@ -22,6 +23,7 @@ use error::StringResult;
 use tracing_subscriber::EnvFilter;
 
 use indexer::FileIndex;
+use kits::{KitContextBase, KitRegistry, KitRegistryState};
 
 /// Boot the Tauri application.
 ///
@@ -53,6 +55,7 @@ pub fn run() {
             commands::hide_window,
             commands::open_settings,
             commands::search_files,
+            commands::search_all,
             commands::open_file,
             commands::get_app_icon,
             commands::start_copilot_auth,
@@ -81,7 +84,18 @@ pub fn run() {
             let search_dirs = cfg.search.directories.clone();
             let search_exclude = cfg.search.exclude.clone();
             let search_depth = cfg.search.max_depth;
-            app.manage(config::AppConfig::new(cfg));
+            let app_config = config::AppConfig::new(cfg);
+            app.manage(app_config.clone());
+
+            // Initialise kit registry (empty — no kits registered yet).
+            let kit_ctx_base = KitContextBase {
+                app: app.handle().clone(),
+                config: app_config,
+                http: reqwest::Client::new(),
+                base_data_dir: config::config_base_dir().join("flint").join("kits"),
+            };
+            app.manage(kit_ctx_base);
+            app.manage(KitRegistryState(Arc::new(tokio::sync::RwLock::new(KitRegistry::new()))));
 
             // Initialise file index as managed state and populate in background.
             let index = Arc::new(RwLock::new(Vec::new()));

@@ -17,6 +17,7 @@ const DEFAULT_CONFIG: FlintConfig = {
   appearance: { font_size: "medium" },
   search: { directories: ["/Users/test"], exclude: ["node_modules"], max_depth: 5 },
   chat: { default_model: "gpt-4o" },
+  kits: {},
 };
 
 beforeEach(() => {

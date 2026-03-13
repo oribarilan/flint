@@ -26,6 +26,11 @@ pub struct SearchResult {
     pub kind: EntryKind,
 }
 
+/// Bonus added to application match scores so apps rank above files and
+/// directories at similar fuzzy match quality. Apps are what most users
+/// reach for in a launcher.
+const APP_BOOST: u32 = 10;
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -33,7 +38,8 @@ pub struct SearchResult {
 /// Perform a fuzzy search against `entries`, returning up to `max_results`
 /// results sorted by descending match score.
 ///
-/// Returns an empty `Vec` when `query` is empty.
+/// Applications receive a ranking boost above files and directories at
+/// similar match quality. Returns an empty `Vec` when `query` is empty.
 pub fn search(query: &str, entries: &[FileEntry], max_results: usize) -> Vec<SearchResult> {
     if query.is_empty() {
         return Vec::new();
@@ -51,7 +57,12 @@ pub fn search(query: &str, entries: &[FileEntry], max_results: usize) -> Vec<Sea
         .filter_map(|entry| {
             let haystack = Utf32Str::new(&entry.lowercase_name, &mut buf);
             let score = pattern.score(haystack, &mut matcher)?;
-            Some((score, entry))
+            let boosted = if entry.kind == EntryKind::Application {
+                score.saturating_add(APP_BOOST)
+            } else {
+                score
+            };
+            Some((boosted, entry))
         })
         .collect();
 
@@ -162,5 +173,30 @@ mod tests {
         assert_eq!(r.name, "Documents");
         assert_eq!(r.path, "/home/user/Documents");
         assert_eq!(r.kind, EntryKind::Directory);
+    }
+
+    #[test]
+    fn should_boost_applications_above_files() {
+        // Both match "slack" similarly, but the app should rank higher.
+        let entries = vec![
+            make_entry("slack_config", "/home/slack_config", EntryKind::File),
+            make_entry("Slack", "/app/Slack", EntryKind::Application),
+        ];
+        let results = search("slack", &entries, 10);
+        assert!(results.len() >= 2);
+        assert_eq!(results[0].name, "Slack");
+        assert_eq!(results[0].kind, EntryKind::Application);
+    }
+
+    #[test]
+    fn should_not_boost_app_above_much_stronger_file_match() {
+        // An exact file match should still beat a weak app match.
+        let entries = vec![
+            make_entry("readme", "/home/readme", EntryKind::File),
+            make_entry("SomeApp", "/app/SomeApp", EntryKind::Application),
+        ];
+        let results = search("readme", &entries, 10);
+        assert!(!results.is_empty());
+        assert_eq!(results[0].name, "readme");
     }
 }

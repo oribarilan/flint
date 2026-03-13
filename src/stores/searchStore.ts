@@ -1,7 +1,9 @@
 import { create } from "zustand";
+import type { KitSearchResult } from "../kits/types";
 
 export type AppMode = "search" | "chat";
 
+/** @deprecated Use KitSearchResult instead. Kept for backward compatibility. */
 export interface SearchResult {
   id: string;
   name: string;
@@ -12,13 +14,13 @@ export interface SearchResult {
 interface SearchState {
   mode: AppMode;
   query: string;
-  results: SearchResult[];
+  results: KitSearchResult[];
   selectedIndex: number;
   isLoading: boolean;
   toggleMode: () => void;
   setMode: (mode: AppMode) => void;
   setQuery: (query: string) => void;
-  setResults: (results: SearchResult[]) => void;
+  setResults: (results: KitSearchResult[]) => void;
   setSelectedIndex: (index: number) => void;
   moveSelection: (direction: "up" | "down") => void;
   clearSearch: () => void;

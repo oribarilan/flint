@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { SearchResult } from "../stores/searchStore";
+import type { KitSearchResult } from "../kits/types";
 
 export async function hideWindow(): Promise<void> {
   return invoke("hide_window");
@@ -15,6 +16,10 @@ export async function toggleWindow(): Promise<void> {
 
 export async function searchFiles(query: string): Promise<SearchResult[]> {
   return invoke("search_files", { query });
+}
+
+export async function searchAll(query: string): Promise<KitSearchResult[]> {
+  return invoke("search_all", { query });
 }
 
 export async function openFile(path: string): Promise<void> {
@@ -86,11 +91,17 @@ export interface ChatConfig {
   default_model: string;
 }
 
+export interface KitConfig {
+  enabled: boolean;
+  [key: string]: unknown;
+}
+
 export interface FlintConfig {
   general: GeneralConfig;
   appearance: AppearanceConfig;
   search: SearchConfig;
   chat: ChatConfig;
+  kits: Record<string, KitConfig>;
 }
 
 export async function getConfig(): Promise<FlintConfig> {

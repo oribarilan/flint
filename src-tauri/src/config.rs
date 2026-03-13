@@ -3,6 +3,7 @@
 //! Reads from `~/.config/flint/config.toml`, falling back to compile-time
 //! defaults for missing keys. The Settings UI writes changes via IPC.
 
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 
@@ -13,13 +14,15 @@ use serde::{Deserialize, Serialize};
 // ---------------------------------------------------------------------------
 
 /// Full application configuration.
-#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct FlintConfig {
     pub general: GeneralConfig,
     pub appearance: AppearanceConfig,
     pub search: SearchConfig,
     pub chat: ChatConfig,
+    /// Per-kit configuration sections. Key = kit id.
+    pub kits: HashMap<String, KitConfig>,
 }
 
 /// General application settings.
@@ -52,6 +55,27 @@ pub struct SearchConfig {
 #[serde(default)]
 pub struct ChatConfig {
     pub default_model: String,
+}
+
+/// Per-kit configuration.
+///
+/// Each kit has at minimum an `enabled` flag. Additional kit-specific
+/// settings are stored in the `extra` map and interpreted by the kit.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct KitConfig {
+    /// Whether the kit is active. Disabled kits produce no results,
+    /// no chat tools, and no shortcuts.
+    pub enabled: bool,
+    /// Kit-specific settings (opaque to the core).
+    #[serde(flatten)]
+    pub extra: HashMap<String, toml::Value>,
+}
+
+impl Default for KitConfig {
+    fn default() -> Self {
+        Self { enabled: true, extra: HashMap::new() }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -106,6 +130,7 @@ impl Default for ChatConfig {
 // ---------------------------------------------------------------------------
 
 /// Thread-safe config wrapper for Tauri managed state.
+#[derive(Clone)]
 pub struct AppConfig(Arc<RwLock<FlintConfig>>);
 
 impl AppConfig {
@@ -148,7 +173,7 @@ fn config_path() -> PathBuf {
     config_base_dir().join("flint").join("config.toml")
 }
 
-fn config_base_dir() -> PathBuf {
+pub fn config_base_dir() -> PathBuf {
     #[cfg(unix)]
     {
         std::env::var_os("XDG_CONFIG_HOME")
@@ -286,5 +311,39 @@ hotkey = "Alt+Space"
         let contents = std::fs::read_to_string(&path).unwrap();
         let loaded: FlintConfig = toml::from_str(&contents).unwrap();
         assert_eq!(loaded, config);
+    }
+
+    #[test]
+    fn should_parse_kit_config_sections() {
+        let toml_str = r#"
+[kits.calculator]
+enabled = true
+
+[kits.clipboard]
+enabled = true
+max_history = 200
+
+[kits.stocks]
+enabled = false
+watchlist = ["AAPL", "GOOGL"]
+"#;
+        let config: FlintConfig = toml::from_str(toml_str).unwrap();
+        assert_eq!(config.kits.len(), 3);
+
+        let calc = &config.kits["calculator"];
+        assert!(calc.enabled);
+
+        let clip = &config.kits["clipboard"];
+        assert!(clip.enabled);
+        assert_eq!(clip.extra["max_history"], toml::Value::Integer(200));
+
+        let stocks = &config.kits["stocks"];
+        assert!(!stocks.enabled);
+    }
+
+    #[test]
+    fn should_default_to_empty_kits() {
+        let config: FlintConfig = toml::from_str("").unwrap();
+        assert!(config.kits.is_empty());
     }
 }

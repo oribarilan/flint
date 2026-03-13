@@ -9,6 +9,7 @@ vi.mock("../lib/commands", () => ({
   hideWindow: vi.fn(() => Promise.resolve()),
   openSettings: vi.fn(() => Promise.resolve()),
   searchFiles: vi.fn(() => Promise.resolve([])),
+  searchAll: vi.fn(() => Promise.resolve([])),
   getAuthStatus: vi.fn(() => Promise.resolve({ authenticated: false, username: null })),
   sendChatMessage: vi.fn(() => Promise.resolve()),
 }));

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useSearchStore } from "../stores/searchStore";
-import { searchFiles } from "../lib/commands";
+import { searchAll } from "../lib/commands";
 
 export function useSearch(): void {
   const query = useSearchStore((s) => s.query);
@@ -18,7 +18,7 @@ export function useSearch(): void {
     useSearchStore.setState({ isLoading: true });
 
     timerRef.current = setTimeout(() => {
-      searchFiles(query)
+      searchAll(query)
         .then((results) => {
           // Only update if query hasn't changed since we fired
           if (useSearchStore.getState().query === query) {

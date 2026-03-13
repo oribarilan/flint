@@ -5,6 +5,7 @@ import {
   showWindow,
   toggleWindow,
   searchFiles,
+  searchAll,
   openFile,
   getAppIcon,
 } from "../commands";
@@ -45,6 +46,25 @@ describe("commands", () => {
     const result = await searchFiles("hello");
 
     expect(mockedInvoke).toHaveBeenCalledWith("search_files", {
+      query: "hello",
+    });
+    expect(result).toEqual(mockResults);
+  });
+
+  it("searchAll passes query parameter", async () => {
+    const mockResults = [
+      {
+        kitId: "core",
+        id: "1",
+        title: "test.txt",
+        actions: [{ type: "Open", target: "/test.txt" }],
+      },
+    ];
+    mockedInvoke.mockResolvedValue(mockResults);
+
+    const result = await searchAll("hello");
+
+    expect(mockedInvoke).toHaveBeenCalledWith("search_all", {
       query: "hello",
     });
     expect(result).toEqual(mockResults);

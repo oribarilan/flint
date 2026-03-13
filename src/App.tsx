@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import SearchBar from "./components/SearchBar";
-import ResultsList, { openResultByPath } from "./components/ResultsList";
+import ResultsList, { executeDefaultAction } from "./components/ResultsList";
 import ChatPanel from "./components/ChatPanel";
 import AuthPrompt from "./components/AuthPrompt";
 import HintBar from "./components/HintBar";
@@ -59,7 +59,7 @@ export default function App() {
     const { results } = useSearchStore.getState();
     const result = results[index];
     if (!result) return;
-    openResultByPath(result.path);
+    executeDefaultAction(result);
   }, []);
 
   // Centralized keyboard handler

@@ -1,18 +1,42 @@
-import { useEffect, useRef, type KeyboardEvent } from "react";
+import { useEffect, useRef, useCallback, type KeyboardEvent } from "react";
 import { useSearchStore } from "../stores/searchStore";
 import { openFile, hideWindow } from "../lib/commands";
 import { focusSearchBar } from "../lib/focus";
-import KindIcon from "./KindIcon";
-import Kbd from "./Kbd";
+import { getKitComponents } from "../kits/registry";
+import type { KitAction, KitSearchResult } from "../kits/types";
 import styles from "./ResultsList.module.css";
 
-/** Open a file and dismiss the launcher. */
-export function openResultByPath(path: string): void {
-  openFile(path)
-    .then(() => hideWindow())
-    .catch((err: unknown) => {
-      console.error("Failed to open file:", err);
-    });
+/** Execute the default action for a result and dismiss the launcher. */
+export function executeAction(action: KitAction): void {
+  switch (action.type) {
+    case "Open":
+      openFile(action.target)
+        .then(() => hideWindow())
+        .catch((err: unknown) => {
+          console.error("Failed to open:", err);
+        });
+      break;
+    case "Copy":
+      navigator.clipboard
+        .writeText(action.text)
+        .then(() => hideWindow())
+        .catch((err: unknown) => {
+          console.error("Failed to copy:", err);
+        });
+      break;
+    default:
+      // Other action types (FocusWindow, Paste, Custom, OpenApp)
+      // will be implemented alongside the kits that use them.
+      break;
+  }
+}
+
+/** Execute the default (first) action for a result. */
+export function executeDefaultAction(result: KitSearchResult): void {
+  const action = result.actions[0];
+  if (action) {
+    executeAction(action);
+  }
 }
 
 export default function ResultsList() {
@@ -31,30 +55,33 @@ export default function ResultsList() {
     selected?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [selectedIndex]);
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    switch (e.key) {
-      case "ArrowDown":
-        e.preventDefault();
-        moveSelection("down");
-        break;
-      case "ArrowUp":
-        e.preventDefault();
-        if (selectedIndex === 0) {
-          focusSearchBar();
-        } else {
-          moveSelection("up");
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLDivElement>) => {
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          moveSelection("down");
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          if (selectedIndex === 0) {
+            focusSearchBar();
+          } else {
+            moveSelection("up");
+          }
+          break;
+        case "Enter": {
+          e.preventDefault();
+          const selected = results[selectedIndex];
+          if (selected) {
+            executeDefaultAction(selected);
+          }
+          break;
         }
-        break;
-      case "Enter": {
-        e.preventDefault();
-        const selected = results[selectedIndex];
-        if (selected) {
-          openResultByPath(selected.path);
-        }
-        break;
       }
-    }
-  };
+    },
+    [results, selectedIndex, moveSelection],
+  );
 
   if (results.length === 0 && query.length === 0) {
     return null;
@@ -77,27 +104,25 @@ export default function ResultsList() {
       role="listbox"
       aria-label="Search results"
     >
-      {results.map((result, index) => (
-        <div
-          key={result.id}
-          className={index === selectedIndex ? styles.itemSelected : styles.item}
-          role="option"
-          aria-selected={index === selectedIndex}
-          onMouseEnter={() => {
-            setSelectedIndex(index);
-          }}
-          onClick={() => {
-            openResultByPath(result.path);
-          }}
-        >
-          <KindIcon kind={result.kind} path={result.path} selected={index === selectedIndex} />
-          <div className={styles.details}>
-            <span className={styles.name}>{result.name}</span>
-            <span className={styles.path}>{result.path}</span>
+      {results.map((result, index) => {
+        const { SearchResult } = getKitComponents(result.kitId);
+        return (
+          <div
+            key={`${result.kitId}:${result.id}`}
+            className={index === selectedIndex ? styles.itemSelected : styles.item}
+            role="option"
+            aria-selected={index === selectedIndex}
+            onMouseEnter={() => {
+              setSelectedIndex(index);
+            }}
+            onClick={() => {
+              executeDefaultAction(result);
+            }}
+          >
+            <SearchResult result={result} isSelected={index === selectedIndex} index={index} />
           </div>
-          {index < 9 && <Kbd keys={`CmdOrCtrl+${String(index + 1)}`} />}
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

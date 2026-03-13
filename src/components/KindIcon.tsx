@@ -1,4 +1,3 @@
-import type { SearchResult } from "../stores/searchStore";
 import { useAppIcon } from "../hooks/useAppIcon";
 import styles from "./KindIcon.module.css";
 
@@ -25,7 +24,7 @@ const ICON_PATHS: Record<string, IconData> = {
 };
 
 interface KindIconProps {
-  kind: SearchResult["kind"];
+  kind: "file" | "directory" | "application";
   path: string;
   selected?: boolean;
 }

@@ -1,10 +1,32 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { useSearchStore, type SearchResult } from "../searchStore";
+import { useSearchStore } from "../searchStore";
+import type { KitSearchResult } from "../../kits/types";
 
-const mockResults: SearchResult[] = [
-  { id: "1", name: "file1.txt", path: "/tmp/file1.txt", kind: "file" },
-  { id: "2", name: "file2.txt", path: "/tmp/file2.txt", kind: "file" },
-  { id: "3", name: "Apps", path: "/Applications", kind: "directory" },
+const mockResults: KitSearchResult[] = [
+  {
+    kitId: "core",
+    id: "1",
+    title: "file1.txt",
+    subtitle: "/tmp/file1.txt",
+    icon: { type: "Named", value: "file" },
+    actions: [{ type: "Open", target: "/tmp/file1.txt" }],
+  },
+  {
+    kitId: "core",
+    id: "2",
+    title: "file2.txt",
+    subtitle: "/tmp/file2.txt",
+    icon: { type: "Named", value: "file" },
+    actions: [{ type: "Open", target: "/tmp/file2.txt" }],
+  },
+  {
+    kitId: "core",
+    id: "3",
+    title: "Apps",
+    subtitle: "/Applications",
+    icon: { type: "Named", value: "directory" },
+    actions: [{ type: "Open", target: "/Applications" }],
+  },
 ];
 
 beforeEach(() => {

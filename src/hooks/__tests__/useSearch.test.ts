@@ -1,19 +1,32 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { useSearchStore, type SearchResult } from "../../stores/searchStore";
+import { useSearchStore } from "../../stores/searchStore";
+import type { KitSearchResult } from "../../kits/types";
 
 vi.mock("../../lib/commands", () => ({
-  searchFiles: vi.fn(),
+  searchAll: vi.fn(),
 }));
 
-import { searchFiles } from "../../lib/commands";
+import { searchAll } from "../../lib/commands";
 import { useSearch } from "../useSearch";
 
-const mockedSearchFiles = vi.mocked(searchFiles);
+const mockedSearchAll = vi.mocked(searchAll);
 
-const mockResults: SearchResult[] = [
-  { id: "1", name: "file1.txt", path: "/tmp/file1.txt", kind: "file" },
-  { id: "2", name: "file2.txt", path: "/tmp/file2.txt", kind: "file" },
+const mockResults: KitSearchResult[] = [
+  {
+    kitId: "core",
+    id: "1",
+    title: "file1.txt",
+    subtitle: "/tmp/file1.txt",
+    actions: [{ type: "Open", target: "/tmp/file1.txt" }],
+  },
+  {
+    kitId: "core",
+    id: "2",
+    title: "file2.txt",
+    subtitle: "/tmp/file2.txt",
+    actions: [{ type: "Open", target: "/tmp/file2.txt" }],
+  },
 ];
 
 function renderUseSearch() {
@@ -30,8 +43,8 @@ beforeEach(() => {
     selectedIndex: 0,
     isLoading: false,
   });
-  mockedSearchFiles.mockReset();
-  mockedSearchFiles.mockResolvedValue([]);
+  mockedSearchAll.mockReset();
+  mockedSearchAll.mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -47,7 +60,7 @@ describe("useSearch", () => {
       await vi.advanceTimersByTimeAsync(100);
     });
 
-    expect(mockedSearchFiles).not.toHaveBeenCalled();
+    expect(mockedSearchAll).not.toHaveBeenCalled();
   });
 
   it("should clear results when query drops below 2 chars", () => {
@@ -65,8 +78,8 @@ describe("useSearch", () => {
     expect(useSearchStore.getState().results).toEqual([]);
   });
 
-  it("should call searchFiles when query is 2+ chars", async () => {
-    mockedSearchFiles.mockResolvedValue(mockResults);
+  it("should call searchAll when query is 2+ chars", async () => {
+    mockedSearchAll.mockResolvedValue(mockResults);
     useSearchStore.setState({ query: "te" });
 
     renderUseSearch();
@@ -75,12 +88,12 @@ describe("useSearch", () => {
       await vi.advanceTimersByTimeAsync(50);
     });
 
-    expect(mockedSearchFiles).toHaveBeenCalledWith("te");
+    expect(mockedSearchAll).toHaveBeenCalledWith("te");
     expect(useSearchStore.getState().results).toEqual(mockResults);
   });
 
   it("should debounce rapid query changes", async () => {
-    mockedSearchFiles.mockResolvedValue(mockResults);
+    mockedSearchAll.mockResolvedValue(mockResults);
     useSearchStore.setState({ query: "te" });
     const { rerender } = renderUseSearch();
 
@@ -99,7 +112,7 @@ describe("useSearch", () => {
     });
 
     // Original "te" should not have fired since we changed query within 50ms
-    expect(mockedSearchFiles).not.toHaveBeenCalledWith("te");
+    expect(mockedSearchAll).not.toHaveBeenCalledWith("te");
 
     // Change again
     act(() => {
@@ -112,12 +125,12 @@ describe("useSearch", () => {
     });
 
     // Only the final query should fire
-    expect(mockedSearchFiles).toHaveBeenCalledWith("test");
-    expect(mockedSearchFiles).toHaveBeenCalledTimes(1);
+    expect(mockedSearchAll).toHaveBeenCalledWith("test");
+    expect(mockedSearchAll).toHaveBeenCalledTimes(1);
   });
 
   it("should update results in store on success", async () => {
-    mockedSearchFiles.mockResolvedValue(mockResults);
+    mockedSearchAll.mockResolvedValue(mockResults);
     useSearchStore.setState({ query: "test" });
 
     renderUseSearch();
@@ -133,7 +146,7 @@ describe("useSearch", () => {
   it("should handle search errors gracefully", async () => {
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    mockedSearchFiles.mockRejectedValue(new Error("Network error"));
+    mockedSearchAll.mockRejectedValue(new Error("Network error"));
     useSearchStore.setState({ query: "test" });
 
     renderUseSearch();
@@ -148,18 +161,30 @@ describe("useSearch", () => {
   });
 
   it("should not update results if query changed during search", async () => {
-    const staleResults: SearchResult[] = [
-      { id: "old", name: "old.txt", path: "/old.txt", kind: "file" },
+    const staleResults: KitSearchResult[] = [
+      {
+        kitId: "core",
+        id: "old",
+        title: "old.txt",
+        subtitle: "/old.txt",
+        actions: [{ type: "Open", target: "/old.txt" }],
+      },
     ];
-    const freshResults: SearchResult[] = [
-      { id: "new", name: "new.txt", path: "/new.txt", kind: "file" },
+    const freshResults: KitSearchResult[] = [
+      {
+        kitId: "core",
+        id: "new",
+        title: "new.txt",
+        subtitle: "/new.txt",
+        actions: [{ type: "Open", target: "/new.txt" }],
+      },
     ];
 
     // First search resolves slowly, second resolves fast
-    mockedSearchFiles
+    mockedSearchAll
       .mockImplementationOnce(
         () =>
-          new Promise<SearchResult[]>((resolve) => {
+          new Promise<KitSearchResult[]>((resolve) => {
             setTimeout(() => {
               resolve(staleResults);
             }, 200);

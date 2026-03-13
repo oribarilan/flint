@@ -4,7 +4,11 @@ import App from "./App";
 import Settings from "./components/Settings";
 import { getConfig } from "./lib/commands";
 import { applyFontSize } from "./lib/applyTheme";
+import { initKitRegistry } from "./kits";
 import "./styles/global.css";
+
+// Initialize kit component registry before rendering.
+initKitRegistry();
 
 const page = new URLSearchParams(window.location.search).get("page");
 

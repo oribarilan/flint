@@ -1,10 +1,13 @@
 //! Tauri IPC commands for window management, file search, file opening,
 //! and Copilot chat.
 
+use std::sync::Arc;
+
 use tauri::{AppHandle, State};
 
 use crate::config::{AppConfig, FlintConfig};
 use crate::indexer::FileIndex;
+use crate::kits::{KitContextBase, KitRegistryState, KitSearchResult, KitState};
 use crate::providers;
 use crate::providers::copilot::auth::DeviceCodeResponse;
 use crate::providers::{AuthStatus, ChatMessage, ChatRole};
@@ -68,6 +71,57 @@ pub fn search_files(
 ) -> Result<Vec<SearchResult>, String> {
     let entries = index.0.read().map_err(|e| e.to_string())?;
     Ok(crate::search::search(&query, &entries, 20))
+}
+
+/// Unified search: checks kit triggers first, falls back to core file search.
+///
+/// Returns results in the unified [`KitSearchResult`] format.
+#[tauri::command]
+pub async fn search_all(
+    query: String,
+    registry_state: State<'_, KitRegistryState>,
+    ctx_base: State<'_, KitContextBase>,
+    index: State<'_, FileIndex>,
+) -> Result<Vec<KitSearchResult>, String> {
+    const MAX_RESULTS: usize = 20;
+
+    // Check kit triggers under a read lock.
+    let search_result = {
+        let registry = registry_state.0.read().await;
+        registry.search(&query).map(|(kit_id, results)| {
+            let needs_init = matches!(registry.kit_state(&kit_id), Some(KitState::Registered));
+            (kit_id, results, needs_init)
+        })
+    };
+
+    if let Some((kit_id, results, needs_init)) = search_result {
+        // Spawn lazy init in background if kit was just registered.
+        if needs_init {
+            let registry_arc = Arc::clone(&registry_state.0);
+            let ctx_base_owned: KitContextBase = (*ctx_base).clone();
+            let id = kit_id.clone();
+            tokio::spawn(async move {
+                let mut reg = registry_arc.write().await;
+                if let Err(e) = reg.ensure_init(&id, &ctx_base_owned).await {
+                    tracing::warn!(kit = %id, error = %e, "kit init failed");
+                }
+            });
+        }
+
+        let kit_results: Vec<KitSearchResult> = results
+            .into_iter()
+            .take(MAX_RESULTS)
+            .map(|r| KitSearchResult::from_kit_result(&kit_id, r))
+            .collect();
+        return Ok(kit_results);
+    }
+
+    // No kit matched — fall through to core file search.
+    let core_results = {
+        let entries = index.0.read().map_err(|e| e.to_string())?;
+        crate::search::search(&query, &entries, MAX_RESULTS)
+    };
+    Ok(KitSearchResult::from_core_search(core_results))
 }
 
 /// Open a file or application at `path` with the system default handler.
