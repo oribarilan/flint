@@ -230,39 +230,49 @@ impl KitRegistry {
 
     /// Return kits whose name matches the query, as discoverable search results.
     ///
-    /// These appear in bare search alongside file results so users can
-    /// discover kits by name. Selecting one fills the kit's prefix into
-    /// the search bar.
-    pub fn discovery_results(&self, query: &str) -> Vec<KitSearchResult> {
-        let query_lower = query.to_lowercase();
+    /// Uses nucleo fuzzy matching (same as file search) so kits rank
+    /// naturally alongside files and applications. The score includes
+    /// the same application boost as file search.
+    pub fn discovery_results(&self, query: &str) -> Vec<(u32, KitSearchResult)> {
+        use nucleo::pattern::{AtomKind, CaseMatching, Normalization, Pattern};
+        use nucleo::{Matcher, Utf32Str};
+
+        let pattern =
+            Pattern::new(query, CaseMatching::Ignore, Normalization::Smart, AtomKind::Fuzzy);
+        let mut matcher = Matcher::new(nucleo::Config::DEFAULT);
+        let mut buf = Vec::new();
+
         self.kits
             .values()
             .filter_map(|kit| {
                 let manifest = kit.manifest();
                 let trigger = kit.search_trigger()?;
-                let name_lower = manifest.name.to_lowercase();
 
-                // Simple substring match — fine for <20 kits.
-                if !name_lower.contains(&query_lower) {
-                    return None;
-                }
+                let name_lower = manifest.name.to_lowercase();
+                let haystack = Utf32Str::new(&name_lower, &mut buf);
+                let raw_score = pattern.score(haystack, &mut matcher)?;
+                // Same APP_BOOST (10) as file search — kits are like apps.
+                let score = raw_score.saturating_add(crate::search::APP_BOOST);
 
                 let prefix = match trigger {
                     super::SearchTrigger::Prefix(p) => format!("{p} "),
                     super::SearchTrigger::Keyword(kw) => format!("{kw} "),
                 };
 
-                Some(KitSearchResult {
-                    kit_id: manifest.id.to_string(),
-                    id: format!("kit-discovery:{}", manifest.id),
-                    title: manifest.name.to_string(),
-                    subtitle: Some(manifest.description.to_string()),
-                    icon: Some(manifest.icon.clone()),
-                    accessories: Vec::new(),
-                    actions: vec![super::KitAction::ActivateKit { prefix }],
-                    preview: None,
-                    score: None,
-                })
+                Some((
+                    score,
+                    KitSearchResult {
+                        kit_id: manifest.id.to_string(),
+                        id: format!("kit-discovery:{}", manifest.id),
+                        title: manifest.name.to_string(),
+                        subtitle: Some(manifest.description.to_string()),
+                        icon: Some(manifest.icon.clone()),
+                        accessories: Vec::new(),
+                        actions: vec![super::KitAction::ActivateKit { prefix }],
+                        preview: None,
+                        score: Some(score),
+                    },
+                ))
             })
             .collect()
     }
@@ -317,10 +327,27 @@ impl KitSearchResult {
             })
             .collect()
     }
-}
 
-// ---------------------------------------------------------------------------
-// Tests
+    /// Convert a single core file search result with its score.
+    pub fn from_core_result(r: crate::search::SearchResult, score: u32) -> Self {
+        let kind_str = match r.kind {
+            crate::indexer::EntryKind::File => "file",
+            crate::indexer::EntryKind::Directory => "directory",
+            crate::indexer::EntryKind::Application => "application",
+        };
+        Self {
+            kit_id: "core".to_string(),
+            id: r.id,
+            title: r.name,
+            subtitle: Some(r.path.clone()),
+            icon: Some(super::KitIcon::Named(kind_str.to_string())),
+            accessories: Vec::new(),
+            actions: vec![super::KitAction::Open { target: r.path }],
+            preview: None,
+            score: Some(score),
+        }
+    }
+}
 // ---------------------------------------------------------------------------
 
 #[cfg(test)]
@@ -579,9 +606,11 @@ mod tests {
 
         let results = registry.discovery_results("calc");
         assert_eq!(results.len(), 1);
-        assert_eq!(results[0].title, "calc"); // MockKit uses id as name
+        let (score, result) = &results[0];
+        assert_eq!(result.title, "calc"); // MockKit uses id as name
+        assert!(*score > 0);
         assert!(matches!(
-            &results[0].actions[0],
+            &result.actions[0],
             super::super::KitAction::ActivateKit { prefix } if prefix == "= "
         ));
     }

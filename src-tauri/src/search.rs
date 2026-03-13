@@ -29,7 +29,7 @@ pub struct SearchResult {
 /// Bonus added to application match scores so apps rank above files and
 /// directories at similar fuzzy match quality. Apps are what most users
 /// reach for in a launcher.
-const APP_BOOST: u32 = 10;
+pub const APP_BOOST: u32 = 10;
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -41,6 +41,16 @@ const APP_BOOST: u32 = 10;
 /// Applications receive a ranking boost above files and directories at
 /// similar match quality. Returns an empty `Vec` when `query` is empty.
 pub fn search(query: &str, entries: &[FileEntry], max_results: usize) -> Vec<SearchResult> {
+    scored_search(query, entries, max_results).into_iter().map(|(_, result)| result).collect()
+}
+
+/// Like [`search`] but also returns the score for each result, enabling
+/// callers to merge with other scored result sets (e.g., kit discovery).
+pub fn scored_search(
+    query: &str,
+    entries: &[FileEntry],
+    max_results: usize,
+) -> Vec<(u32, SearchResult)> {
     if query.is_empty() {
         return Vec::new();
     }
@@ -72,11 +82,16 @@ pub fn search(query: &str, entries: &[FileEntry], max_results: usize) -> Vec<Sea
     scored
         .into_iter()
         .take(limit)
-        .map(|(_, entry)| SearchResult {
-            id: entry.path.clone(),
-            name: entry.name.clone(),
-            path: entry.path.clone(),
-            kind: entry.kind,
+        .map(|(score, entry)| {
+            (
+                score,
+                SearchResult {
+                    id: entry.path.clone(),
+                    name: entry.name.clone(),
+                    path: entry.path.clone(),
+                    kind: entry.kind,
+                },
+            )
         })
         .collect()
 }

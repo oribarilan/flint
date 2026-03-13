@@ -1,65 +1,73 @@
-# Dev Binary Code-Signing for Keychain Access
+# Debug-Mode File-Based Credential Storage
 
 ## Problem
 
-During development, `cargo build` produces a new binary on each compile. macOS treats each new binary as a different application for keychain access purposes, causing repeated "Flint wants to use your keychain" permission prompts. This happens because:
+During development, `cargo tauri dev` produces an unsigned binary. macOS prompts
+"Flint wants to access your keychain" on every keychain read because unsigned
+apps cannot silently access keychain items. This happens at least twice per app
+launch (reading `github_access_token` and `copilot_token` in
+`TokenManager::new()`), and again on every token refresh (~every 25 min).
 
-- We use the `keyring` crate (v3) to store GitHub and Copilot tokens in the OS keychain
-- The keychain service identifier is `sh.oribi.flint` (set in `src-tauri/src/providers/copilot/token.rs`)
-- The app identifier is `sh.oribi.flint` (set in `src-tauri/tauri.conf.json`)
-- Without code-signing, macOS has no stable identity to remember the "Always Allow" permission
+## Approach
 
-**This is dev-only.** Production builds are signed and bundled as a `.app`, so end users never see repeated prompts.
+Extract credential storage from `token.rs` into a dedicated `credential_store`
+module with two `cfg`-gated backends:
 
-## Solution
+- **Release** (`not(debug_assertions)`): Uses `keyring` crate — current behavior, unchanged.
+- **Debug** (`debug_assertions`): Uses file-based storage in `~/.flint/dev-tokens/`
+  with `0600` permissions. Zero-friction, fully automatic, no manual setup needed.
 
-Ad-hoc code-sign the dev binary after each build so macOS sees a consistent identity.
+This follows Single Responsibility (token lifecycle vs. storage mechanism) and
+keeps production code untouched.
 
-```bash
-codesign -s - src-tauri/target/debug/flint
-```
+## Todos
 
-The `-s -` flag uses ad-hoc signing (no Apple Developer certificate needed). This gives the binary a stable code identity that macOS can remember for keychain access.
+### 1. Create `credential_store` module
+**File:** `src-tauri/src/providers/copilot/credential_store.rs`
 
-## Implementation
+- Public API: `load(key) -> Option<String>`, `save(key, value) -> Result<(), String>`, `delete(key)`
+- Uses `KEYRING_SERVICE` constant as the service identifier
+- **Release path:** Delegates to `keyring::Entry` (existing logic, moved here)
+- **Debug path:** Reads/writes files at `~/.flint/dev-tokens/{key}`. Directory
+  created on first write. File permissions set to `0600` on Unix via
+  `std::os::unix::fs::PermissionsExt`.
+- Guard `keyring` import with `#[cfg(not(debug_assertions))]`
+- Log which backend is in use on first access (once, via `tracing::info!`)
 
-### Option A: Add a `just dev-signed` recipe
+### 2. Update `token.rs` to use `credential_store`
+**File:** `src-tauri/src/providers/copilot/token.rs`
 
-```just
-# Dev mode with code-signed binary (avoids keychain prompts)
-dev-signed:
-    cargo build --manifest-path src-tauri/Cargo.toml
-    codesign -s - src-tauri/target/debug/flint
-    npm run tauri dev
-```
+- Replace `load_from_keychain`, `save_to_keychain`, `delete_from_keychain` with
+  calls to `credential_store::load`, `credential_store::save`,
+  `credential_store::delete`
+- Remove direct `keyring` usage from this file
+- Rename `TokenError::Keychain` → `TokenError::Storage` (backend-agnostic)
 
-### Option B: Add a post-build hook
+### 3. Register the module
+**File:** `src-tauri/src/providers/copilot/mod.rs`
 
-Add to `justfile`:
+- Add `mod credential_store;`
 
-```just
-# Sign the dev binary (run after cargo build)
-sign-dev:
-    codesign -s - src-tauri/target/debug/flint
-```
+### 4. Add unit tests
+**File:** `src-tauri/src/providers/copilot/credential_store.rs`
 
-Then run `just build-rust && just sign-dev` before `just dev`.
+- Test file-based `save` → `load` round-trip
+- Test `delete` removes the file
+- Test `load` returns `None` for non-existent key
+- Test file permissions are `0600` on Unix
+- Use a temp directory for test isolation
 
-### Option C: Tauri beforeDevCommand hook
-
-In `tauri.conf.json`, the `beforeDevCommand` runs before the app launches. However, this runs the frontend dev server, not the Rust build. Tauri handles the Rust build internally during `cargo tauri dev`, so hooking into the post-build step requires a `build.rs` or a wrapper script.
-
-## Recommended Approach
-
-Option A is simplest. Add a `just dev-signed` recipe. The regular `just dev` still works for when keychain access isn't needed.
-
-## Files to Modify
-
-- `justfile` — add the new recipe
-- Optionally `.gitignore` — no changes needed
+### 5. Verify
+- Run `cargo clippy` and `cargo test` to ensure no regressions
+- Run `cargo tauri dev` and confirm no keychain prompt appears
 
 ## Notes
 
-- The `codesign` command is macOS-only. Guard with a platform check if cross-platform justfile is needed.
-- The ad-hoc signature is lost on each rebuild, so the signing step must happen after each `cargo build`.
-- `cargo tauri dev` does its own `cargo build` internally, so Option A pre-builds then runs dev. This may cause a double-build. A wrapper script that signs after Tauri's internal build would be more efficient but more complex.
+- `keyring` remains in `Cargo.toml` unconditionally — Cargo doesn't support
+  `cfg(debug_assertions)` for deps. The crate compiles in debug but its API is
+  gated behind `cfg(not(debug_assertions))` in source.
+- File path `~/.flint/dev-tokens/` is outside the project directory and won't
+  be committed.
+- The debug file store uses plain text files (one per key). These are dev-only
+  tokens with restricted permissions — acceptable trade-off vs. the alternative
+  of no token persistence in dev.

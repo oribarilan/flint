@@ -117,21 +117,25 @@ pub async fn search_all(
     }
 
     // No kit matched — fall through to core file search + kit discovery.
-    // Kit discovery results go first (highest intent when typing a kit name),
-    // followed by core file results, capped at MAX_RESULTS total.
+    // Both are scored with nucleo fuzzy matching and merged by score descending.
     let registry = registry_state.0.read().await;
     let kit_discovery = registry.discovery_results(&query);
     drop(registry);
 
-    let core_results = {
+    let core_scored = {
         let entries = index.0.read().map_err(|e| e.to_string())?;
-        crate::search::search(&query, &entries, MAX_RESULTS)
+        crate::search::scored_search(&query, &entries, MAX_RESULTS)
     };
 
-    let mut results = kit_discovery;
-    results.extend(KitSearchResult::from_core_search(core_results));
-    results.truncate(MAX_RESULTS);
-    Ok(results)
+    // Merge core results and kit discovery results by score descending.
+    let mut merged: Vec<(u32, KitSearchResult)> = core_scored
+        .into_iter()
+        .map(|(score, r)| (score, KitSearchResult::from_core_result(r, score)))
+        .chain(kit_discovery)
+        .collect();
+    merged.sort_by(|a, b| b.0.cmp(&a.0));
+
+    Ok(merged.into_iter().take(MAX_RESULTS).map(|(_, r)| r).collect())
 }
 
 /// Open a file or application at `path` with the system default handler.
