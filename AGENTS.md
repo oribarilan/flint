@@ -83,6 +83,31 @@ Individual targets are also available (`just test-rust`, `just lint-frontend`, e
 - **Styling**: CSS Modules. No global styles in component files.
 - **Imports**: Use Vite path aliases. No `require()`. Environment via `import.meta.env`.
 
+## Design System
+
+All visual properties must use **semantic design tokens** defined in `src/styles/global.css`. Never hardcode colors, spacing, font sizes, shadows, or radii in component CSS files.
+
+### Token Categories
+
+| Category | Examples | Notes |
+|----------|----------|-------|
+| **Colors** | `--bg-primary`, `--bg-hover`, `--text-primary`, `--accent`, `--color-success`, `--color-error` | Semantic names, not raw values |
+| **Spacing** | `--space-xs` (4px) through `--space-3xl` (32px) | Use for padding, margin, gap |
+| **Font sizes** | `--font-xs` through `--font-xl` | Scale with t-shirt size presets (XS/S/M/L) |
+| **Radii** | `--radius-sm`, `--radius-md`, `--radius-lg`, `--radius-full` | |
+| **Shadows** | `--shadow-sm`, `--shadow-lg` | |
+| **Icons** | `--icon-sm` (16px), `--icon-md` (18px), `--icon-lg` (24px) | |
+| **Transitions** | `--transition-fast` (150ms), `--transition-normal` (250ms) | |
+
+### Rules
+
+- **No hardcoded hex/rgba in component CSS.** Use `var(--color-*)` or `var(--bg-*)`.
+- **No hardcoded px for spacing.** Use `var(--space-*)`. Exception: border widths (1px, 2px).
+- **No hardcoded px for font sizes.** Use `var(--font-*)`.
+- **Font sizes scale automatically** via `data-font-size` attribute on `<html>` — presets defined in `global.css`.
+- **Adding a new token**: define it in `global.css` `:root` with a semantic name. Update all presets if it's font-related.
+- **Theming**: Swapping all tokens (e.g., for a light theme) only requires changing `global.css` — component files stay untouched.
+
 ## Tauri v2 Patterns
 
 - Every Rust-side capability is a `#[tauri::command]` function. Each command gets a matching TypeScript wrapper in `src/lib/commands.ts`.
