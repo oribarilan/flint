@@ -133,9 +133,11 @@ fn home_roots() -> Vec<PathBuf> {
 fn append_platform_roots(roots: &mut Vec<PathBuf>) {
     #[cfg(target_os = "macos")]
     {
-        let apps = PathBuf::from("/Applications");
-        if apps.is_dir() {
-            roots.push(apps);
+        for path in ["/Applications", "/System/Applications"] {
+            let dir = PathBuf::from(path);
+            if dir.is_dir() {
+                roots.push(dir);
+            }
         }
     }
 }

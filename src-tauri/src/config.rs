@@ -100,7 +100,10 @@ impl Default for SearchConfig {
             vec!["~/Desktop".to_owned(), "~/Documents".to_owned(), "~/Downloads".to_owned()];
 
         #[cfg(target_os = "macos")]
-        directories.push("/Applications".to_owned());
+        {
+            directories.push("/Applications".to_owned());
+            directories.push("/System/Applications".to_owned());
+        }
 
         Self {
             directories,
