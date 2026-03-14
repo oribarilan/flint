@@ -6,6 +6,9 @@
   width: min(680px, 90vw);
   max-height: 65vh;
 
+  display: flex;
+  flex-direction: column;
+
   background: var(--bg-primary);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
