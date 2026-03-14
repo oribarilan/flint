@@ -113,6 +113,7 @@ All visual properties must use **semantic design tokens** defined in `src/styles
 - **No hardcoded px for font sizes.** Use `var(--font-*)`. All sizes in `rem`.
 - **All interactive elements need full state coverage** — default, hover, focus-visible, active, selected, disabled, loading.
 - **Theming**: Component CSS references only semantic tokens. Swapping themes changes `global.css` / `themes.css` — component files stay untouched.
+- **No CSS transitions on keyboard-driven selection states.** Transitions cause cross-fade jitter when arrow keys move selection between items (old fading out + new fading in = smearing). Selection changes must be instant. Transitions are only appropriate for mouse hover, which is continuous.
 - **`prefers-reduced-motion` must be respected.** See motion section in design spec.
 
 ## Tauri v2 Patterns
