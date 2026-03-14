@@ -27,6 +27,7 @@ const mockManifests = [
         enabled: true,
         default_prefix: "=",
         effective_prefix: "=",
+        effective_hotkey: null,
       },
     ],
   },
@@ -185,9 +186,8 @@ describe("usePrefixDetection", () => {
   });
 
   it("does not activate prefix for disabled kits", async () => {
-    mockedGetKitManifests.mockResolvedValue([
-      { ...mockManifests[0], enabled: false },
-    ]);
+    const disabledKit = { ...mockManifests[0]!, enabled: false };
+    mockedGetKitManifests.mockResolvedValue([disabledKit]);
 
     renderHook(() => {
       usePrefixDetection();

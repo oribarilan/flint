@@ -85,6 +85,8 @@ struct IndexedCommand {
     enabled: bool,
     /// Effective prefix: config override or default.
     effective_prefix: Option<String>,
+    /// Effective hotkey: config override or default.
+    effective_hotkey: Option<String>,
 }
 
 /// Central registry managing all kits, their state, and command dispatch.
@@ -129,12 +131,16 @@ impl KitRegistry {
             let effective_prefix = cmd_cfg
                 .and_then(|cc| cc.prefix.clone())
                 .or_else(|| def.default_prefix.map(String::from));
+            let effective_hotkey = cmd_cfg
+                .and_then(|cc| cc.hotkey.clone())
+                .or_else(|| def.default_hotkey.map(String::from));
 
             self.commands.push(IndexedCommand {
                 kit_id: id.clone(),
                 def,
                 enabled,
                 effective_prefix,
+                effective_hotkey,
             });
         }
 
@@ -253,6 +259,22 @@ impl KitRegistry {
         self.task_managers.insert(kit_id.to_string(), tm);
     }
 
+    /// Return all enabled commands that have a hotkey assigned.
+    pub fn commands_with_hotkeys(&self) -> Vec<CommandHotkeyEntry> {
+        self.commands
+            .iter()
+            .filter(|ic| ic.enabled && ic.effective_hotkey.is_some())
+            .map(|ic| CommandHotkeyEntry {
+                kit_id: ic.kit_id.clone(),
+                command_id: ic.def.id.to_string(),
+                mode: ic.def.mode.clone(),
+                name: ic.def.name.to_string(),
+                icon: Some(ic.def.icon.clone()),
+                hotkey: ic.effective_hotkey.clone().unwrap(),
+            })
+            .collect()
+    }
+
     /// Get metadata about all registered kits and their commands.
     ///
     /// Only kits that were enabled at registration are present. Each command
@@ -274,6 +296,7 @@ impl KitRegistry {
                         enabled: ic.enabled,
                         default_prefix: ic.def.default_prefix.map(String::from),
                         effective_prefix: ic.effective_prefix.clone(),
+                        effective_hotkey: ic.effective_hotkey.clone(),
                     })
                     .collect();
                 KitInfo {
@@ -363,6 +386,19 @@ pub struct CommandInfo {
     pub default_prefix: Option<String>,
     /// The effective prefix (config override or default).
     pub effective_prefix: Option<String>,
+    /// The effective hotkey (config override or default).
+    pub effective_hotkey: Option<String>,
+}
+
+/// A command with a global hotkey, used by the shortcut registration layer.
+#[derive(Debug, Clone)]
+pub struct CommandHotkeyEntry {
+    pub kit_id: String,
+    pub command_id: String,
+    pub mode: CommandMode,
+    pub name: String,
+    pub icon: Option<super::KitIcon>,
+    pub hotkey: String,
 }
 
 impl Default for KitRegistry {
@@ -754,7 +790,7 @@ mod tests {
                     let mut m = std::collections::HashMap::new();
                     m.insert(
                         "calculate".to_string(),
-                        crate::config::CommandConfig { enabled: false, prefix: None },
+                        crate::config::CommandConfig { enabled: false, prefix: None, hotkey: None },
                     );
                     m
                 },
@@ -783,6 +819,7 @@ mod tests {
                         crate::config::CommandConfig {
                             enabled: true,
                             prefix: Some("//".to_string()),
+                            hotkey: None,
                         },
                     );
                     m
@@ -800,5 +837,122 @@ mod tests {
         assert!(registry.search_by_prefix("= 2+3").is_none());
         // New prefix should match
         assert!(registry.search_by_prefix("// 2+3").is_some());
+    }
+
+    #[test]
+    fn commands_with_hotkeys_returns_empty_when_no_hotkeys() {
+        let registry = reg_with(MockKit::new("calc", vec![calc_command()]));
+        assert!(registry.commands_with_hotkeys().is_empty());
+    }
+
+    #[test]
+    fn commands_with_hotkeys_returns_command_with_default_hotkey() {
+        let mut cmd = calc_command();
+        cmd.default_hotkey = Some("CmdOrCtrl+=");
+        let registry = reg_with(MockKit::new("calc", vec![cmd]));
+        let entries = registry.commands_with_hotkeys();
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].kit_id, "calc");
+        assert_eq!(entries[0].command_id, "calculate");
+        assert_eq!(entries[0].hotkey, "CmdOrCtrl+=");
+        assert_eq!(entries[0].mode, CommandMode::InputResults);
+    }
+
+    #[test]
+    fn config_hotkey_override_replaces_default() {
+        let mut cfg = default_config();
+        cfg.kits.insert(
+            "calc".to_string(),
+            crate::config::KitConfig {
+                enabled: true,
+                commands: {
+                    let mut m = std::collections::HashMap::new();
+                    m.insert(
+                        "calculate".to_string(),
+                        crate::config::CommandConfig {
+                            enabled: true,
+                            prefix: None,
+                            hotkey: Some("Alt+C".to_string()),
+                        },
+                    );
+                    m
+                },
+                ..Default::default()
+            },
+        );
+        let mut cmd = calc_command();
+        cmd.default_hotkey = Some("CmdOrCtrl+=");
+        let mut registry = KitRegistry::new();
+        registry.register(Box::new(MockKit::new("calc", vec![cmd])), &cfg);
+
+        let entries = registry.commands_with_hotkeys();
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].hotkey, "Alt+C");
+    }
+
+    #[test]
+    fn config_hotkey_sets_hotkey_when_no_default() {
+        let mut cfg = default_config();
+        cfg.kits.insert(
+            "calc".to_string(),
+            crate::config::KitConfig {
+                enabled: true,
+                commands: {
+                    let mut m = std::collections::HashMap::new();
+                    m.insert(
+                        "calculate".to_string(),
+                        crate::config::CommandConfig {
+                            enabled: true,
+                            prefix: None,
+                            hotkey: Some("CmdOrCtrl+=".to_string()),
+                        },
+                    );
+                    m
+                },
+                ..Default::default()
+            },
+        );
+        let mut registry = KitRegistry::new();
+        registry.register(Box::new(MockKit::new("calc", vec![calc_command()])), &cfg);
+
+        let entries = registry.commands_with_hotkeys();
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].hotkey, "CmdOrCtrl+=");
+    }
+
+    #[test]
+    fn disabled_command_excluded_from_hotkeys() {
+        let mut cfg = default_config();
+        cfg.kits.insert(
+            "calc".to_string(),
+            crate::config::KitConfig {
+                enabled: true,
+                commands: {
+                    let mut m = std::collections::HashMap::new();
+                    m.insert(
+                        "calculate".to_string(),
+                        crate::config::CommandConfig {
+                            enabled: false,
+                            prefix: None,
+                            hotkey: Some("CmdOrCtrl+=".to_string()),
+                        },
+                    );
+                    m
+                },
+                ..Default::default()
+            },
+        );
+        let mut registry = KitRegistry::new();
+        registry.register(Box::new(MockKit::new("calc", vec![calc_command()])), &cfg);
+        assert!(registry.commands_with_hotkeys().is_empty());
+    }
+
+    #[test]
+    fn kit_infos_includes_effective_hotkey() {
+        let mut cmd = calc_command();
+        cmd.default_hotkey = Some("CmdOrCtrl+=");
+        let registry = reg_with(MockKit::new("calc", vec![cmd]));
+        let infos = registry.kit_infos();
+        assert_eq!(infos[0].commands[0].effective_hotkey.as_deref(), Some("CmdOrCtrl+="));
     }
 }

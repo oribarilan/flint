@@ -83,11 +83,13 @@ pub struct CommandConfig {
     pub enabled: bool,
     /// Custom prefix override (replaces the kit's default).
     pub prefix: Option<String>,
+    /// Custom hotkey override (replaces the kit's default).
+    pub hotkey: Option<String>,
 }
 
 impl Default for CommandConfig {
     fn default() -> Self {
-        Self { enabled: true, prefix: None }
+        Self { enabled: true, prefix: None, hotkey: None }
     }
 }
 
@@ -380,5 +382,30 @@ watchlist = ["AAPL", "GOOGL"]
     fn should_default_to_empty_kits() {
         let config: FlintConfig = toml::from_str("").unwrap();
         assert!(config.kits.is_empty());
+    }
+
+    #[test]
+    fn should_parse_command_hotkey_override() {
+        let toml_str = r#"
+[kits.calculator]
+enabled = true
+
+[kits.calculator.commands.calculate]
+enabled = true
+prefix = "="
+hotkey = "CmdOrCtrl+="
+"#;
+        let config: FlintConfig = toml::from_str(toml_str).unwrap();
+        let calc = &config.kits["calculator"];
+        let cmd = &calc.commands["calculate"];
+        assert!(cmd.enabled);
+        assert_eq!(cmd.prefix.as_deref(), Some("="));
+        assert_eq!(cmd.hotkey.as_deref(), Some("CmdOrCtrl+="));
+    }
+
+    #[test]
+    fn command_config_defaults_hotkey_to_none() {
+        let config = CommandConfig::default();
+        assert!(config.hotkey.is_none());
     }
 }

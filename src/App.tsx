@@ -13,6 +13,7 @@ import { applyFontSize, applyTheme } from "./lib/applyTheme";
 import { useSearch } from "./hooks/useSearch";
 import { usePrefixDetection } from "./hooks/usePrefixDetection";
 import { useChat } from "./hooks/useChat";
+import { useCommandActivation } from "./hooks/useCommandActivation";
 import { useKeybindings } from "./hooks/useKeybindings";
 import styles from "./App.module.css";
 
@@ -20,6 +21,7 @@ export default function App() {
   useSearch();
   usePrefixDetection();
   useChat();
+  useCommandActivation();
 
   const query = useSearchStore((s) => s.query);
   const mode = useSearchStore((s) => s.mode);
@@ -100,9 +102,10 @@ export default function App() {
             })
             // eslint-disable-next-line @typescript-eslint/no-empty-function
             .catch(() => {});
-          // Preserve active chat sessions across hide/show
+          // Preserve active chat sessions and command chips across hide/show
           const hasChat = useChatStore.getState().messages.length > 0;
-          if (!hasChat) {
+          const hasActiveCommand = useSearchStore.getState().activeCommand !== null;
+          if (!hasChat && !hasActiveCommand) {
             useSearchStore.getState().clearSearch();
           }
         }

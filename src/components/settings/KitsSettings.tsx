@@ -45,6 +45,10 @@ export default function KitsSettings({ config, onUpdate }: KitsSettingsProps) {
     return config.kits[kitId]?.commands?.[commandId]?.prefix ?? defaultPrefix;
   };
 
+  const getCommandHotkey = (kitId: string, commandId: string): string => {
+    return config.kits[kitId]?.commands?.[commandId]?.hotkey ?? "";
+  };
+
   const updateKitConfig = (kitId: string, patch: Record<string, unknown>) => {
     const next = {
       ...config,
@@ -74,6 +78,16 @@ export default function KitsSettings({ config, onUpdate }: KitsSettingsProps) {
       commands: {
         ...cmds,
         [commandId]: { ...cmds[commandId], prefix: prefix || undefined },
+      },
+    });
+  };
+
+  const handleHotkeyChange = (kitId: string, commandId: string, hotkey: string) => {
+    const cmds = (config.kits[kitId]?.commands as Record<string, Record<string, unknown>>) ?? {};
+    updateKitConfig(kitId, {
+      commands: {
+        ...cmds,
+        [commandId]: { ...cmds[commandId], hotkey: hotkey || undefined },
       },
     });
   };
@@ -131,11 +145,15 @@ export default function KitsSettings({ config, onUpdate }: KitsSettingsProps) {
                     kitId={kit.id}
                     enabled={isCommandEnabled(kit.id, cmd.id)}
                     prefix={getCommandPrefix(kit.id, cmd.id, cmd.default_prefix ?? "")}
+                    hotkey={getCommandHotkey(kit.id, cmd.id)}
                     onToggle={() => {
                       handleCommandToggle(kit.id, cmd.id);
                     }}
                     onPrefixChange={(p) => {
                       handlePrefixChange(kit.id, cmd.id, p);
+                    }}
+                    onHotkeyChange={(h) => {
+                      handleHotkeyChange(kit.id, cmd.id, h);
                     }}
                   />
                 ))}
@@ -153,15 +171,19 @@ function CommandRow({
   kitId: _kitId,
   enabled,
   prefix,
+  hotkey,
   onToggle,
   onPrefixChange,
+  onHotkeyChange,
 }: {
   cmd: CommandInfo;
   kitId: string;
   enabled: boolean;
   prefix: string;
+  hotkey: string;
   onToggle: () => void;
   onPrefixChange: (prefix: string) => void;
+  onHotkeyChange: (hotkey: string) => void;
 }) {
   return (
     <div className={kitStyles.commandRow}>
@@ -178,6 +200,19 @@ function CommandRow({
             }}
             placeholder="none"
             aria-label={`Prefix for ${cmd.name}`}
+          />
+        </div>
+        <div className={kitStyles.hotkeyField}>
+          <label className={kitStyles.hotkeyLabel}>Hotkey</label>
+          <input
+            className={kitStyles.hotkeyInput}
+            type="text"
+            value={hotkey}
+            onChange={(e) => {
+              onHotkeyChange(e.target.value);
+            }}
+            placeholder="none"
+            aria-label={`Hotkey for ${cmd.name}`}
           />
         </div>
       </div>

@@ -95,6 +95,7 @@ export interface ChatConfig {
 export interface CommandConfigEntry {
   enabled?: boolean;
   prefix?: string;
+  hotkey?: string;
 }
 
 export interface KitConfig {
@@ -133,6 +134,7 @@ export interface CommandInfo {
   enabled: boolean;
   default_prefix: string | null;
   effective_prefix: string | null;
+  effective_hotkey: string | null;
 }
 
 export interface KitManifestInfo {

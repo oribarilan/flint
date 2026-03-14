@@ -11,7 +11,7 @@ mod calculator;
 mod registry;
 
 pub use calculator::CalculatorKit;
-pub use registry::{CommandInfo, KitInfo, KitRegistry, KitRegistryState, KitState};
+pub use registry::{CommandHotkeyEntry, CommandInfo, KitInfo, KitRegistry, KitRegistryState, KitState};
 
 use std::path::PathBuf;
 

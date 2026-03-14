@@ -17,14 +17,26 @@ mod window;
 
 use std::sync::{Arc, RwLock};
 
-use tauri::Manager;
+use serde::Serialize;
+use tauri::{Emitter, Manager};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 
 use error::StringResult;
 use tracing_subscriber::EnvFilter;
 
 use indexer::FileIndex;
-use kits::{KitContextBase, KitRegistry, KitRegistryState};
+use kits::{CommandMode, KitContextBase, KitIcon, KitRegistry, KitRegistryState};
+
+/// Payload emitted to the frontend when a global command hotkey is pressed
+/// for an `InputResults`-mode command, instructing it to activate the chip.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CommandActivatePayload {
+    kit_id: String,
+    command_id: String,
+    name: String,
+    icon: Option<KitIcon>,
+}
 
 /// Boot the Tauri application.
 ///
@@ -76,7 +88,7 @@ pub fn run() {
             // Load application config (or use defaults).
             let cfg = config::load_or_default();
 
-            // Register global hotkey from config.
+            // Register main toggle hotkey from config.
             app.global_shortcut().register(cfg.general.hotkey.as_str()).str_err()?;
 
             // Build system tray icon + menu.
@@ -105,6 +117,10 @@ pub fn run() {
 
             let mut registry = KitRegistry::new();
             registry.register(Box::new(kits::CalculatorKit::new()), &kit_config);
+
+            // Register per-command global shortcuts.
+            register_command_shortcuts(app, &registry);
+
             app.manage(KitRegistryState(Arc::new(tokio::sync::RwLock::new(registry))));
 
             // Initialise file index as managed state and populate in background.
@@ -123,4 +139,63 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+/// Register a global shortcut for each command that has a hotkey assigned.
+///
+/// - **Execute** commands run silently without showing the window.
+/// - **`InputResults`** commands emit a `command:activate` event and show the window.
+fn register_command_shortcuts(app: &tauri::App, registry: &KitRegistry) {
+    let entries = registry.commands_with_hotkeys();
+    let handle = app.handle();
+
+    for entry in entries {
+        let hotkey = entry.hotkey.clone();
+        let kit_id = entry.kit_id.clone();
+        let command_id = entry.command_id.clone();
+        let mode = entry.mode.clone();
+        let name = entry.name.clone();
+        let icon = entry.icon.clone();
+
+        let result = handle.global_shortcut().on_shortcut(hotkey.as_str(), move |app, _, event| {
+            if event.state != ShortcutState::Pressed {
+                return;
+            }
+
+            match mode {
+                CommandMode::Execute => {
+                    let registry_state = app.state::<KitRegistryState>();
+                    let registry_arc = Arc::clone(&registry_state.0);
+                    let kid = kit_id.clone();
+                    let cid = command_id.clone();
+                    tauri::async_runtime::spawn(async move {
+                        let reg = registry_arc.read().await;
+                        if let Err(e) = reg.execute_command(&kid, &cid).await {
+                            tracing::warn!(
+                                kit = %kid, command = %cid,
+                                error = %e, "command hotkey execution failed"
+                            );
+                        }
+                    });
+                }
+                CommandMode::InputResults => {
+                    let payload = CommandActivatePayload {
+                        kit_id: kit_id.clone(),
+                        command_id: command_id.clone(),
+                        name: name.clone(),
+                        icon: icon.clone(),
+                    };
+                    let _ = app.emit("command:activate", payload);
+                    let _ = window::show(app);
+                }
+            }
+        });
+
+        if let Err(e) = result {
+            tracing::warn!(
+                hotkey = %hotkey,
+                "failed to register command shortcut: {e}"
+            );
+        }
+    }
 }

@@ -119,3 +119,45 @@
   font-family: var(--font-sans);
   font-style: italic;
 }
+
+/* ── Hotkey input ────────────────────────────────────────── */
+
+.hotkeyField {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.hotkeyLabel {
+  font-size: var(--font-xs);
+  color: var(--text-placeholder);
+  white-space: nowrap;
+}
+
+.hotkeyInput {
+  width: 96px;
+  padding: 2px var(--space-xs);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: var(--font-sm);
+  font-family: var(--font-mono);
+  text-align: center;
+  transition: border-color var(--transition-fast);
+}
+
+.hotkeyInput:hover {
+  border-color: var(--border-hover);
+}
+
+.hotkeyInput:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.hotkeyInput::placeholder {
+  color: var(--text-placeholder);
+  font-family: var(--font-sans);
+  font-style: italic;
+}
