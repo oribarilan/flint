@@ -84,7 +84,7 @@ export default function ResultsList() {
     const container = containerRef.current;
     if (!container) return;
     const selected = container.children[selectedIndex] as HTMLElement | undefined;
-    selected?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    selected?.scrollIntoView({ block: "nearest" });
   }, [selectedIndex]);
 
   if (results.length === 0 && query.length === 0) {
