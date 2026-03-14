@@ -73,3 +73,32 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ── Result metadata badges ────────────────────────────────── */
+
+.metaBadges {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.typePill {
+  font-size: var(--font-xs);
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+.originPill {
+  font-size: var(--font-xs);
+  font-weight: 500;
+  color: oklch(74% 0.12 65 / 0.7);
+  background: oklch(74% 0.15 65 / 0.08);
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}

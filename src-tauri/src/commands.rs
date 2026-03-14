@@ -91,11 +91,12 @@ pub async fn search_all(
         let registry = registry_state.0.read().await;
         registry.search_by_prefix(&query).map(|(kit_id, cmd_id, results)| {
             let needs_init = matches!(registry.kit_state(&kit_id), Some(KitState::Registered));
-            (kit_id, cmd_id, results, needs_init)
+            let kit_name = registry.kit_name(&kit_id).unwrap_or_default().to_string();
+            (kit_id, cmd_id, results, needs_init, kit_name)
         })
     };
 
-    if let Some((kit_id, _cmd_id, results, needs_init)) = search_result {
+    if let Some((kit_id, _cmd_id, results, needs_init, kit_name)) = search_result {
         // Spawn lazy init in background if kit was just registered.
         if needs_init {
             let registry_arc = Arc::clone(&registry_state.0);
@@ -112,7 +113,7 @@ pub async fn search_all(
         let kit_results: Vec<KitSearchResult> = results
             .into_iter()
             .take(MAX_RESULTS)
-            .map(|r| KitSearchResult::from_kit_result(&kit_id, r))
+            .map(|r| KitSearchResult::from_kit_result(&kit_id, &kit_name, r))
             .collect();
         return Ok(kit_results);
     }
@@ -149,6 +150,7 @@ pub async fn search_command(
     const MAX_RESULTS: usize = 20;
 
     let registry = registry_state.0.read().await;
+    let kit_name = registry.kit_name(&kit_id).unwrap_or_default().to_string();
     let results =
         registry.search_command(&kit_id, &command_id, &query).map_err(|e| e.to_string())?;
     drop(registry);
@@ -156,7 +158,7 @@ pub async fn search_command(
     Ok(results
         .into_iter()
         .take(MAX_RESULTS)
-        .map(|r| KitSearchResult::from_kit_result(&kit_id, r))
+        .map(|r| KitSearchResult::from_kit_result(&kit_id, &kit_name, r))
         .collect())
 }
 

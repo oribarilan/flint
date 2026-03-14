@@ -244,6 +244,11 @@ impl KitRegistry {
         self.states.get(kit_id).copied()
     }
 
+    /// Get the human-readable name of a kit.
+    pub fn kit_name(&self, kit_id: &str) -> Option<&str> {
+        self.kits.get(kit_id).map(|k| k.manifest().name)
+    }
+
     /// Shutdown all kits and abort their background tasks.
     pub async fn shutdown_all(&mut self) {
         for (id, kit) in &self.kits {
@@ -332,11 +337,14 @@ impl KitRegistry {
                 let haystack = Utf32Str::new(&name_lower, &mut buf);
                 let raw_score = pattern.score(haystack, &mut matcher)?;
                 let score = raw_score.saturating_add(crate::search::APP_BOOST);
+                let kit_name =
+                    self.kits.get(&indexed.kit_id).map(|k| k.manifest().name.to_string());
 
                 Some((
                     score,
                     KitSearchResult {
                         kit_id: indexed.kit_id.clone(),
+                        kit_name,
                         id: format!("cmd-discovery:{}:{}", indexed.kit_id, indexed.def.id),
                         title: indexed.def.name.to_string(),
                         subtitle: Some(indexed.def.description.to_string()),
@@ -428,6 +436,7 @@ impl KitSearchResult {
         };
         Self {
             kit_id: "core".to_string(),
+            kit_name: None,
             id: r.id,
             title: r.name,
             subtitle: Some(r.path.clone()),
@@ -678,8 +687,9 @@ mod tests {
     #[test]
     fn from_kit_result_preserves_fields() {
         let result = make_result("r1", "Hello");
-        let converted = KitSearchResult::from_kit_result("my-kit", result);
+        let converted = KitSearchResult::from_kit_result("my-kit", "My Kit", result);
         assert_eq!(converted.kit_id, "my-kit");
+        assert_eq!(converted.kit_name.as_deref(), Some("My Kit"));
         assert_eq!(converted.id, "r1");
         assert_eq!(converted.title, "Hello");
     }

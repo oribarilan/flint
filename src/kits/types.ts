@@ -73,6 +73,8 @@ export interface ActiveCommand {
 export interface KitSearchResult {
   /** `"core"` for file search, kit id otherwise. */
   kitId: string;
+  /** Human-readable kit name (e.g., `"Calculator"`). Absent for core results. */
+  kitName?: string;
   /** Unique within the kit. */
   id: string;
   /** Primary display text. */

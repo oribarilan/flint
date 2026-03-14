@@ -360,6 +360,8 @@ pub enum ResultKind {
 pub struct KitSearchResult {
     /// `"core"` for file search, kit id otherwise.
     pub kit_id: String,
+    /// Human-readable kit name (e.g., `"Calculator"`). `None` for core results.
+    pub kit_name: Option<String>,
     /// Unique within the kit.
     pub id: String,
     /// Primary display text.
@@ -382,9 +384,10 @@ pub struct KitSearchResult {
 
 impl KitSearchResult {
     /// Convert a [`KitResult`] from a specific kit into the IPC type.
-    pub fn from_kit_result(kit_id: &str, result: KitResult) -> Self {
+    pub fn from_kit_result(kit_id: &str, kit_name: &str, result: KitResult) -> Self {
         Self {
             kit_id: kit_id.to_string(),
+            kit_name: Some(kit_name.to_string()),
             id: result.id,
             title: result.title,
             subtitle: result.subtitle,

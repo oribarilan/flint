@@ -7,7 +7,7 @@
 
 import type { KitResultProps } from "./registry";
 import KindIcon from "../components/KindIcon";
-import Kbd from "../components/Kbd";
+import ResultMeta from "../components/ResultMeta";
 import styles from "../components/ResultsList.module.css";
 
 /** Extract the entry kind from the result's Named icon. */
@@ -19,7 +19,7 @@ function getKind(result: KitResultProps["result"]): "file" | "directory" | "appl
   return "file";
 }
 
-export default function CoreSearchResult({ result, isSelected, index }: KitResultProps) {
+export default function CoreSearchResult({ result, isSelected }: KitResultProps) {
   const kind = getKind(result);
   const path = result.actions[0]?.type === "Open" ? result.actions[0].target : "";
 
@@ -30,7 +30,7 @@ export default function CoreSearchResult({ result, isSelected, index }: KitResul
         <span className={styles.name}>{result.title}</span>
         {result.subtitle && <span className={styles.path}>{result.subtitle}</span>}
       </div>
-      {index < 9 && <Kbd keys={`CmdOrCtrl+${String(index + 1)}`} />}
+      <ResultMeta result={result} />
     </>
   );
 }
