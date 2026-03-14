@@ -52,7 +52,7 @@ Commands are the primary primitive kits expose. A command is a unit of functiona
 
 1. **Is discoverable via search** — type "calc" and the Calculator command appears alongside files and apps.
 2. **Can have a prefix** — e.g., `= 2+3` activates Calculator with input `2+3`.
-3. **Can have a hotkey** — e.g., `CmdOrCtrl+=` activates Calculator (deferred, field defined but not wired).
+3. **Can have a hotkey** — e.g., `CmdOrCtrl+Shift+=` activates Calculator from anywhere on the system.
 
 ### Command Definition
 
@@ -64,7 +64,7 @@ Commands are the primary primitive kits expose. A command is a unit of functiona
 | **icon** | ✓ | Emoji, named icon, or data URI |
 | **mode** | ✓ | `InputResults` or `Execute` |
 | **default_prefix** | | Prefix that auto-activates this command (e.g., `"="`) |
-| **default_hotkey** | | Key combination (deferred) |
+| **default_hotkey** | | Key combination in Tauri format (e.g., `"CmdOrCtrl+Shift+="`) |
 
 ### Command Modes
 
@@ -299,7 +299,6 @@ Kits that need long-running work declare **background tasks**. The registry mana
 ## Future (deferred)
 
 - **Chat tools / agent tools** — kit-provided functions the AI can call during chat. Removed from the Kit trait in the current pass; will be re-added as a separate, more considered surface.
-- **Hotkey registration** — `default_hotkey` field is defined in `CommandDef` but global shortcut wiring is not yet implemented.
 - **Pattern triggers** — auto-detect math expressions, URLs, etc. without requiring a prefix.
 - **Dynamic plugin loading** — load kits at runtime from WASM or JS bundles.
 - **Kit marketplace** — discover and install community kits.

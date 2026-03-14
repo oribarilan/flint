@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { relaunch } from "@tauri-apps/plugin-process";
 import type { FlintConfig, KitManifestInfo, CommandInfo } from "../../lib/commands";
 import { getKitManifests } from "../../lib/commands";
+import HotkeyRecorder from "./HotkeyRecorder";
 import styles from "./settings.module.css";
 import kitStyles from "./KitsSettings.module.css";
 
@@ -267,12 +268,10 @@ function CommandRow({
         />
       </td>
       <td className={kitStyles.tdHotkey}>
-        <ClearableField
+        <HotkeyRecorder
           value={hotkey}
-          placeholder="none"
           onChange={onHotkeyChange}
           ariaLabel={`Hotkey for ${cmd.name}`}
-          className={kitStyles.hotkeyInput}
         />
       </td>
       <td className={kitStyles.tdToggle}>

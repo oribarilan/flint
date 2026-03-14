@@ -187,3 +187,88 @@
 .hotkeyInput:hover { border-color: var(--border-hover); }
 .hotkeyInput:focus { outline: none; border-color: var(--accent); }
 .hotkeyInput::placeholder { color: var(--text-placeholder); font-family: var(--font-sans); font-style: italic; }
+
+/* ── Hotkey recorder ──────────────────────────────────────── */
+
+.hotkeyCapsule {
+  display: inline-flex;
+  align-items: stretch;
+  min-width: 88px;
+  height: 28px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  overflow: hidden;
+  transition: border-color var(--transition-fast);
+}
+
+.hotkeyCapsule:hover {
+  border-color: var(--border-hover);
+}
+
+.hotkeyCapsuleRecording {
+  border-color: var(--accent);
+  background: var(--bg-accent-subtle);
+  animation: pulseOutline 1.5s var(--ease-in-out) infinite;
+}
+
+@keyframes pulseOutline {
+  0%, 100% { border-color: var(--accent); }
+  50% { border-color: transparent; }
+}
+
+.hotkeyBtn {
+  flex: 1;
+  min-width: 0;
+  padding: 0 var(--space-sm);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hotkeyBtn:focus {
+  outline: none;
+}
+
+.hotkeyValue {
+  font-size: var(--font-sm);
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.hotkeyPlaceholder {
+  font-size: var(--font-sm);
+  font-family: var(--font-sans);
+  color: var(--text-placeholder);
+  font-style: italic;
+  white-space: nowrap;
+}
+
+.hotkeyCapsuleRecording .hotkeyPlaceholder {
+  color: var(--accent);
+  font-style: normal;
+}
+
+.hotkeyClear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  border: none;
+  border-left: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-placeholder);
+  font-size: var(--font-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.hotkeyClear:hover {
+  color: var(--color-error);
+  background: var(--color-error-bg);
+}

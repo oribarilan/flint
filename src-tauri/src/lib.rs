@@ -51,15 +51,7 @@ pub fn run() {
         .init();
 
     tauri::Builder::default()
-        .plugin(
-            tauri_plugin_global_shortcut::Builder::new()
-                .with_handler(|app, _shortcut, event| {
-                    if event.state == ShortcutState::Pressed {
-                        let _ = window::toggle(app);
-                    }
-                })
-                .build(),
-        )
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_process::init())
@@ -89,7 +81,14 @@ pub fn run() {
             let cfg = config::load_or_default();
 
             // Register main toggle hotkey from config.
-            app.global_shortcut().register(cfg.general.hotkey.as_str()).str_err()?;
+            let main_hotkey = cfg.general.hotkey.as_str();
+            app.global_shortcut()
+                .on_shortcut(main_hotkey, |app, _, event| {
+                    if event.state == ShortcutState::Pressed {
+                        let _ = window::toggle(app);
+                    }
+                })
+                .str_err()?;
 
             // Build system tray icon + menu.
             tray::setup(app)?;
@@ -149,6 +148,11 @@ fn register_command_shortcuts(app: &tauri::App, registry: &KitRegistry) {
     let entries = registry.commands_with_hotkeys();
     let handle = app.handle();
 
+    if entries.is_empty() {
+        tracing::info!("no command hotkeys to register");
+        return;
+    }
+
     for entry in entries {
         let hotkey = entry.hotkey.clone();
         let kit_id = entry.kit_id.clone();
@@ -156,11 +160,17 @@ fn register_command_shortcuts(app: &tauri::App, registry: &KitRegistry) {
         let mode = entry.mode.clone();
         let name = entry.name.clone();
         let icon = entry.icon.clone();
+        let log_cmd = command_id.clone();
 
         let result = handle.global_shortcut().on_shortcut(hotkey.as_str(), move |app, _, event| {
             if event.state != ShortcutState::Pressed {
                 return;
             }
+
+            tracing::info!(
+                kit = %kit_id, command = %command_id,
+                "command hotkey triggered"
+            );
 
             match mode {
                 CommandMode::Execute => {
@@ -196,6 +206,8 @@ fn register_command_shortcuts(app: &tauri::App, registry: &KitRegistry) {
                 hotkey = %hotkey,
                 "failed to register command shortcut: {e}"
             );
+        } else {
+            tracing::info!(hotkey = %hotkey, command = %log_cmd, "registered command hotkey");
         }
     }
 }

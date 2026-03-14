@@ -124,7 +124,7 @@ impl super::Kit for CalculatorKit {
             icon: Self::icon(),
             mode: CommandMode::InputResults,
             default_prefix: Some(PREFIX),
-            default_hotkey: None,
+            default_hotkey: Some("CmdOrCtrl+Shift+="),
         }]
     }
 
