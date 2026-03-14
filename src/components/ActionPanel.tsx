@@ -63,7 +63,7 @@ export default function ActionPanel() {
   useEffect(() => {
     const container = listRef.current;
     if (!container) return;
-    const selected = container.children[selectedActionIndex] as HTMLElement | undefined;
+    const selected = container.children[selectedActionIndex + 1] as HTMLElement | undefined;
     selected?.scrollIntoView({ block: "nearest" });
   }, [selectedActionIndex]);
 
@@ -86,53 +86,35 @@ export default function ActionPanel() {
   if (!result) return null;
 
   return (
-    <>
-      {/* Header: result being acted on */}
-      <div className={styles.header}>
-        <div className={styles.headerIcon}>
-          <svg viewBox="0 0 20 20" fill="currentColor">
-            <path d="M3 3.5A1.5 1.5 0 014.5 2h6.879a1.5 1.5 0 011.06.44l3.122 3.12a1.5 1.5 0 01.439 1.061V16.5A1.5 1.5 0 0114.5 18h-10A1.5 1.5 0 013 16.5v-13z" />
-          </svg>
-        </div>
-        <div className={styles.headerDetails}>
-          <span className={styles.headerTitle}>{result.title}</span>
-          {result.subtitle && (
-            <span className={styles.headerSubtitle}>{result.subtitle}</span>
-          )}
-        </div>
-      </div>
-
-      {/* Action list */}
-      <div ref={listRef} className={styles.actionList} role="listbox" aria-label="Actions">
-        {filteredActions.length === 0 && (
+    <div ref={listRef} className={styles.actionList} role="listbox" aria-label="Actions">
+      {filteredActions.length === 0 && (
           <div className={styles.emptyState}>No matching actions</div>
         )}
         {filteredActions.map((action, index) => {
-          const isDestructive = actionRequiresConfirmation(action);
-          const isSelected = index === selectedActionIndex;
-          const isArmed = index === armedActionIndex;
-          const prevAction = filteredActions[index - 1];
-          const showDivider = !!(
-            isDestructive && prevAction && !actionRequiresConfirmation(prevAction)
-          );
+        const isDestructive = actionRequiresConfirmation(action);
+        const isSelected = index === selectedActionIndex;
+        const isArmed = index === armedActionIndex;
+        const prevAction = filteredActions[index - 1];
+        const showDivider = !!(
+          isDestructive && prevAction && !actionRequiresConfirmation(prevAction)
+        );
 
-          return (
-            <ActionItem
-              key={`${action.type}-${String(index)}`}
-              action={action}
-              index={index}
-              isSelected={isSelected}
-              isArmed={isArmed}
-              isDestructive={isDestructive}
-              showDivider={showDivider}
-              onExecute={() => {
-                handleExecute(action, index, isArmed, armAction);
-              }}
-            />
-          );
-        })}
-      </div>
-    </>
+        return (
+          <ActionItem
+            key={`${action.type}-${String(index)}`}
+            action={action}
+            index={index}
+            isSelected={isSelected}
+            isArmed={isArmed}
+            isDestructive={isDestructive}
+            showDivider={showDivider}
+            onExecute={() => {
+              handleExecute(action, index, isArmed, armAction);
+            }}
+          />
+        );
+      })}
+    </div>
   );
 }
 

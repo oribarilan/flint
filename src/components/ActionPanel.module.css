@@ -1,7 +1,7 @@
-/* The container class is no longer used (header + actionList are direct
-   children of .launcher via a React fragment), but kept for reference. */
+/* ActionPanel renders a single scrollable .actionList div (same pattern as
+   ResultsList.container). The header is the first item inside the scroll area. */
 
-/* ── Header: result being acted on ─────────────────────────── */
+/* ── Header: inside the scroll area ────────────────────────── */
 
 .header {
   display: flex;
@@ -10,7 +10,6 @@
   padding: var(--space-md) var(--space-xl);
   border-bottom: 1px solid var(--border-subtle);
   background: var(--bg-secondary);
-  flex-shrink: 0;
 }
 
 .headerIcon {
@@ -62,7 +61,7 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  padding: var(--space-xs) 0 var(--space-xs);
+  padding: var(--space-xs) 0;
 }
 
 /* ── Action item ───────────────────────────────────────────── */
