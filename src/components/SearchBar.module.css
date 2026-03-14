@@ -3,6 +3,7 @@
   align-items: center;
   padding: var(--space-lg) var(--space-xl);
   gap: var(--space-md);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .wrapperChat {

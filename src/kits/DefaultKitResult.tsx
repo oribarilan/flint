@@ -35,25 +35,32 @@ export default function DefaultKitResult({ result, isSelected, index }: KitResul
 function KitIconView({ icon, selected }: { icon: KitIcon; selected: boolean }) {
   switch (icon.type) {
     case "Emoji":
-      return <span className={styles.name}>{icon.value}</span>;
+      return (
+        <div className={selected ? iconStyles.iconContainerSelected : iconStyles.iconContainer}>
+          <span style={{ fontSize: "var(--font-lg)" }}>{icon.value}</span>
+        </div>
+      );
     case "DataUri":
       if (icon.value.startsWith(SVG_DATA_PREFIX)) {
-        // Render inline so `currentColor` picks up the CSS color (accent on select).
         const svgMarkup = decodeURIComponent(icon.value.slice(SVG_DATA_PREFIX.length));
         return (
-          <span
-            className={selected ? iconStyles.kindIconSelected : iconStyles.kindIcon}
-            dangerouslySetInnerHTML={{ __html: svgMarkup }}
-          />
+          <div className={selected ? iconStyles.iconContainerSelected : iconStyles.iconContainer}>
+            <span
+              className={selected ? iconStyles.kindIconSelected : iconStyles.kindIcon}
+              dangerouslySetInnerHTML={{ __html: svgMarkup }}
+            />
+          </div>
         );
       }
       return (
-        <img
-          className={iconStyles.kindIcon}
-          src={icon.value}
-          alt=""
-          aria-hidden="true"
-        />
+        <div className={selected ? iconStyles.iconContainerSelected : iconStyles.iconContainer}>
+          <img
+            className={iconStyles.kindIcon}
+            src={icon.value}
+            alt=""
+            aria-hidden="true"
+          />
+        </div>
       );
     case "Named":
       return null;

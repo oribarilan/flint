@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import Settings from "./components/Settings";
 import { getConfig } from "./lib/commands";
-import { applyFontSize, applyTheme } from "./lib/applyTheme";
+import { applyFontSize, applyTheme, applyBackdropBlur } from "./lib/applyTheme";
 import { initKitRegistry } from "./kits";
 import "./styles/global.css";
 import "./styles/themes.css";
@@ -17,6 +17,7 @@ getConfig()
   .then((cfg) => {
     applyFontSize(cfg.appearance.font_size);
     applyTheme(cfg.appearance.theme);
+    applyBackdropBlur(cfg.appearance.backdrop_blur);
   })
   .catch(() => {
     /* use CSS default */

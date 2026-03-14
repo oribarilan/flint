@@ -111,12 +111,16 @@ export default function KitsSettings({ config, onUpdate }: KitsSettingsProps) {
         </div>
       )}
 
-      {kits.length === 0 && <p className={styles.emptyList}>No kits registered.</p>}
+      {kits.length === 0 && (
+        <p className={styles.emptyList}>
+          Kits extend Flint with new commands and integrations. Built-in kits will appear here after first launch.
+        </p>
+      )}
 
       {kits.map((kit) => {
         const expanded = expandedKit === kit.id;
         return (
-          <section key={kit.id} className={styles.section}>
+          <div key={kit.id} className={kitStyles.kitSection}>
             <div className={kitStyles.kitHeader}>
               <button
                 className={kitStyles.kitTitle}
@@ -137,32 +141,95 @@ export default function KitsSettings({ config, onUpdate }: KitsSettingsProps) {
             </div>
 
             {expanded && (
-              <div className={kitStyles.commandList}>
-                {kit.commands.map((cmd) => (
-                  <CommandRow
-                    key={cmd.id}
-                    cmd={cmd}
-                    kitId={kit.id}
-                    enabled={isCommandEnabled(kit.id, cmd.id)}
-                    prefix={getCommandPrefix(kit.id, cmd.id, cmd.default_prefix ?? "")}
-                    hotkey={getCommandHotkey(kit.id, cmd.id)}
-                    onToggle={() => {
-                      handleCommandToggle(kit.id, cmd.id);
-                    }}
-                    onPrefixChange={(p) => {
-                      handlePrefixChange(kit.id, cmd.id, p);
-                    }}
-                    onHotkeyChange={(h) => {
-                      handleHotkeyChange(kit.id, cmd.id, h);
-                    }}
-                  />
-                ))}
-              </div>
+              <table className={kitStyles.commandTable}>
+                <thead>
+                  <tr>
+                    <th className={kitStyles.thCommand}>Command</th>
+                    <th className={kitStyles.thPrefix}>Prefix</th>
+                    <th className={kitStyles.thHotkey}>Hotkey</th>
+                    <th className={kitStyles.thToggle}>On</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {kit.commands.map((cmd) => (
+                    <CommandRow
+                      key={cmd.id}
+                      cmd={cmd}
+                      kitId={kit.id}
+                      enabled={isCommandEnabled(kit.id, cmd.id)}
+                      prefix={getCommandPrefix(kit.id, cmd.id, cmd.default_prefix ?? "")}
+                      hotkey={getCommandHotkey(kit.id, cmd.id)}
+                      onToggle={() => {
+                        handleCommandToggle(kit.id, cmd.id);
+                      }}
+                      onPrefixChange={(p) => {
+                        handlePrefixChange(kit.id, cmd.id, p);
+                      }}
+                      onHotkeyChange={(h) => {
+                        handleHotkeyChange(kit.id, cmd.id, h);
+                      }}
+                    />
+                  ))}
+                </tbody>
+              </table>
             )}
-          </section>
+          </div>
         );
       })}
     </div>
+  );
+}
+
+/** Editable field that shows a capsule with × clear button when a value exists. */
+function ClearableField({
+  value,
+  placeholder,
+  onChange,
+  ariaLabel,
+  className,
+}: {
+  value: string;
+  placeholder: string;
+  onChange: (value: string) => void;
+  ariaLabel: string;
+  className: string;
+}) {
+  if (value) {
+    return (
+      <span className={kitStyles.capsule}>
+        <input
+          className={className}
+          type="text"
+          value={value}
+          onChange={(e) => {
+            onChange(e.target.value);
+          }}
+          aria-label={ariaLabel}
+        />
+        <button
+          className={kitStyles.capsuleClear}
+          onClick={() => {
+            onChange("");
+          }}
+          aria-label={`Clear ${ariaLabel}`}
+        >
+          ×
+        </button>
+      </span>
+    );
+  }
+
+  return (
+    <input
+      className={className}
+      type="text"
+      value=""
+      placeholder={placeholder}
+      onChange={(e) => {
+        onChange(e.target.value);
+      }}
+      aria-label={ariaLabel}
+    />
   );
 }
 
@@ -186,41 +253,35 @@ function CommandRow({
   onHotkeyChange: (hotkey: string) => void;
 }) {
   return (
-    <div className={kitStyles.commandRow}>
-      <div className={kitStyles.commandInfo}>
+    <tr className={kitStyles.tableRow}>
+      <td className={kitStyles.tdCommand}>
         <span className={kitStyles.commandName}>{cmd.name}</span>
-        <div className={kitStyles.prefixField}>
-          <label className={kitStyles.prefixLabel}>Prefix</label>
-          <input
-            className={kitStyles.prefixInput}
-            type="text"
-            value={prefix}
-            onChange={(e) => {
-              onPrefixChange(e.target.value);
-            }}
-            placeholder="none"
-            aria-label={`Prefix for ${cmd.name}`}
-          />
-        </div>
-        <div className={kitStyles.hotkeyField}>
-          <label className={kitStyles.hotkeyLabel}>Hotkey</label>
-          <input
-            className={kitStyles.hotkeyInput}
-            type="text"
-            value={hotkey}
-            onChange={(e) => {
-              onHotkeyChange(e.target.value);
-            }}
-            placeholder="none"
-            aria-label={`Hotkey for ${cmd.name}`}
-          />
-        </div>
-      </div>
-      <button
-        className={enabled ? styles.toggleOn : styles.toggle}
-        onClick={onToggle}
-        aria-label={`Toggle ${cmd.name}`}
-      />
-    </div>
+      </td>
+      <td className={kitStyles.tdPrefix}>
+        <ClearableField
+          value={prefix}
+          placeholder="none"
+          onChange={onPrefixChange}
+          ariaLabel={`Prefix for ${cmd.name}`}
+          className={kitStyles.prefixInput}
+        />
+      </td>
+      <td className={kitStyles.tdHotkey}>
+        <ClearableField
+          value={hotkey}
+          placeholder="none"
+          onChange={onHotkeyChange}
+          ariaLabel={`Hotkey for ${cmd.name}`}
+          className={kitStyles.hotkeyInput}
+        />
+      </td>
+      <td className={kitStyles.tdToggle}>
+        <button
+          className={enabled ? styles.toggleOn : styles.toggle}
+          onClick={onToggle}
+          aria-label={`Toggle ${cmd.name}`}
+        />
+      </td>
+    </tr>
   );
 }

@@ -94,7 +94,7 @@ launch_at_login = false
 
 [appearance]
 font_size = "small"       # extra-small | small | medium | large
-theme = "flint"           # flint | tokyonight | catppuccin | rosepine | gruvbox | github-light | catppuccin-latte
+theme = "flint"           # flint (dark) | flint-light
 
 [search]
 directories = ["~/Desktop", "~/Documents", "~/Downloads", "/Applications"]

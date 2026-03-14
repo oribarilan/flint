@@ -80,6 +80,7 @@ export interface GeneralConfig {
 export interface AppearanceConfig {
   font_size: string;
   theme: string;
+  backdrop_blur: boolean;
 }
 
 export interface SearchConfig {

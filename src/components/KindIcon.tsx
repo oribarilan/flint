@@ -39,14 +39,16 @@ export default function KindIcon({ kind, path, selected }: KindIconProps) {
   const iconData = ICON_PATHS[kind] ?? FILE_ICON;
 
   return (
-    <svg
-      className={selected ? styles.kindIconSelected : styles.kindIcon}
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 20 20"
-      fill="currentColor"
-      aria-hidden="true"
-    >
-      <path d={iconData.d} fillRule={iconData.fillRule} clipRule={iconData.clipRule} />
-    </svg>
+    <div className={selected ? styles.iconContainerSelected : styles.iconContainer}>
+      <svg
+        className={selected ? styles.kindIconSelected : styles.kindIcon}
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 20 20"
+        fill="currentColor"
+        aria-hidden="true"
+      >
+        <path d={iconData.d} fillRule={iconData.fillRule} clipRule={iconData.clipRule} />
+      </svg>
+    </div>
   );
 }

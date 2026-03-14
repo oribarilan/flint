@@ -1,27 +1,33 @@
 .container {
   max-height: 360px;
   overflow-y: auto;
-  border-top: 1px solid var(--border-subtle);
   padding: var(--space-xs) 0;
 }
 
 .emptyState {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: var(--space-sm);
   padding: var(--space-2xl) var(--space-xl);
   color: var(--text-secondary);
   font-size: var(--font-md);
   user-select: none;
 }
 
+.emptyHint {
+  font-size: var(--font-sm);
+  color: var(--text-placeholder);
+}
+
 .item {
   display: flex;
   align-items: center;
   gap: var(--space-md);
-  padding: 10px var(--space-xl);
+  padding: var(--space-sm) var(--space-xl);
   cursor: default;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   margin: 0 var(--space-xs);
   transition:
     background var(--transition-fast),
@@ -35,11 +41,11 @@
 
 .itemSelected {
   composes: item;
-  background: var(--bg-selected);
+  background: var(--bg-accent-subtle);
 }
 
 .itemSelected:hover {
-  background: var(--bg-selected);
+  background: var(--bg-accent-subtle);
 }
 
 .details {

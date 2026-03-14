@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, type KeyboardEvent } from "react";
 import type { FlintConfig } from "../../lib/commands";
+import ResetSection from "./ResetSection";
 import styles from "./settings.module.css";
 
 interface SearchSettingsProps {
@@ -39,7 +40,9 @@ function useInlineAdd(onAdd: (value: string) => void) {
 }
 
 export default function SearchSettings({ config, onUpdate, onResetSection }: SearchSettingsProps) {
-  const [confirming, setConfirming] = useState(false);
+  const handleResetDefaults = async () => {
+    await onResetSection("search");
+  };
 
   const dirs = useInlineAdd((value) => {
     const updated = [...config.search.directories, value];
@@ -65,11 +68,6 @@ export default function SearchSettings({ config, onUpdate, onResetSection }: Sea
     const clamped = Math.max(1, Math.min(10, value));
     void onUpdate({ ...config, search: { ...config.search, max_depth: clamped } });
   }
-
-  const handleResetDefaults = async () => {
-    await onResetSection("search");
-    setConfirming(false);
-  };
 
   return (
     <div className={styles.page}>
@@ -189,33 +187,10 @@ export default function SearchSettings({ config, onUpdate, onResetSection }: Sea
         </div>
       </section>
 
-      <div className={styles.resetRow}>
-        {confirming ? (
-          <>
-            <span className={styles.resetConfirmText}>Reset search settings to defaults?</span>
-            <button className={styles.buttonGhost} onClick={() => void handleResetDefaults()}>
-              Confirm
-            </button>
-            <button
-              className={styles.buttonGhost}
-              onClick={() => {
-                setConfirming(false);
-              }}
-            >
-              Cancel
-            </button>
-          </>
-        ) : (
-          <button
-            className={styles.buttonGhost}
-            onClick={() => {
-              setConfirming(true);
-            }}
-          >
-            Restore Defaults
-          </button>
-        )}
-      </div>
+      <ResetSection
+        label="Reset search settings to defaults?"
+        onReset={handleResetDefaults}
+      />
     </div>
   );
 }

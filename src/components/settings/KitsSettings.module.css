@@ -6,13 +6,21 @@
   justify-content: space-between;
   padding: var(--space-sm) var(--space-lg);
   background: var(--bg-accent-subtle);
-  border: 1px solid rgba(99, 102, 241, 0.2);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   font-size: var(--font-sm);
   color: var(--accent);
 }
 
-/* ── Kit header row ──────────────────────────────────────── */
+/* ── Kit section (flat header) ───────────────────────────── */
+
+.kitSection {
+  padding: var(--space-sm) 0;
+}
+
+.kitSection + .kitSection {
+  border-top: 1px solid var(--border-subtle);
+}
 
 .kitHeader {
   display: flex;
@@ -29,9 +37,9 @@
   border: none;
   color: var(--text-primary);
   font-size: var(--font-md);
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  padding: 0;
+  padding: var(--space-xs) 0;
   transition: color var(--transition-fast);
 }
 
@@ -39,62 +47,116 @@
   color: var(--accent);
 }
 
+.kitTitle:active {
+  transform: scale(0.98);
+}
+
 .chevron {
-  font-size: var(--font-sm);
+  font-size: var(--font-md);
   color: var(--text-secondary);
-  width: 1em;
+  width: 1.2em;
   text-align: center;
+  line-height: 1;
 }
 
-/* ── Command list (expanded) ─────────────────────────────── */
+/* ── Command table ───────────────────────────────────────── */
 
-.commandList {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  padding-top: var(--space-sm);
+.commandTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
   margin-top: var(--space-sm);
+}
+
+.commandTable th {
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--text-placeholder);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: left;
+  padding: 0 var(--space-sm) var(--space-sm);
+}
+
+.thCommand { width: auto; }
+.thPrefix { width: 80px; }
+.thHotkey { width: 110px; }
+.thToggle { width: 48px; text-align: center !important; }
+
+.tableRow td {
+  padding: var(--space-xs) var(--space-sm);
   border-top: 1px solid var(--border-subtle);
+  vertical-align: middle;
 }
 
-.commandRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-md);
-  padding: var(--space-xs) 0 var(--space-xs) var(--space-lg);
+.tableRow:hover td {
+  background: var(--bg-hover);
 }
 
-.commandInfo {
-  display: flex;
-  align-items: center;
-  gap: var(--space-lg);
-  min-width: 0;
-}
+.tdCommand { }
+.tdPrefix { }
+.tdHotkey { }
+.tdToggle { text-align: center; }
 
 .commandName {
-  font-size: var(--font-sm);
-  color: var(--text-secondary);
-  white-space: nowrap;
+  font-size: var(--font-md);
+  color: var(--text-primary);
+  font-weight: 500;
 }
 
-/* ── Prefix input ────────────────────────────────────────── */
+/* ── Clearable capsule field ─────────────────────────────── */
 
-.prefixField {
+.capsule {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  overflow: hidden;
+  transition: border-color var(--transition-fast);
+}
+
+.capsule:hover {
+  border-color: var(--border-hover);
+}
+
+.capsule:focus-within {
+  border-color: var(--accent);
+}
+
+.capsule .prefixInput,
+.capsule .hotkeyInput {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.capsuleClear {
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
+  justify-content: center;
+  width: 22px;
+  height: 100%;
+  border: none;
+  border-left: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-placeholder);
+  font-size: var(--font-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
 }
 
-.prefixLabel {
-  font-size: var(--font-xs);
-  color: var(--text-placeholder);
-  white-space: nowrap;
+.capsuleClear:hover {
+  color: var(--color-error);
+  background: var(--color-error-bg);
 }
+
+/* ── Inputs (used standalone and inside capsules) ────────── */
 
 .prefixInput {
-  width: 48px;
-  padding: 2px var(--space-xs);
+  width: 52px;
+  padding: var(--space-xs) var(--space-sm);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   background: var(--bg-primary);
@@ -105,38 +167,13 @@
   transition: border-color var(--transition-fast);
 }
 
-.prefixInput:hover {
-  border-color: var(--border-hover);
-}
-
-.prefixInput:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-
-.prefixInput::placeholder {
-  color: var(--text-placeholder);
-  font-family: var(--font-sans);
-  font-style: italic;
-}
-
-/* ── Hotkey input ────────────────────────────────────────── */
-
-.hotkeyField {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-}
-
-.hotkeyLabel {
-  font-size: var(--font-xs);
-  color: var(--text-placeholder);
-  white-space: nowrap;
-}
+.prefixInput:hover { border-color: var(--border-hover); }
+.prefixInput:focus { outline: none; border-color: var(--accent); }
+.prefixInput::placeholder { color: var(--text-placeholder); font-family: var(--font-sans); font-style: italic; }
 
 .hotkeyInput {
-  width: 96px;
-  padding: 2px var(--space-xs);
+  width: 88px;
+  padding: var(--space-xs) var(--space-sm);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   background: var(--bg-primary);
@@ -147,17 +184,6 @@
   transition: border-color var(--transition-fast);
 }
 
-.hotkeyInput:hover {
-  border-color: var(--border-hover);
-}
-
-.hotkeyInput:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-
-.hotkeyInput::placeholder {
-  color: var(--text-placeholder);
-  font-family: var(--font-sans);
-  font-style: italic;
-}
+.hotkeyInput:hover { border-color: var(--border-hover); }
+.hotkeyInput:focus { outline: none; border-color: var(--accent); }
+.hotkeyInput::placeholder { color: var(--text-placeholder); font-family: var(--font-sans); font-style: italic; }

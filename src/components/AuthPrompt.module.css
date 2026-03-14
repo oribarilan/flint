@@ -14,7 +14,7 @@
 }
 
 .button {
-  padding: 10px var(--space-2xl);
+  padding: var(--space-sm) var(--space-2xl);
   background: var(--accent);
   color: var(--text-on-accent);
   border: none;
@@ -22,11 +22,15 @@
   font-size: var(--font-md);
   font-weight: 600;
   cursor: pointer;
-  transition: opacity var(--transition-fast);
+  transition: background var(--transition-fast);
 }
 
 .button:hover {
-  opacity: 0.85;
+  background: var(--accent-hover);
+}
+
+.button:active {
+  transform: scale(0.98);
 }
 
 .code {

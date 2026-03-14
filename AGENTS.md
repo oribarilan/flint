@@ -7,11 +7,12 @@ Flint is an AI-native application launcher built with Tauri v2. It provides a gl
 ## Specs & Planning
 
 - **`spec.md`** — UX specification (modes, settings, interactions). This is the source of truth for product behavior. Always follow it. If an implementation decision conflicts with the spec, raise it rather than silently diverging.
+- **`specs/design.md`** — Visual identity, design tokens, and UI principles. This is the source of truth for how Flint looks and feels. All frontend CSS and component structure must follow it. Covers: identity (Spark × Strike), typography, color system, spacing, icons, interaction states, motion, accessibility, and empty states.
 - **`plan.md`** — Implementation roadmap and phasing.
 - **`gaps.md`** — Known cross-platform and feature gaps.
 - **`.todo/`** — Standalone tasks with full context for future sessions.
 
-When proposing changes that would alter the spec (new modes, different interaction patterns, etc.), flag them for review rather than updating the spec directly.
+When proposing changes that would alter the spec or design spec (new modes, different interaction patterns, visual identity changes, etc.), flag them for review rather than updating the specs directly.
 
 ## Engineering Principles
 
@@ -101,28 +102,18 @@ Individual targets are also available (`just test-rust`, `just lint-frontend`, e
 
 ## Design System
 
+See **`specs/design.md`** for the full design specification including visual identity, token definitions, typography, color system, interaction states, and motion.
+
 All visual properties must use **semantic design tokens** defined in `src/styles/global.css`. Never hardcode colors, spacing, font sizes, shadows, or radii in component CSS files.
 
-### Token Categories
+### Key Rules
 
-| Category | Examples | Notes |
-|----------|----------|-------|
-| **Colors** | `--bg-primary`, `--bg-hover`, `--text-primary`, `--accent`, `--color-success`, `--color-error` | Semantic names, not raw values |
-| **Spacing** | `--space-xs` (4px) through `--space-3xl` (32px) | Use for padding, margin, gap |
-| **Font sizes** | `--font-xs` through `--font-xl` | Scale with t-shirt size presets (XS/S/M/L) |
-| **Radii** | `--radius-sm`, `--radius-md`, `--radius-lg`, `--radius-full` | |
-| **Shadows** | `--shadow-sm`, `--shadow-lg` | |
-| **Icons** | `--icon-sm` (16px), `--icon-md` (18px), `--icon-lg` (24px) | |
-| **Transitions** | `--transition-fast` (150ms), `--transition-normal` (250ms) | |
-
-### Rules
-
-- **No hardcoded hex/rgba in component CSS.** Use `var(--color-*)` or `var(--bg-*)`.
-- **No hardcoded px for spacing.** Use `var(--space-*)`. Exception: border widths (1px, 2px).
-- **No hardcoded px for font sizes.** Use `var(--font-*)`.
-- **Font sizes scale automatically** via `data-font-size` attribute on `<html>` — presets defined in `global.css`.
-- **Adding a new token**: define it in `global.css` `:root` with a semantic name. Update all presets if it's font-related.
-- **Theming**: Swapping all tokens (e.g., for a light theme) only requires changing `global.css` — component files stay untouched.
+- **No hardcoded hex/rgba in component CSS.** Use semantic token variables.
+- **No hardcoded px for spacing.** Use `var(--space-*)`. Exception: border widths (1px, 2px, 3px).
+- **No hardcoded px for font sizes.** Use `var(--font-*)`. All sizes in `rem`.
+- **All interactive elements need full state coverage** — default, hover, focus-visible, active, selected, disabled, loading.
+- **Theming**: Component CSS references only semantic tokens. Swapping themes changes `global.css` / `themes.css` — component files stay untouched.
+- **`prefers-reduced-motion` must be respected.** See motion section in design spec.
 
 ## Tauri v2 Patterns
 

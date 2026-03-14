@@ -7,15 +7,17 @@
   max-height: 65vh;
 
   background: var(--bg-primary);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   overflow: hidden;
 
-  /* Mount animation */
-  animation: fadeIn var(--transition-normal) ease-out;
+  animation: fadeIn var(--transition-normal);
+}
+
+html[data-backdrop-blur="true"] .launcher {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 @keyframes fadeIn {

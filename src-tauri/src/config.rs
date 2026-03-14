@@ -39,8 +39,10 @@ pub struct GeneralConfig {
 pub struct AppearanceConfig {
     /// Font size preset: "extra-small", "small", "medium", or "large".
     pub font_size: String,
-    /// Color theme: "flint", "tokyonight", "catppuccin", "rosepine", or "gruvbox".
+    /// Color theme: "system" (follows OS), "flint" (dark), or "flint-light".
     pub theme: String,
+    /// Whether to apply backdrop blur on the launcher overlay.
+    pub backdrop_blur: bool,
 }
 
 /// File search settings.
@@ -111,7 +113,11 @@ impl Default for GeneralConfig {
 
 impl Default for AppearanceConfig {
     fn default() -> Self {
-        Self { font_size: "small".to_owned(), theme: "flint".to_owned() }
+        Self {
+            font_size: "small".to_owned(),
+            theme: "flint".to_owned(),
+            backdrop_blur: false,
+        }
     }
 }
 
@@ -289,7 +295,7 @@ launch_at_login = true
 
 [appearance]
 font_size = "large"
-theme = "tokyonight"
+theme = "flint-light"
 
 [search]
 directories = ["~/Projects"]
@@ -303,7 +309,7 @@ default_model = "gpt-4o"
         assert_eq!(config.general.hotkey, "Ctrl+Space");
         assert!(config.general.launch_at_login);
         assert_eq!(config.appearance.font_size, "large");
-        assert_eq!(config.appearance.theme, "tokyonight");
+        assert_eq!(config.appearance.theme, "flint-light");
         assert_eq!(config.search.directories, vec!["~/Projects"]);
         assert_eq!(config.search.exclude, vec![".git"]);
         assert_eq!(config.search.max_depth, 3);

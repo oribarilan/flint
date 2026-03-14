@@ -9,6 +9,7 @@ import {
   type DeviceCodeResponse,
   type FlintConfig,
 } from "../../lib/commands";
+import ResetSection from "./ResetSection";
 import styles from "./settings.module.css";
 
 const COPILOT_MODELS = [
@@ -126,7 +127,6 @@ export default function ChatSettings({ config, onUpdate, onResetSection }: ChatS
     authenticated: false,
     username: null,
   });
-  const [confirming, setConfirming] = useState(false);
 
   const refreshAuth = useCallback(() => {
     getAuthStatus()
@@ -156,7 +156,6 @@ export default function ChatSettings({ config, onUpdate, onResetSection }: ChatS
 
   const handleResetDefaults = async () => {
     await onResetSection("chat");
-    setConfirming(false);
   };
 
   return (
@@ -194,17 +193,19 @@ export default function ChatSettings({ config, onUpdate, onResetSection }: ChatS
           <>
             <div className={styles.row}>
               <span className={styles.label}>Default model</span>
-              <select
-                className={styles.select}
-                value={config.chat.default_model}
-                onChange={handleModelChange}
-              >
-                {COPILOT_MODELS.map((model) => (
-                  <option key={model.id} value={model.id}>
-                    {model.label}
-                  </option>
-                ))}
-              </select>
+              <div className={styles.selectWrap}>
+                <select
+                  className={styles.select}
+                  value={config.chat.default_model}
+                  onChange={handleModelChange}
+                >
+                  {COPILOT_MODELS.map((model) => (
+                    <option key={model.id} value={model.id}>
+                      {model.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div className={styles.row}>
               <span />
@@ -218,38 +219,10 @@ export default function ChatSettings({ config, onUpdate, onResetSection }: ChatS
         )}
       </section>
 
-      {/* ── Future providers placeholder ────────────────────── */}
-      <section className={styles.providerPlaceholder}>
-        <span className={styles.providerPlaceholderText}>More providers coming soon</span>
-      </section>
-
-      <div className={styles.resetRow}>
-        {confirming ? (
-          <>
-            <span className={styles.resetConfirmText}>Reset chat settings to defaults?</span>
-            <button className={styles.buttonGhost} onClick={() => void handleResetDefaults()}>
-              Confirm
-            </button>
-            <button
-              className={styles.buttonGhost}
-              onClick={() => {
-                setConfirming(false);
-              }}
-            >
-              Cancel
-            </button>
-          </>
-        ) : (
-          <button
-            className={styles.buttonGhost}
-            onClick={() => {
-              setConfirming(true);
-            }}
-          >
-            Restore Defaults
-          </button>
-        )}
-      </div>
+      <ResetSection
+        label="Reset chat settings to defaults?"
+        onReset={handleResetDefaults}
+      />
     </div>
   );
 }

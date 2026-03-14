@@ -89,7 +89,10 @@ export default function ResultsList() {
   if (results.length === 0 && query.length > 0) {
     return (
       <div className={styles.container}>
-        <div className={styles.emptyState}>No results found</div>
+        <div className={styles.emptyState}>
+          <span>No matches for &ldquo;{query}&rdquo;</span>
+          <span className={styles.emptyHint}>Try a shorter term or check indexed directories in Settings</span>
+        </div>
       </div>
     );
   }

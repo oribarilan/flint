@@ -9,7 +9,7 @@ import { useSearchStore } from "./stores/searchStore";
 import { useChatStore } from "./stores/chatStore";
 import { hideWindow, getAuthStatus, sendChatMessage, getConfig } from "./lib/commands";
 import { focusSearchBar, shouldHideOnBlur } from "./lib/focus";
-import { applyFontSize, applyTheme } from "./lib/applyTheme";
+import { applyFontSize, applyTheme, applyBackdropBlur } from "./lib/applyTheme";
 import { useSearch } from "./hooks/useSearch";
 import { usePrefixDetection } from "./hooks/usePrefixDetection";
 import { useChat } from "./hooks/useChat";
@@ -99,6 +99,7 @@ export default function App() {
             .then((cfg) => {
               applyFontSize(cfg.appearance.font_size);
               applyTheme(cfg.appearance.theme);
+              applyBackdropBlur(cfg.appearance.backdrop_blur);
             })
             // eslint-disable-next-line @typescript-eslint/no-empty-function
             .catch(() => {});

@@ -14,7 +14,7 @@
 }
 
 .label {
-  font-size: var(--font-xs);
+  font-size: var(--font-sm);
   color: var(--text-placeholder);
 }
 

@@ -1,236 +1,72 @@
 /* ── Color Themes ──────────────────────────────────────────── */
 /* Each theme overrides only color tokens. Spacing, radii,     */
 /* fonts, and transitions stay in :root (theme-agnostic).      */
-/* Semi-transparent rgba backgrounds preserve the glass effect. */
+/* Brand: Amber family — oklch hue 60-68°                      */
 
-/* ── Flint (default) ──────────────────────────────────────── */
+/* ── Flint Dark (default) ────────────────────────────────── */
 /* Values match :root in global.css — explicit for completeness */
-html[data-theme="flint"] {
-  --bg-primary: rgba(20, 20, 25, 0.85);
-  --bg-secondary: rgba(35, 35, 45, 0.9);
-  --bg-hover: rgba(60, 60, 75, 0.8);
-  --bg-selected: rgba(80, 80, 100, 0.9);
-  --bg-solid: #141419;
-  --bg-accent-subtle: rgba(99, 102, 241, 0.08);
+html[data-theme="flint"],
+html[data-theme="flint-dark"] {
+  --bg-primary: oklch(14% 0.006 60);
+  --bg-secondary: oklch(19% 0.007 60);
+  --bg-hover: oklch(23% 0.008 60);
+  --bg-selected: oklch(25% 0.01 60);
+  --bg-solid: oklch(14% 0.006 60);
+  --bg-accent-subtle: oklch(74% 0.15 65 / 0.1);
 
-  --text-primary: rgba(255, 255, 255, 0.95);
-  --text-secondary: rgba(255, 255, 255, 0.55);
-  --text-placeholder: rgba(255, 255, 255, 0.3);
-  --text-on-accent: #ffffff;
+  --text-primary: oklch(93% 0.006 60);
+  --text-secondary: oklch(62% 0.008 60);
+  --text-placeholder: oklch(43% 0.006 60);
+  --text-on-accent: oklch(16% 0.02 65);
 
-  --accent: #6366f1;
-  --accent-hover: #5558e6;
+  --accent: oklch(74% 0.15 65);
+  --accent-hover: oklch(70% 0.14 65);
 
-  --color-success: #22c55e;
-  --color-error: #ef4444;
-  --color-error-bg: rgba(239, 68, 68, 0.15);
-  --color-warning: #f59e0b;
+  --color-success: oklch(72% 0.15 145);
+  --color-error: oklch(65% 0.2 25);
+  --color-error-bg: oklch(65% 0.2 25 / 0.12);
+  --color-warning: oklch(78% 0.15 85);
 
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-hover: rgba(255, 255, 255, 0.15);
-  --border-active: rgba(255, 255, 255, 0.12);
+  --border-subtle: oklch(23% 0.006 60);
+  --border-hover: oklch(28% 0.008 60);
+  --border-active: oklch(25% 0.007 60);
 
-  --shadow-lg: 0 25px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 25px 60px oklch(4% 0.01 60 / 0.5);
+  --shadow-sm: 0 1px 3px oklch(4% 0.01 60 / 0.3);
 
-  --scrollbar-thumb: rgba(255, 255, 255, 0.08);
-  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.14);
+  --scrollbar-thumb: oklch(23% 0.006 60);
+  --scrollbar-thumb-hover: oklch(28% 0.008 60);
 }
 
-/* ── Tokyo Night ──────────────────────────────────────────── */
-html[data-theme="tokyonight"] {
-  --bg-primary: rgba(26, 27, 38, 0.85);
-  --bg-secondary: rgba(36, 40, 59, 0.9);
-  --bg-hover: rgba(65, 72, 104, 0.8);
-  --bg-selected: rgba(55, 62, 98, 0.9);
-  --bg-solid: #1a1b26;
-  --bg-accent-subtle: rgba(122, 162, 247, 0.08);
+/* ── Flint Light ─────────────────────────────────────────── */
+html[data-theme="flint-light"] {
+  --bg-primary: oklch(98% 0.005 65);
+  --bg-secondary: oklch(94% 0.008 65);
+  --bg-hover: oklch(91% 0.01 65);
+  --bg-selected: oklch(89% 0.012 65);
+  --bg-solid: oklch(98% 0.005 65);
+  --bg-accent-subtle: oklch(58% 0.15 60 / 0.08);
 
-  --text-primary: rgba(192, 202, 245, 0.95);
-  --text-secondary: rgba(169, 177, 214, 0.6);
-  --text-placeholder: rgba(86, 95, 137, 0.8);
-  --text-on-accent: #1a1b26;
+  --text-primary: oklch(21% 0.01 60);
+  --text-secondary: oklch(47% 0.01 60);
+  --text-placeholder: oklch(63% 0.008 60);
+  --text-on-accent: oklch(98% 0.005 60);
 
-  --accent: #7aa2f7;
-  --accent-hover: #6a92e7;
+  --accent: oklch(58% 0.15 60);
+  --accent-hover: oklch(53% 0.14 60);
 
-  --color-success: #9ece6a;
-  --color-error: #f7768e;
-  --color-error-bg: rgba(247, 118, 142, 0.15);
-  --color-warning: #e0af68;
+  --color-success: oklch(48% 0.14 150);
+  --color-error: oklch(52% 0.2 25);
+  --color-error-bg: oklch(52% 0.2 25 / 0.08);
+  --color-warning: oklch(55% 0.14 80);
 
-  --border-subtle: rgba(192, 202, 245, 0.08);
-  --border-hover: rgba(192, 202, 245, 0.15);
-  --border-active: rgba(192, 202, 245, 0.12);
+  --border-subtle: oklch(88% 0.008 65);
+  --border-hover: oklch(82% 0.01 65);
+  --border-active: oklch(85% 0.009 65);
 
-  --shadow-lg: 0 25px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(192, 202, 245, 0.06);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 12px 28px oklch(50% 0.02 60 / 0.1);
+  --shadow-sm: 0 1px 3px oklch(50% 0.02 60 / 0.06);
 
-  --scrollbar-thumb: rgba(192, 202, 245, 0.08);
-  --scrollbar-thumb-hover: rgba(192, 202, 245, 0.14);
-}
-
-/* ── Catppuccin Mocha ─────────────────────────────────────── */
-html[data-theme="catppuccin"] {
-  --bg-primary: rgba(30, 30, 46, 0.85);
-  --bg-secondary: rgba(49, 50, 68, 0.9);
-  --bg-hover: rgba(69, 71, 90, 0.8);
-  --bg-selected: rgba(88, 91, 112, 0.9);
-  --bg-solid: #1e1e2e;
-  --bg-accent-subtle: rgba(203, 166, 247, 0.08);
-
-  --text-primary: rgba(205, 214, 244, 0.95);
-  --text-secondary: rgba(166, 173, 200, 0.65);
-  --text-placeholder: rgba(127, 132, 156, 0.7);
-  --text-on-accent: #1e1e2e;
-
-  --accent: #cba6f7;
-  --accent-hover: #b893e8;
-
-  --color-success: #a6e3a1;
-  --color-error: #f38ba8;
-  --color-error-bg: rgba(243, 139, 168, 0.15);
-  --color-warning: #f9e2af;
-
-  --border-subtle: rgba(205, 214, 244, 0.08);
-  --border-hover: rgba(205, 214, 244, 0.15);
-  --border-active: rgba(205, 214, 244, 0.12);
-
-  --shadow-lg: 0 25px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(205, 214, 244, 0.06);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
-
-  --scrollbar-thumb: rgba(205, 214, 244, 0.08);
-  --scrollbar-thumb-hover: rgba(205, 214, 244, 0.14);
-}
-
-/* ── Rosé Pine ────────────────────────────────────────────── */
-html[data-theme="rosepine"] {
-  --bg-primary: rgba(25, 23, 36, 0.85);
-  --bg-secondary: rgba(31, 29, 46, 0.9);
-  --bg-hover: rgba(38, 35, 58, 0.8);
-  --bg-selected: rgba(57, 53, 82, 0.9);
-  --bg-solid: #191724;
-  --bg-accent-subtle: rgba(196, 167, 231, 0.08);
-
-  --text-primary: rgba(224, 222, 244, 0.95);
-  --text-secondary: rgba(144, 140, 170, 0.75);
-  --text-placeholder: rgba(110, 106, 134, 0.7);
-  --text-on-accent: #191724;
-
-  --accent: #c4a7e7;
-  --accent-hover: #b496d7;
-
-  --color-success: #9ccfd8;
-  --color-error: #eb6f92;
-  --color-error-bg: rgba(235, 111, 146, 0.15);
-  --color-warning: #f6c177;
-
-  --border-subtle: rgba(224, 222, 244, 0.08);
-  --border-hover: rgba(224, 222, 244, 0.15);
-  --border-active: rgba(224, 222, 244, 0.12);
-
-  --shadow-lg: 0 25px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(224, 222, 244, 0.06);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35);
-
-  --scrollbar-thumb: rgba(224, 222, 244, 0.08);
-  --scrollbar-thumb-hover: rgba(224, 222, 244, 0.14);
-}
-
-/* ── Gruvbox Dark ─────────────────────────────────────────── */
-html[data-theme="gruvbox"] {
-  --bg-primary: rgba(40, 40, 40, 0.85);
-  --bg-secondary: rgba(60, 56, 54, 0.9);
-  --bg-hover: rgba(80, 73, 69, 0.8);
-  --bg-selected: rgba(102, 92, 84, 0.9);
-  --bg-solid: #282828;
-  --bg-accent-subtle: rgba(254, 128, 25, 0.08);
-
-  --text-primary: rgba(235, 219, 178, 0.95);
-  --text-secondary: rgba(168, 153, 132, 0.75);
-  --text-placeholder: rgba(146, 131, 116, 0.6);
-  --text-on-accent: #282828;
-
-  --accent: #fe8019;
-  --accent-hover: #ee7009;
-
-  --color-success: #b8bb26;
-  --color-error: #fb4934;
-  --color-error-bg: rgba(251, 73, 52, 0.15);
-  --color-warning: #fabd2f;
-
-  --border-subtle: rgba(235, 219, 178, 0.08);
-  --border-hover: rgba(235, 219, 178, 0.15);
-  --border-active: rgba(235, 219, 178, 0.12);
-
-  --shadow-lg: 0 25px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(235, 219, 178, 0.06);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35);
-
-  --scrollbar-thumb: rgba(235, 219, 178, 0.08);
-  --scrollbar-thumb-hover: rgba(235, 219, 178, 0.14);
-}
-
-/* ── GitHub Light ─────────────────────────────────────────── */
-html[data-theme="github-light"] {
-  --bg-primary: rgba(255, 255, 255, 0.9);
-  --bg-secondary: rgba(246, 248, 250, 0.95);
-  --bg-hover: rgba(208, 215, 222, 0.5);
-  --bg-selected: rgba(208, 215, 222, 0.7);
-  --bg-solid: #ffffff;
-  --bg-accent-subtle: rgba(9, 105, 218, 0.06);
-
-  --text-primary: rgba(31, 35, 40, 0.95);
-  --text-secondary: rgba(101, 109, 118, 0.85);
-  --text-placeholder: rgba(101, 109, 118, 0.5);
-  --text-on-accent: #ffffff;
-
-  --accent: #0969da;
-  --accent-hover: #0860ca;
-
-  --color-success: #1a7f37;
-  --color-error: #cf222e;
-  --color-error-bg: rgba(207, 34, 46, 0.1);
-  --color-warning: #9a6700;
-
-  --border-subtle: rgba(31, 35, 40, 0.1);
-  --border-hover: rgba(31, 35, 40, 0.2);
-  --border-active: rgba(31, 35, 40, 0.15);
-
-  --shadow-lg: 0 12px 28px rgba(140, 149, 159, 0.3), 0 0 0 1px rgba(31, 35, 40, 0.08);
-  --shadow-sm: 0 1px 3px rgba(31, 35, 40, 0.12);
-
-  --scrollbar-thumb: rgba(31, 35, 40, 0.15);
-  --scrollbar-thumb-hover: rgba(31, 35, 40, 0.25);
-}
-
-/* ── Catppuccin Latte ─────────────────────────────────────── */
-html[data-theme="catppuccin-latte"] {
-  --bg-primary: rgba(239, 241, 245, 0.9);
-  --bg-secondary: rgba(230, 233, 239, 0.95);
-  --bg-hover: rgba(204, 208, 218, 0.5);
-  --bg-selected: rgba(188, 192, 204, 0.7);
-  --bg-solid: #eff1f5;
-  --bg-accent-subtle: rgba(136, 57, 239, 0.06);
-
-  --text-primary: rgba(76, 79, 105, 0.95);
-  --text-secondary: rgba(108, 111, 133, 0.85);
-  --text-placeholder: rgba(108, 111, 133, 0.5);
-  --text-on-accent: #eff1f5;
-
-  --accent: #8839ef;
-  --accent-hover: #7829df;
-
-  --color-success: #40a02b;
-  --color-error: #d20f39;
-  --color-error-bg: rgba(210, 15, 57, 0.1);
-  --color-warning: #df8e1d;
-
-  --border-subtle: rgba(76, 79, 105, 0.1);
-  --border-hover: rgba(76, 79, 105, 0.2);
-  --border-active: rgba(76, 79, 105, 0.15);
-
-  --shadow-lg: 0 12px 28px rgba(172, 176, 190, 0.35), 0 0 0 1px rgba(76, 79, 105, 0.08);
-  --shadow-sm: 0 1px 3px rgba(76, 79, 105, 0.12);
-
-  --scrollbar-thumb: rgba(76, 79, 105, 0.15);
-  --scrollbar-thumb-hover: rgba(76, 79, 105, 0.25);
+  --scrollbar-thumb: oklch(82% 0.008 65);
+  --scrollbar-thumb-hover: oklch(75% 0.01 65);
 }

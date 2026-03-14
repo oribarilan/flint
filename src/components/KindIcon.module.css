@@ -1,19 +1,36 @@
-.kindIcon {
+.iconContainer {
   flex-shrink: 0;
-  width: var(--icon-md);
-  height: var(--icon-md);
+  width: var(--icon-container);
+  height: var(--icon-container);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.iconContainerSelected {
+  composes: iconContainer;
+  background: var(--accent);
+}
+
+.kindIcon {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
   color: var(--text-secondary);
+  transition: color var(--transition-fast);
 }
 
 .kindIconSelected {
   composes: kindIcon;
-  color: var(--accent);
+  color: var(--text-on-accent);
 }
 
 .appIcon {
   flex-shrink: 0;
-  width: var(--icon-lg);
-  height: var(--icon-lg);
-  border-radius: var(--radius-sm);
+  width: var(--icon-container);
+  height: var(--icon-container);
+  border-radius: var(--radius-md);
   object-fit: contain;
 }

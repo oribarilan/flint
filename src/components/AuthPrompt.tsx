@@ -5,7 +5,7 @@ import styles from "./AuthPrompt.module.css";
 export default function AuthPrompt() {
   return (
     <div className={styles.container}>
-      <p className={styles.heading}>Sign in to use AI chat</p>
+      <p className={styles.heading}>Chat is powered by GitHub Copilot</p>
       <button
         className={styles.button}
         onClick={() => {
@@ -13,7 +13,7 @@ export default function AuthPrompt() {
           void openSettings();
         }}
       >
-        Open Settings
+        Sign in via Settings
       </button>
     </div>
   );
