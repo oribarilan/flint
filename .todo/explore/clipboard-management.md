@@ -7,7 +7,7 @@ A Flint kit that tracks clipboard history and lets users search, copy, pin, and 
 ## Dependencies
 
 - **Kit system infrastructure** — the `KitRegistry`, `KitContext`, command registration, chip UX, and background task lifecycle must be implemented first.
-- **Action Panel** (`.todo/explore/action-panel.md`) — clipboard results need Delete and Pin/Unpin actions. The Action Panel must exist before this kit ships.
+- **Action Panel** (`specs/action-panel.md`) — clipboard results surface Delete and Pin/Unpin actions via the Action Panel. The panel (including armed state confirmation for Delete) must exist before this kit ships.
 
 ## UX Decisions
 
@@ -24,7 +24,7 @@ These were explicitly decided during planning and should be treated as requireme
 | **App window** | None — chip + result list is the entire clipboard UX |
 | **Result layout** | TBD — will explore alternatives during implementation |
 | **Max entry size** | 100KB per entry; larger text is silently dropped |
-| **Actions per result** | Copy (Enter, primary), Delete (secondary), Pin/Unpin (secondary) |
+| **Actions per result** | Copy (default action, Enter), Delete, Pin/Unpin — all surfaced via Action Panel |
 | **Pinned entry retention** | Pinned entries are exempt from retention period and max_history cap |
 | **Default state** | Kit is **disabled by default** — user enables in Settings |
 | **Default prefix** | None — user configures a prefix in Settings if desired |
@@ -149,11 +149,15 @@ When the `history` command is active (chip shown), every keystroke routes to the
 
 ### Actions
 
-| Action | Trigger | Behavior |
-|--------|---------|----------|
-| **Copy** | Enter (primary) | Read `full_content` from SQLite, write to system clipboard, hide Flint |
-| **Delete** | Secondary action | Remove entry from SQLite and in-memory index |
-| **Pin/Unpin** | Secondary action | Toggle `pinned` flag. Pinned entries are exempt from retention/cap. |
+Clipboard results provide an ordered action list, surfaced via the Action Panel (`specs/action-panel.md`):
+
+| # | Action | `KitAction` Type | Confirm | Notes |
+|---|--------|-------------------|---------|-------|
+| 1 | **Copy** | `Copy { text, label }` | No | Default action (Enter). Reads `full_content` from SQLite, writes to system clipboard, hides Flint. |
+| 2 | Pin / Unpin | `Custom { id: "toggle_pin" }` | No | Toggles `pinned` flag. Pinned entries are exempt from retention/cap. Label is contextual: "Pin" or "Unpin". |
+| 3 | Delete | `Delete { target }` | **Yes** (armed state) | Removes entry from SQLite and in-memory index. Two-press armed state confirmation per Action Panel spec. |
+
+`Copy` uses the existing `KitAction::Copy` variant. `Pin/Unpin` uses `Custom` since there is no built-in pin variant — the kit handles execution via `custom_action_handler`. `Delete` uses `KitAction::Delete` which triggers armed state confirmation automatically.
 
 ### Clear Command
 
@@ -226,8 +230,8 @@ Settings UI: part of the Kits settings page per the kit system spec. The clipboa
 #### 1.6 — Frontend integration
 - Clipboard results rendered via default result component (no custom component needed).
 - Result layout: preview text as title, metadata as subtitle/accessories (exact layout TBD).
-- Secondary actions: Copy (primary), Delete, Pin/Unpin (depends on secondary actions system).
-- Confirmation dialog for clear command.
+- Actions: Copy (default), Pin/Unpin, Delete — surfaced via the Action Panel. Delete uses armed state confirmation, not a dialog.
+- Confirmation dialog for the `clear` Execute command (command-level confirmation, not an Action Panel flow).
 
 #### 1.7 — Tests
 - Rust unit tests for each module (storage, index, privacy, watcher, commands).
