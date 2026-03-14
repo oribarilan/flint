@@ -30,9 +30,6 @@
   cursor: default;
   border-radius: var(--radius-md);
   margin: 0 var(--space-xs);
-  transition:
-    background var(--transition-fast),
-    color var(--transition-fast);
   user-select: none;
 }
 

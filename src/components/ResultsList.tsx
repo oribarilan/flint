@@ -79,14 +79,12 @@ export default function ResultsList() {
   const selectedIndex = useSearchStore((s) => s.selectedIndex);
   const setSelectedIndex = useSearchStore((s) => s.setSelectedIndex);
 
-  // Scroll selected item into view after the highlight has painted.
+  // Scroll selected item into view.
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-    requestAnimationFrame(() => {
-      const selected = container.children[selectedIndex] as HTMLElement | undefined;
-      selected?.scrollIntoView({ block: "nearest" });
-    });
+    const selected = container.children[selectedIndex] as HTMLElement | undefined;
+    selected?.scrollIntoView({ block: "nearest" });
   }, [selectedIndex]);
 
   if (results.length === 0 && query.length === 0) {
@@ -98,7 +96,9 @@ export default function ResultsList() {
       <div className={styles.container}>
         <div className={styles.emptyState}>
           <span>No matches for &ldquo;{query}&rdquo;</span>
-          <span className={styles.emptyHint}>Try a shorter term or check indexed directories in Settings</span>
+          <span className={styles.emptyHint}>
+            Try a shorter term or check indexed directories in Settings
+          </span>
         </div>
       </div>
     );
