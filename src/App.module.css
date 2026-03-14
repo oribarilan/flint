@@ -1,10 +1,10 @@
 .launcher {
   position: fixed;
-  top: 50%;
+  top: 35%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   width: min(680px, 90vw);
-  max-height: 100vh;
+  max-height: 65vh;
 
   background: var(--bg-primary);
   backdrop-filter: blur(20px);
@@ -21,10 +21,10 @@
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.96);
+    transform: translateX(-50%) scale(0.96);
   }
   to {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    transform: translateX(-50%) scale(1);
   }
 }
