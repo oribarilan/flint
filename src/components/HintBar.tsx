@@ -1,4 +1,4 @@
-import { useSearchStore, type AppMode } from "../stores/searchStore";
+import { useSearchStore } from "../stores/searchStore";
 import Kbd from "./Kbd";
 import styles from "./HintBar.module.css";
 
@@ -13,8 +13,20 @@ const SEARCH_HINTS: Hint[] = [
   { label: "Navigate", keys: "↑↓", raw: true },
   { label: "Navigate", keys: "⌃J/K", raw: true },
   { label: "Open", keys: "Enter" },
+  { label: "Actions", keys: "Shift+Enter" },
   { label: "Chat", keys: "Tab" },
   { label: "Dismiss", keys: "Escape" },
+];
+
+const ACTION_PANEL_HINTS: Hint[] = [
+  { label: "Navigate", keys: "↑↓", raw: true },
+  { label: "Run action", keys: "Enter" },
+  { label: "Back", keys: "Escape" },
+];
+
+const ACTION_ARMED_HINTS: Hint[] = [
+  { label: "Confirm delete", keys: "Enter" },
+  { label: "Cancel", keys: "Escape" },
 ];
 
 const CHAT_HINTS: Hint[] = [
@@ -24,13 +36,19 @@ const CHAT_HINTS: Hint[] = [
   { label: "Clear", keys: "Escape" },
 ];
 
-function hintsForMode(mode: AppMode): Hint[] {
+function useHints(): Hint[] {
+  const mode = useSearchStore((s) => s.mode);
+  const actionPanelOpen = useSearchStore((s) => s.actionPanelOpen);
+  const armedActionIndex = useSearchStore((s) => s.armedActionIndex);
+
+  if (actionPanelOpen) {
+    return armedActionIndex !== null ? ACTION_ARMED_HINTS : ACTION_PANEL_HINTS;
+  }
   return mode === "search" ? SEARCH_HINTS : CHAT_HINTS;
 }
 
 export default function HintBar() {
-  const mode = useSearchStore((s) => s.mode);
-  const hints = hintsForMode(mode);
+  const hints = useHints();
 
   return (
     <div className={styles.bar}>

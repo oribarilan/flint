@@ -6,15 +6,29 @@ vi.mock("../../lib/commands", () => ({
   openFile: vi.fn(() => Promise.resolve()),
   hideWindow: vi.fn(() => Promise.resolve()),
   executeCommand: vi.fn(() => Promise.resolve({ type: "Done" })),
+  revealInFileManager: vi.fn(() => Promise.resolve()),
+  deleteToTrash: vi.fn(() => Promise.resolve()),
+  openInEditor: vi.fn(() => Promise.resolve()),
+  openInTerminal: vi.fn(() => Promise.resolve()),
 }));
 
 import { executeAction, executeDefaultAction } from "../../components/ResultsList";
-import { openFile, hideWindow, executeCommand } from "../../lib/commands";
+import {
+  openFile,
+  hideWindow,
+  executeCommand,
+  revealInFileManager,
+  deleteToTrash,
+  openInEditor,
+} from "../../lib/commands";
 import { useSearchStore } from "../../stores/searchStore";
 
 const mockedOpenFile = vi.mocked(openFile);
 const mockedHideWindow = vi.mocked(hideWindow);
 const mockedExecuteCommand = vi.mocked(executeCommand);
+const mockedReveal = vi.mocked(revealInFileManager);
+const mockedDelete = vi.mocked(deleteToTrash);
+const mockedOpenEditor = vi.mocked(openInEditor);
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -113,7 +127,7 @@ describe("executeDefaultAction", () => {
     });
   });
 
-  it("calls executeCommand IPC for Execute-mode command results", () => {
+  it("calls executeCommand IPC for Execute-mode command results", async () => {
     const result: KitSearchResult = {
       kitId: "clipboard",
       id: "cmd-clear",
@@ -124,7 +138,9 @@ describe("executeDefaultAction", () => {
 
     executeDefaultAction(result);
 
-    expect(mockedExecuteCommand).toHaveBeenCalledWith("clipboard", "clear");
+    await vi.waitFor(() => {
+      expect(mockedExecuteCommand).toHaveBeenCalledWith("clipboard", "clear");
+    });
   });
 
   it("does nothing when result has no actions", () => {
@@ -138,5 +154,54 @@ describe("executeDefaultAction", () => {
 
     expect(() => executeDefaultAction(result)).not.toThrow();
     expect(mockedOpenFile).not.toHaveBeenCalled();
+  });
+});
+
+describe("executeAction — new action types", () => {
+
+  it("reveals file in file manager", async () => {
+    const action: KitAction = { type: "RevealInFileManager", target: "/tmp/test.txt" };
+    executeAction(action);
+    await vi.waitFor(() => {
+      expect(mockedReveal).toHaveBeenCalledWith("/tmp/test.txt");
+    });
+  });
+
+  it("copies path to clipboard", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+
+    const action: KitAction = { type: "CopyPath", path: "/tmp/test.txt" };
+    executeAction(action);
+    await vi.waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith("/tmp/test.txt");
+    });
+  });
+
+  it("copies name to clipboard", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+
+    const action: KitAction = { type: "CopyName", name: "test.txt" };
+    executeAction(action);
+    await vi.waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith("test.txt");
+    });
+  });
+
+  it("deletes file to trash", async () => {
+    const action: KitAction = { type: "Delete", target: "/tmp/test.txt" };
+    executeAction(action);
+    await vi.waitFor(() => {
+      expect(mockedDelete).toHaveBeenCalledWith("/tmp/test.txt");
+    });
+  });
+
+  it("opens file in editor", async () => {
+    const action: KitAction = { type: "OpenInEditor", target: "/tmp/test.rs" };
+    executeAction(action);
+    await vi.waitFor(() => {
+      expect(mockedOpenEditor).toHaveBeenCalledWith("/tmp/test.rs");
+    });
   });
 });

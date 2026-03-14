@@ -18,9 +18,14 @@ export type KitAction =
   | { type: "Open"; target: string }
   | { type: "FocusWindow"; window_id: number }
   | { type: "OpenApp" }
-  | { type: "Custom"; id: string; label: string }
+  | { type: "Custom"; id: string; label: string; requires_confirmation?: boolean }
   | { type: "Paste"; text: string }
-  | { type: "ActivateCommand"; kit_id: string; command_id: string };
+  | { type: "ActivateCommand"; kit_id: string; command_id: string }
+  | { type: "RevealInFileManager"; target: string }
+  | { type: "CopyPath"; path: string }
+  | { type: "CopyName"; name: string }
+  | { type: "Delete"; target: string }
+  | { type: "OpenInEditor"; target: string };
 
 // ---------------------------------------------------------------------------
 // Accessories

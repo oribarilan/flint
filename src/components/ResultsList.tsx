@@ -1,12 +1,19 @@
 import { useEffect, useRef } from "react";
 import { useSearchStore } from "../stores/searchStore";
-import { openFile, hideWindow, executeCommand } from "../lib/commands";
+import {
+  openFile,
+  hideWindow,
+  executeCommand,
+  revealInFileManager,
+  deleteToTrash,
+  openInEditor,
+} from "../lib/commands";
 import { focusSearchBar } from "../lib/focus";
 import { getKitComponents } from "../kits/registry";
 import type { KitAction, KitSearchResult } from "../kits/types";
 import styles from "./ResultsList.module.css";
 
-/** Execute the default action for a result and dismiss the launcher. */
+/** Execute an action. Hides the window for most actions. */
 export function executeAction(action: KitAction): void {
   switch (action.type) {
     case "Open":
@@ -32,9 +39,104 @@ export function executeAction(action: KitAction): void {
       });
       focusSearchBar();
       break;
+    case "RevealInFileManager":
+      revealInFileManager(action.target)
+        .then(() => hideWindow())
+        .catch((err: unknown) => {
+          console.error("Failed to reveal:", err);
+        });
+      break;
+    case "CopyPath":
+      navigator.clipboard
+        .writeText(action.path)
+        .then(() => hideWindow())
+        .catch((err: unknown) => {
+          console.error("Failed to copy path:", err);
+        });
+      break;
+    case "CopyName":
+      navigator.clipboard
+        .writeText(action.name)
+        .then(() => hideWindow())
+        .catch((err: unknown) => {
+          console.error("Failed to copy name:", err);
+        });
+      break;
+    case "Delete":
+      deleteToTrash(action.target)
+        .then(() => hideWindow())
+        .catch((err: unknown) => {
+          console.error("Failed to delete:", err);
+        });
+      break;
+    case "OpenInEditor":
+      openInEditor(action.target)
+        .then(() => hideWindow())
+        .catch((err: unknown) => {
+          console.error("Failed to open in editor:", err);
+        });
+      break;
     default:
-      // Other action types (FocusWindow, Paste, Custom, OpenApp)
+      // Other action types (FocusWindow, Paste, Custom, OpenApp, OpenInTerminal)
       // will be implemented alongside the kits that use them.
+      break;
+  }
+}
+
+/**
+ * Execute an action from the Action Panel.
+ *
+ * Hides Flint **before** running the action so the OS returns focus to the
+ * previous app. The spawned process (Finder, editor, terminal) then takes
+ * focus naturally. This matches the Execute-mode command pattern.
+ */
+export function executeActionFromPanel(action: KitAction): void {
+  // Clipboard actions don't spawn processes — hide after copying.
+  if (action.type === "Copy" || action.type === "CopyPath" || action.type === "CopyName") {
+    executeAction(action);
+    return;
+  }
+
+  // ActivateCommand stays in Flint — no hide.
+  if (action.type === "ActivateCommand") {
+    executeAction(action);
+    return;
+  }
+
+  // For all other actions: hide first, then execute.
+  hideWindow()
+    .then(() => {
+      executeActionAfterHide(action);
+    })
+    .catch((err: unknown) => {
+      console.error("Failed to hide window:", err);
+    });
+}
+
+/** Fire the IPC call for an action (window already hidden). */
+function executeActionAfterHide(action: KitAction): void {
+  switch (action.type) {
+    case "Open":
+      openFile(action.target).catch((err: unknown) => {
+        console.error("Failed to open:", err);
+      });
+      break;
+    case "RevealInFileManager":
+      revealInFileManager(action.target).catch((err: unknown) => {
+        console.error("Failed to reveal:", err);
+      });
+      break;
+    case "Delete":
+      deleteToTrash(action.target).catch((err: unknown) => {
+        console.error("Failed to delete:", err);
+      });
+      break;
+    case "OpenInEditor":
+      openInEditor(action.target).catch((err: unknown) => {
+        console.error("Failed to open in editor:", err);
+      });
+      break;
+    default:
       break;
   }
 }

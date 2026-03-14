@@ -75,6 +75,8 @@ export async function signOut(): Promise<void> {
 export interface GeneralConfig {
   hotkey: string;
   launch_at_login: boolean;
+  terminal: string;
+  editor: string;
 }
 
 export interface AppearanceConfig {
@@ -123,6 +125,24 @@ export async function getDefaultConfig(): Promise<FlintConfig> {
 
 export async function updateConfig(config: FlintConfig): Promise<void> {
   return invoke("update_config", { newConfig: config });
+}
+
+// ── Action Panel commands ──────────────────────────────────────
+
+export async function revealInFileManager(path: string): Promise<void> {
+  return invoke("reveal_in_file_manager", { path });
+}
+
+export async function deleteToTrash(path: string): Promise<void> {
+  return invoke("delete_to_trash", { path });
+}
+
+export async function openInEditor(path: string): Promise<void> {
+  return invoke("open_in_editor", { path });
+}
+
+export async function openInTerminal(path: string): Promise<void> {
+  return invoke("open_in_terminal", { path });
 }
 
 // ── Kit commands ───────────────────────────────────────────

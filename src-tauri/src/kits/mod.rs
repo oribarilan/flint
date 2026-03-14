@@ -191,11 +191,26 @@ pub enum KitAction {
     /// Open this kit's app window.
     OpenApp,
     /// Run a custom action handled by the kit.
-    Custom { id: String, label: String },
+    Custom {
+        id: String,
+        label: String,
+        #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+        requires_confirmation: bool,
+    },
     /// Paste text (write to clipboard + simulate Cmd+V).
     Paste { text: String },
     /// Activate a command by showing its chip in the search bar.
     ActivateCommand { kit_id: String, command_id: String },
+    /// Show a file/directory in the OS file manager.
+    RevealInFileManager { target: String },
+    /// Copy a file/directory's absolute path to clipboard.
+    CopyPath { path: String },
+    /// Copy a file/directory's name to clipboard.
+    CopyName { name: String },
+    /// Move a file/directory to the OS trash.
+    Delete { target: String },
+    /// Open a file in the user's configured editor.
+    OpenInEditor { target: String },
 }
 
 /// Right-side accessories on a result row.
@@ -512,5 +527,91 @@ mod tests {
         assert_eq!(json["mode"], "InputResults");
         assert_eq!(json["default_prefix"], "=");
         assert!(json["default_hotkey"].is_null());
+    }
+
+    // ── New KitAction variants serialization ────────────────────
+
+    #[test]
+    fn reveal_in_file_manager_serializes() {
+        let action = KitAction::RevealInFileManager { target: "/tmp/file.txt".to_string() };
+        let json = serde_json::to_value(&action).unwrap();
+        assert_eq!(json["type"], "RevealInFileManager");
+        assert_eq!(json["target"], "/tmp/file.txt");
+    }
+
+    #[test]
+    fn copy_path_serializes() {
+        let action = KitAction::CopyPath { path: "/tmp/file.txt".to_string() };
+        let json = serde_json::to_value(&action).unwrap();
+        assert_eq!(json["type"], "CopyPath");
+        assert_eq!(json["path"], "/tmp/file.txt");
+    }
+
+    #[test]
+    fn copy_name_serializes() {
+        let action = KitAction::CopyName { name: "file.txt".to_string() };
+        let json = serde_json::to_value(&action).unwrap();
+        assert_eq!(json["type"], "CopyName");
+        assert_eq!(json["name"], "file.txt");
+    }
+
+    #[test]
+    fn delete_serializes() {
+        let action = KitAction::Delete { target: "/tmp/file.txt".to_string() };
+        let json = serde_json::to_value(&action).unwrap();
+        assert_eq!(json["type"], "Delete");
+        assert_eq!(json["target"], "/tmp/file.txt");
+    }
+
+    #[test]
+    fn open_in_editor_serializes() {
+        let action = KitAction::OpenInEditor { target: "/tmp/file.txt".to_string() };
+        let json = serde_json::to_value(&action).unwrap();
+        assert_eq!(json["type"], "OpenInEditor");
+        assert_eq!(json["target"], "/tmp/file.txt");
+    }
+
+    #[test]
+    fn custom_action_with_confirmation_serializes() {
+        let action = KitAction::Custom {
+            id: "pin".to_string(),
+            label: "Pin".to_string(),
+            requires_confirmation: false,
+        };
+        let json = serde_json::to_value(&action).unwrap();
+        assert_eq!(json["type"], "Custom");
+        assert_eq!(json["id"], "pin");
+        // requires_confirmation=false is skipped via skip_serializing_if
+        assert!(json.get("requires_confirmation").is_none());
+    }
+
+    #[test]
+    fn custom_action_with_confirmation_true_serializes() {
+        let action = KitAction::Custom {
+            id: "delete-all".to_string(),
+            label: "Delete All".to_string(),
+            requires_confirmation: true,
+        };
+        let json = serde_json::to_value(&action).unwrap();
+        assert_eq!(json["requires_confirmation"], true);
+    }
+
+    #[test]
+    fn new_action_variants_round_trip() {
+        let actions = vec![
+            KitAction::RevealInFileManager { target: "/tmp".to_string() },
+            KitAction::CopyPath { path: "/tmp/x".to_string() },
+            KitAction::CopyName { name: "x".to_string() },
+            KitAction::Delete { target: "/tmp/x".to_string() },
+            KitAction::OpenInEditor { target: "/tmp/x.rs".to_string() },
+        ];
+        for action in actions {
+            let json = serde_json::to_string(&action).unwrap();
+            let back: KitAction = serde_json::from_str(&json).unwrap();
+            assert_eq!(
+                serde_json::to_value(&back).unwrap(),
+                serde_json::to_value(&action).unwrap()
+            );
+        }
     }
 }

@@ -57,4 +57,32 @@ describe("HintBar", () => {
     const kbds = container.querySelectorAll("kbd");
     expect(kbds.length).toBeGreaterThanOrEqual(5);
   });
+
+  // ── Action Panel hints ──────────────────────────────────────
+
+  it("shows Action Panel hints when panel is open", () => {
+    useSearchStore.setState({ actionPanelOpen: true, armedActionIndex: null });
+    render(<HintBar />);
+
+    expect(screen.getByText("Run action")).toBeTruthy();
+    expect(screen.getByText("Back")).toBeTruthy();
+    expect(screen.queryByText("Chat")).toBeNull();
+  });
+
+  it("shows armed confirmation hints when action is armed", () => {
+    useSearchStore.setState({ actionPanelOpen: true, armedActionIndex: 3 });
+    render(<HintBar />);
+
+    expect(screen.getByText("Confirm delete")).toBeTruthy();
+    expect(screen.getByText("Cancel")).toBeTruthy();
+    expect(screen.queryByText("Run action")).toBeNull();
+  });
+
+  it("shows search hints with Actions when panel is closed", () => {
+    useSearchStore.setState({ actionPanelOpen: false });
+    render(<HintBar />);
+
+    expect(screen.getByText("Actions")).toBeTruthy();
+    expect(screen.getByText("Open")).toBeTruthy();
+  });
 });

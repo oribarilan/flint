@@ -3,6 +3,7 @@ import { renderHook } from "@testing-library/react";
 import { useSearchStore } from "../stores/searchStore";
 import { useChatStore } from "../stores/chatStore";
 import { useKeybindings } from "../hooks/useKeybindings";
+import type { KitSearchResult } from "../kits/types";
 import * as commands from "../lib/commands";
 
 vi.mock("../lib/commands", () => ({
@@ -52,7 +53,36 @@ beforeEach(() => {
 });
 
 describe("Escape layering", () => {
-  it("Layer 0: pops command chip before clearing input", () => {
+  const MOCK_RESULT: KitSearchResult = {
+    kitId: "core",
+    id: "/tmp/test.ts",
+    title: "test.ts",
+    kind: { type: "File" },
+    actions: [{ type: "Open", target: "/tmp/test.ts" }],
+  };
+
+  it("Layer 0: closes Action Panel before popping command chip", () => {
+    useSearchStore.setState({
+      results: [MOCK_RESULT],
+      selectedIndex: 0,
+      mode: "search",
+      activeCommand: { kitId: "calc", commandId: "calculate", name: "Calculator" },
+    });
+    renderHook(() => {
+      useKeybindings(createActions());
+    });
+
+    useSearchStore.getState().openActionPanel();
+    expect(useSearchStore.getState().actionPanelOpen).toBe(true);
+
+    fireEscape();
+
+    expect(useSearchStore.getState().actionPanelOpen).toBe(false);
+    // Command chip still active — next Escape would pop it
+    expect(useSearchStore.getState().activeCommand).not.toBeNull();
+  });
+
+  it("Layer 1: pops command chip before clearing input", () => {
     useSearchStore.setState({
       query: "2+3",
       mode: "search",
@@ -70,7 +100,7 @@ describe("Escape layering", () => {
     expect(useSearchStore.getState().mode).toBe("search");
   });
 
-  it("Layer 1: clears input when query has text in search mode", () => {
+  it("Layer 2: clears input when query has text in search mode", () => {
     useSearchStore.setState({ query: "hello", mode: "search" });
     renderHook(() => {
       useKeybindings(createActions());
@@ -82,7 +112,7 @@ describe("Escape layering", () => {
     expect(useSearchStore.getState().mode).toBe("search");
   });
 
-  it("Layer 1: clears input when query has text in chat mode (preserves mode)", () => {
+  it("Layer 2: clears input when query has text in chat mode (preserves mode)", () => {
     useSearchStore.setState({ query: "what is rust?", mode: "chat" });
     renderHook(() => {
       useKeybindings(createActions());
@@ -94,7 +124,7 @@ describe("Escape layering", () => {
     expect(useSearchStore.getState().mode).toBe("chat");
   });
 
-  it("Layer 2: clears chat session when messages exist and input is empty (stays in mode)", () => {
+  it("Layer 3: clears chat session when messages exist and input is empty (stays in mode)", () => {
     useSearchStore.setState({ query: "", mode: "chat" });
     useChatStore.setState({
       messages: [{ role: "user", content: "hi" }],
@@ -109,7 +139,7 @@ describe("Escape layering", () => {
     expect(useSearchStore.getState().mode).toBe("chat");
   });
 
-  it("Layer 3: dismisses window when in chat mode with empty input and no messages", () => {
+  it("Layer 4: dismisses window when in chat mode with empty input and no messages", () => {
     useSearchStore.setState({ query: "", mode: "chat" });
     useChatStore.setState({ messages: [] });
     renderHook(() => {
@@ -121,7 +151,7 @@ describe("Escape layering", () => {
     expect(commands.hideWindow).toHaveBeenCalledTimes(1);
   });
 
-  it("Layer 3: dismisses window when search mode with empty input and no chat", () => {
+  it("Layer 4: dismisses window when search mode with empty input and no chat", () => {
     useSearchStore.setState({ query: "", mode: "search" });
     useChatStore.setState({ messages: [] });
     renderHook(() => {

@@ -41,6 +41,7 @@ futures = "0.3"
 chrono = { version = "0.4", features = ["serde"] }
 toml = "0.8"
 dirs = "6"
+trash = "5"
 async-trait = "0.1.89"
 meval = "0.2.0"
 urlencoding = "2.1.3"

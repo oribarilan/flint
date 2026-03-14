@@ -1,0 +1,194 @@
+/* The container class is no longer used (header + actionList are direct
+   children of .launcher via a React fragment), but kept for reference. */
+
+/* ── Header: result being acted on ─────────────────────────── */
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-xl);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+  flex-shrink: 0;
+}
+
+.headerIcon {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  border-radius: var(--radius-md);
+}
+
+.headerIcon svg {
+  width: 14px;
+  height: 14px;
+  color: var(--text-on-accent);
+}
+
+.headerDetails {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.headerTitle {
+  font-size: var(--font-md);
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.headerSubtitle {
+  font-size: var(--font-sm);
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Action list ───────────────────────────────────────────── */
+
+.actionList {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-xs) 0 var(--space-xs);
+}
+
+/* ── Action item ───────────────────────────────────────────── */
+
+.actionItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-lg);
+  margin: 0 var(--space-xs);
+  border-radius: var(--radius-md);
+  cursor: default;
+  user-select: none;
+  font-size: var(--font-md);
+  color: var(--text-primary);
+}
+
+.actionItem:hover {
+  background: var(--bg-hover);
+  transition: background var(--transition-fast);
+}
+
+.actionItemSelected {
+  composes: actionItem;
+  background: var(--bg-accent-subtle);
+}
+
+.actionItemSelected:hover {
+  background: var(--bg-accent-subtle);
+}
+
+/* ── Armed (confirmation) state ────────────────────────────── */
+
+.actionItemArmed {
+  composes: actionItem;
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error);
+  margin: 0 calc(var(--space-xs) - 1px);
+}
+
+.actionItemArmed:hover {
+  background: var(--color-error-bg);
+}
+
+.actionItemArmed .actionIcon {
+  color: var(--color-error);
+}
+
+.actionItemArmed .actionLabel {
+  color: var(--color-error);
+}
+
+/* ── Action icon ───────────────────────────────────────────── */
+
+.actionIcon {
+  flex-shrink: 0;
+  width: var(--icon-md);
+  height: var(--icon-md);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.actionItemSelected .actionIcon {
+  color: var(--accent);
+}
+
+/* ── Action label ──────────────────────────────────────────── */
+
+.actionLabel {
+  flex: 1;
+  font-weight: 400;
+}
+
+/* ── Destructive action styling ────────────────────────────── */
+
+.destructive .actionIcon {
+  color: var(--color-error);
+}
+
+.destructive .actionLabel {
+  color: var(--color-error);
+}
+
+/* ── Shortcut hint ─────────────────────────────────────────── */
+
+.actionShortcut {
+  flex-shrink: 0;
+  display: flex;
+  gap: 3px;
+}
+
+.actionShortcut kbd {
+  font-size: var(--font-xs);
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid var(--border-subtle);
+  font-family: inherit;
+}
+
+.actionItemSelected .actionShortcut kbd {
+  color: var(--text-primary);
+  background: var(--bg-accent-subtle);
+  border-color: var(--accent);
+}
+
+/* ── Divider before destructive actions ────────────────────── */
+
+.divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: var(--space-xs) var(--space-xl);
+}
+
+/* ── Empty state ───────────────────────────────────────────── */
+
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2xl) var(--space-xl);
+  color: var(--text-placeholder);
+  font-size: var(--font-md);
+  user-select: none;
+}

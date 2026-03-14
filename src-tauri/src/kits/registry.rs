@@ -444,20 +444,83 @@ impl KitSearchResult {
                 (super::ResultKind::Application, "application")
             }
         };
+
+        let actions = build_core_actions(&r.path, &r.name, r.kind);
+
         Self {
             kit_id: "core".to_string(),
             kit_name: None,
             id: r.id,
             title: r.name,
-            subtitle: Some(r.path.clone()),
+            subtitle: Some(r.path),
             icon: Some(super::KitIcon::Named(kind_str.to_string())),
             kind,
             accessories: Vec::new(),
-            actions: vec![super::KitAction::Open { target: r.path }],
+            actions,
             preview: None,
             score: Some(score),
         }
     }
+}
+
+/// Build the ordered action list for a core search result based on its kind.
+fn build_core_actions(
+    path: &str,
+    name: &str,
+    kind: crate::indexer::EntryKind,
+) -> Vec<super::KitAction> {
+    match kind {
+        crate::indexer::EntryKind::File => {
+            let mut actions = vec![super::KitAction::Open { target: path.to_owned() }];
+            if is_text_file(name) {
+                actions.push(super::KitAction::OpenInEditor { target: path.to_owned() });
+            }
+            actions.push(super::KitAction::RevealInFileManager { target: path.to_owned() });
+            actions.push(super::KitAction::CopyPath { path: path.to_owned() });
+            actions.push(super::KitAction::CopyName { name: name.to_owned() });
+            actions.push(super::KitAction::Delete { target: path.to_owned() });
+            actions
+        }
+        crate::indexer::EntryKind::Directory => {
+            vec![
+                super::KitAction::Open { target: path.to_owned() },
+                super::KitAction::CopyPath { path: path.to_owned() },
+                super::KitAction::CopyName { name: name.to_owned() },
+                super::KitAction::Delete { target: path.to_owned() },
+            ]
+        }
+        crate::indexer::EntryKind::Application => {
+            vec![
+                super::KitAction::Open { target: path.to_owned() },
+                super::KitAction::RevealInFileManager { target: path.to_owned() },
+            ]
+        }
+    }
+}
+
+/// Heuristic: consider a file "text/code" if its extension is in this set.
+/// Binary/media files get fewer actions (no "Open in Editor").
+fn is_text_file(name: &str) -> bool {
+    let ext = match name.rsplit('.').next() {
+        Some(e) => e.to_ascii_lowercase(),
+        None => return false,
+    };
+    matches!(
+        ext.as_str(),
+        "txt" | "md" | "markdown" | "rs" | "ts" | "tsx" | "js" | "jsx" | "json"
+        | "toml" | "yaml" | "yml" | "xml" | "html" | "htm" | "css" | "scss"
+        | "less" | "py" | "rb" | "go" | "java" | "kt" | "kts" | "c" | "h"
+        | "cpp" | "hpp" | "cc" | "cs" | "swift" | "m" | "mm" | "sh" | "bash"
+        | "zsh" | "fish" | "ps1" | "bat" | "cmd" | "lua" | "vim" | "el"
+        | "clj" | "cljs" | "ex" | "exs" | "erl" | "hs" | "ml" | "mli"
+        | "r" | "sql" | "graphql" | "gql" | "proto" | "tf" | "hcl"
+        | "dockerfile" | "makefile" | "cmake" | "conf" | "ini" | "cfg"
+        | "env" | "gitignore" | "gitattributes" | "editorconfig"
+        | "lock" | "log" | "csv" | "tsv" | "svg" | "tex" | "bib"
+        | "rst" | "adoc" | "org" | "vue" | "svelte" | "astro"
+        | "php" | "pl" | "pm" | "scala" | "sbt" | "dart" | "zig"
+        | "nim" | "v" | "d" | "f90" | "f95" | "jl"
+    )
 }
 // ---------------------------------------------------------------------------
 
@@ -998,5 +1061,117 @@ mod tests {
         let registry = reg_with(MockKit::new("calc", vec![cmd]));
         let infos = registry.kit_infos();
         assert_eq!(infos[0].commands[0].effective_hotkey.as_deref(), Some("CmdOrCtrl+="));
+    }
+
+    // ── Action Panel: core action list tests ──────────────────────
+
+    #[test]
+    fn text_file_result_has_six_actions_including_open_in_editor() {
+        let core = vec![crate::search::SearchResult {
+            id: "/tmp/hello.rs".to_string(),
+            name: "hello.rs".to_string(),
+            path: "/tmp/hello.rs".to_string(),
+            kind: crate::indexer::EntryKind::File,
+        }];
+        let converted = KitSearchResult::from_core_search(core);
+        let actions = &converted[0].actions;
+        assert_eq!(actions.len(), 6, "text file should have 6 actions");
+        assert!(matches!(&actions[0], super::super::KitAction::Open { .. }));
+        assert!(matches!(&actions[1], super::super::KitAction::OpenInEditor { .. }));
+        assert!(matches!(&actions[2], super::super::KitAction::RevealInFileManager { .. }));
+        assert!(matches!(&actions[3], super::super::KitAction::CopyPath { .. }));
+        assert!(matches!(&actions[4], super::super::KitAction::CopyName { .. }));
+        assert!(matches!(&actions[5], super::super::KitAction::Delete { .. }));
+    }
+
+    #[test]
+    fn binary_file_result_has_five_actions_without_open_in_editor() {
+        let core = vec![crate::search::SearchResult {
+            id: "/tmp/photo.png".to_string(),
+            name: "photo.png".to_string(),
+            path: "/tmp/photo.png".to_string(),
+            kind: crate::indexer::EntryKind::File,
+        }];
+        let converted = KitSearchResult::from_core_search(core);
+        let actions = &converted[0].actions;
+        assert_eq!(actions.len(), 5, "binary file should have 5 actions (no Open in Editor)");
+        assert!(matches!(&actions[0], super::super::KitAction::Open { .. }));
+        assert!(matches!(&actions[1], super::super::KitAction::RevealInFileManager { .. }));
+    }
+
+    #[test]
+    fn directory_result_has_four_actions() {
+        let core = vec![crate::search::SearchResult {
+            id: "/tmp/mydir".to_string(),
+            name: "mydir".to_string(),
+            path: "/tmp/mydir".to_string(),
+            kind: crate::indexer::EntryKind::Directory,
+        }];
+        let converted = KitSearchResult::from_core_search(core);
+        let actions = &converted[0].actions;
+        assert_eq!(actions.len(), 4, "directory should have 4 actions");
+        assert!(matches!(&actions[0], super::super::KitAction::Open { .. }));
+        assert!(matches!(&actions[1], super::super::KitAction::CopyPath { .. }));
+        assert!(matches!(&actions[2], super::super::KitAction::CopyName { .. }));
+        assert!(matches!(&actions[3], super::super::KitAction::Delete { .. }));
+    }
+
+    #[test]
+    fn application_result_has_two_actions() {
+        let core = vec![crate::search::SearchResult {
+            id: "/Applications/Safari.app".to_string(),
+            name: "Safari".to_string(),
+            path: "/Applications/Safari.app".to_string(),
+            kind: crate::indexer::EntryKind::Application,
+        }];
+        let converted = KitSearchResult::from_core_search(core);
+        let actions = &converted[0].actions;
+        assert_eq!(actions.len(), 2, "application should have 2 actions");
+        assert!(matches!(&actions[0], super::super::KitAction::Open { .. }));
+        assert!(matches!(&actions[1], super::super::KitAction::RevealInFileManager { .. }));
+    }
+
+    #[test]
+    fn is_text_file_detects_common_extensions() {
+        assert!(super::is_text_file("main.rs"));
+        assert!(super::is_text_file("index.tsx"));
+        assert!(super::is_text_file("README.md"));
+        assert!(super::is_text_file("config.toml"));
+        assert!(super::is_text_file("styles.css"));
+        assert!(super::is_text_file("Makefile.cmake"));
+    }
+
+    #[test]
+    fn is_text_file_rejects_binary_extensions() {
+        assert!(!super::is_text_file("photo.png"));
+        assert!(!super::is_text_file("video.mp4"));
+        assert!(!super::is_text_file("archive.zip"));
+        assert!(!super::is_text_file("binary.exe"));
+        assert!(!super::is_text_file("no_extension"));
+    }
+
+    #[test]
+    fn is_text_file_is_case_insensitive() {
+        assert!(super::is_text_file("FILE.RS"));
+        assert!(super::is_text_file("README.MD"));
+        assert!(super::is_text_file("config.JSON"));
+    }
+
+    #[test]
+    fn copy_name_action_contains_filename_not_path() {
+        let core = vec![crate::search::SearchResult {
+            id: "/deep/nested/path/file.ts".to_string(),
+            name: "file.ts".to_string(),
+            path: "/deep/nested/path/file.ts".to_string(),
+            kind: crate::indexer::EntryKind::File,
+        }];
+        let converted = KitSearchResult::from_core_search(core);
+        let copy_name = converted[0].actions.iter().find(|a| {
+            matches!(a, super::super::KitAction::CopyName { .. })
+        });
+        assert!(copy_name.is_some());
+        if let super::super::KitAction::CopyName { name } = copy_name.unwrap() {
+            assert_eq!(name, "file.ts");
+        }
     }
 }

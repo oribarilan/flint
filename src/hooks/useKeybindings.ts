@@ -42,15 +42,45 @@ interface KeybindingActions {
 /**
  * Centralized global keydown listener.
  *
- * Owns: Tab, Escape (3 layers), Ctrl+HJKL, CmdOrCtrl+1..9, CmdOrCtrl+,
+ * Owns: Tab, Escape (layered), Ctrl+HJKL (vim + Action Panel depth),
+ * CmdOrCtrl+1..9, CmdOrCtrl+,
  * Components keep: Enter (context-dependent), ArrowDown in SearchBar (focus move).
  */
 export function useKeybindings(actions: KeybindingActions): void {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // ── Ctrl+HJKL → arrow re-dispatch ──────────────────────
+      // ── Ctrl+HJKL ──────────────────────────────────────────
+      // H/L are push/pop for Action Panel depth.
+      // J/K always re-dispatch as arrows.
       if (e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
-        const arrow = VIM_ARROW_MAP[e.key.toLowerCase()];
+        const key = e.key.toLowerCase();
+
+        // Ctrl+L: push into Action Panel (when results are visible)
+        if (key === "l") {
+          const state = useSearchStore.getState();
+          if (!state.actionPanelOpen && state.results.length > 0 && state.mode === "search") {
+            e.preventDefault();
+            state.openActionPanel();
+            return;
+          }
+          // If panel is already open, no-op (already at deepest level)
+          if (state.actionPanelOpen) {
+            e.preventDefault();
+            return;
+          }
+        }
+
+        // Ctrl+H: pop out of Action Panel (back to results)
+        if (key === "h") {
+          if (useSearchStore.getState().actionPanelOpen) {
+            e.preventDefault();
+            useSearchStore.getState().closeActionPanel();
+            return;
+          }
+        }
+
+        // J/K: always redispatch as arrows
+        const arrow = VIM_ARROW_MAP[key];
         if (arrow) {
           e.preventDefault();
           redispatchAsArrow(e, arrow);
@@ -81,6 +111,10 @@ export function useKeybindings(actions: KeybindingActions): void {
       // ── Tab → Toggle mode ─────────────────────────────────
       if (e.key === "Tab" && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
+        // Close action panel first if open
+        if (useSearchStore.getState().actionPanelOpen) {
+          useSearchStore.getState().closeActionPanel();
+        }
         actions.onToggleMode();
         return;
       }
@@ -89,14 +123,21 @@ export function useKeybindings(actions: KeybindingActions): void {
       if (e.key === "Escape") {
         e.preventDefault();
 
-        // Layer 0: pop command chip (return to main search)
+        // Layer 0: close Action Panel
+        if (useSearchStore.getState().actionPanelOpen) {
+          useSearchStore.getState().closeActionPanel();
+          actions.onFocusSearchBar();
+          return;
+        }
+
+        // Layer 1: pop command chip (return to main search)
         if (useSearchStore.getState().activeCommand) {
           useSearchStore.getState().deactivateCommand();
           actions.onFocusSearchBar();
           return;
         }
 
-        // Layer 1: clear input text (stay in current mode)
+        // Layer 2: clear input text (stay in current mode)
         if (useSearchStore.getState().query.length > 0) {
           useSearchStore.setState({
             query: "",
@@ -108,14 +149,14 @@ export function useKeybindings(actions: KeybindingActions): void {
           return;
         }
 
-        // Layer 2: clear chat (stay in current mode)
+        // Layer 3: clear chat (stay in current mode)
         if (useChatStore.getState().messages.length > 0) {
           useChatStore.getState().clearChat();
           actions.onFocusSearchBar();
           return;
         }
 
-        // Layer 3: dismiss window
+        // Layer 4: dismiss window
         hideWindow().catch(() => {
           // Window hide is best-effort
         });

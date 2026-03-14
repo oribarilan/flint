@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import SearchBar from "./components/SearchBar";
-import ResultsList, { executeDefaultAction } from "./components/ResultsList";
+import ResultsList, { executeDefaultAction, executeActionFromPanel } from "./components/ResultsList";
+import ActionPanel from "./components/ActionPanel";
 import ChatPanel from "./components/ChatPanel";
 import AuthPrompt from "./components/AuthPrompt";
 import HintBar from "./components/HintBar";
-import { useSearchStore } from "./stores/searchStore";
+import { useSearchStore, actionRequiresConfirmation } from "./stores/searchStore";
 import { useChatStore } from "./stores/chatStore";
 import { hideWindow, getAuthStatus, sendChatMessage, getConfig } from "./lib/commands";
 import { focusSearchBar, shouldHideOnBlur } from "./lib/focus";
@@ -91,6 +92,13 @@ export default function App() {
           if (shouldHideOnBlur()) {
             void hideWindow();
           }
+          // Clear state eagerly on blur so the window is clean when reopened.
+          // Preserve active chat sessions and command chips across hide/show.
+          const hasChat = useChatStore.getState().messages.length > 0;
+          const hasActiveCommand = useSearchStore.getState().activeCommand !== null;
+          if (!hasChat && !hasActiveCommand) {
+            useSearchStore.getState().clearSearch();
+          }
         } else {
           refreshAuth();
           focusSearchBar();
@@ -103,12 +111,6 @@ export default function App() {
             })
             // eslint-disable-next-line @typescript-eslint/no-empty-function
             .catch(() => {});
-          // Preserve active chat sessions and command chips across hide/show
-          const hasChat = useChatStore.getState().messages.length > 0;
-          const hasActiveCommand = useSearchStore.getState().activeCommand !== null;
-          if (!hasChat && !hasActiveCommand) {
-            useSearchStore.getState().clearSearch();
-          }
         }
       });
 
@@ -121,7 +123,9 @@ export default function App() {
 
   const showAuthPrompt = isChatMode && !authStatus.authenticated;
   const showChat = isChatMode && authStatus.authenticated;
-  const showResults = !isChatMode;
+  const actionPanelOpen = useSearchStore((s) => s.actionPanelOpen);
+  const showResults = !isChatMode && !actionPanelOpen;
+  const showActionPanel = !isChatMode && actionPanelOpen;
 
   return (
     <div className={styles.launcher}>
@@ -134,13 +138,37 @@ export default function App() {
         }}
         onSendChat={handleSendChat}
         onSubmitSearch={() => {
-          const { results, selectedIndex } = useSearchStore.getState();
+          const state = useSearchStore.getState();
+
+          // Action Panel: execute selected action
+          if (state.actionPanelOpen) {
+            const actions = state.getFilteredActions();
+            const action = actions[state.selectedActionIndex];
+            if (!action) return;
+
+            if (actionRequiresConfirmation(action)) {
+              if (state.armedActionIndex === state.selectedActionIndex) {
+                state.closeActionPanel();
+                executeActionFromPanel(action);
+              } else {
+                state.armAction(state.selectedActionIndex);
+              }
+            } else {
+              state.closeActionPanel();
+              executeActionFromPanel(action);
+            }
+            return;
+          }
+
+          // Normal: execute default action
+          const { results, selectedIndex } = state;
           const result = results[selectedIndex];
           if (result) executeDefaultAction(result);
         }}
       />
       {showAuthPrompt && <AuthPrompt />}
       {showChat && <ChatPanel />}
+      {showActionPanel && <ActionPanel />}
       {showResults && <ResultsList />}
       <HintBar />
     </div>

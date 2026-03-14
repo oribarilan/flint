@@ -168,8 +168,25 @@ fn walk_directory(root: &Path) -> Vec<FileEntry> {
 ///
 /// Uses a manual iterator loop so we can call `skip_current_dir()` on
 /// package directories (index the package itself but skip its children).
+///
+/// The root directory itself is included as a `Directory` entry so that
+/// top-level indexed folders (e.g., "Downloads") appear in search results.
 fn walk_directory_configured(root: &Path, exclude: &[&str], max_depth: usize) -> Vec<FileEntry> {
     let mut entries = Vec::new();
+
+    // Include the root directory itself as an entry.
+    if let Some(name) = root.file_name() {
+        let name_str = name.to_string_lossy().into_owned();
+        let path = root.to_string_lossy().into_owned();
+        let lowercase_name = name_str.to_lowercase();
+        entries.push(FileEntry {
+            path,
+            name: name_str,
+            kind: EntryKind::Directory,
+            lowercase_name,
+        });
+    }
+
     let mut it = WalkDir::new(root).max_depth(max_depth).into_iter();
 
     while let Some(result) = it.next() {
@@ -531,5 +548,23 @@ mod tests {
         assert!(names.contains(&"top.txt"));
         assert!(names.contains(&"a"));
         assert!(!names.contains(&"b"), "depth 1 should not reach b");
+    }
+
+    #[test]
+    fn root_directory_itself_appears_in_results() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().join("Downloads");
+        std::fs::create_dir(&root).unwrap();
+        std::fs::write(root.join("file.txt"), "content").unwrap();
+
+        let dirs = vec![root.to_string_lossy().into_owned()];
+        let entries = build_index_with_config(&dirs, &Vec::new(), 6);
+        let names: Vec<&str> = entries.iter().map(|e| e.name.as_str()).collect();
+
+        assert!(
+            names.contains(&"Downloads"),
+            "root directory itself should appear in results, got: {names:?}"
+        );
+        assert!(names.contains(&"file.txt"));
     }
 }

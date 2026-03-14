@@ -5,6 +5,7 @@
   padding: var(--space-sm) var(--space-xl);
   border-top: 1px solid var(--border-subtle);
   user-select: none;
+  flex-shrink: 0;
 }
 
 .hint {

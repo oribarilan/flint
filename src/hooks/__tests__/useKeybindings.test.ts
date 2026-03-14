@@ -16,7 +16,16 @@ vi.mock("../../lib/platform", () => ({
 
 import * as commands from "../../lib/commands";
 import { isMac } from "../../lib/platform";
+import type { KitSearchResult } from "../../kits/types";
 const mockIsMac = vi.mocked(isMac);
+
+const MOCK_RESULT: KitSearchResult = {
+  kitId: "core",
+  id: "/tmp/test.ts",
+  title: "test.ts",
+  kind: { type: "File" },
+  actions: [{ type: "Open", target: "/tmp/test.ts" }],
+};
 
 function createActions() {
   return {
@@ -222,7 +231,7 @@ describe("useKeybindings", () => {
     expect(arrowEvent).toBeTruthy();
   });
 
-  it("Ctrl+H dispatches ArrowLeft", () => {
+  it("Ctrl+H dispatches ArrowLeft when no panel open", () => {
     const actions = createActions();
     renderHook(() => {
       useKeybindings(actions);
@@ -242,7 +251,7 @@ describe("useKeybindings", () => {
     expect(arrowEvent).toBeTruthy();
   });
 
-  it("Ctrl+L dispatches ArrowRight", () => {
+  it("Ctrl+L dispatches ArrowRight when no results", () => {
     const actions = createActions();
     renderHook(() => {
       useKeybindings(actions);
@@ -258,8 +267,89 @@ describe("useKeybindings", () => {
 
     window.removeEventListener("keydown", listener);
 
-    const arrowEvent = events.find((e) => e.key === "ArrowRight");
-    expect(arrowEvent).toBeTruthy();
+    // No results, so Ctrl+L doesn't open panel — falls through
+    // (no arrow dispatch either since L is now panel-only)
+    expect(useSearchStore.getState().actionPanelOpen).toBe(false);
+  });
+
+  // ── Ctrl+L/H Action Panel depth ───────────────────────────
+
+  it("Ctrl+L opens Action Panel when results exist in search mode", () => {
+    useSearchStore.setState({
+      results: [MOCK_RESULT],
+      selectedIndex: 0,
+      mode: "search",
+    });
+    const actions = createActions();
+    renderHook(() => {
+      useKeybindings(actions);
+    });
+
+    fireKey("l", { ctrlKey: true });
+
+    expect(useSearchStore.getState().actionPanelOpen).toBe(true);
+  });
+
+  it("Ctrl+H closes Action Panel when open", () => {
+    useSearchStore.setState({
+      results: [MOCK_RESULT],
+      selectedIndex: 0,
+      mode: "search",
+    });
+    const actions = createActions();
+    renderHook(() => {
+      useKeybindings(actions);
+    });
+
+    // Open panel first
+    useSearchStore.getState().openActionPanel();
+    expect(useSearchStore.getState().actionPanelOpen).toBe(true);
+
+    fireKey("h", { ctrlKey: true });
+
+    expect(useSearchStore.getState().actionPanelOpen).toBe(false);
+  });
+
+  it("Ctrl+L is no-op when Action Panel is already open", () => {
+    useSearchStore.setState({
+      results: [MOCK_RESULT],
+      selectedIndex: 0,
+      mode: "search",
+    });
+    const actions = createActions();
+    renderHook(() => {
+      useKeybindings(actions);
+    });
+
+    useSearchStore.getState().openActionPanel();
+    fireKey("l", { ctrlKey: true });
+
+    // Still open, not toggled
+    expect(useSearchStore.getState().actionPanelOpen).toBe(true);
+  });
+
+  // ── Escape closes Action Panel (new layer) ─────────────────
+
+  it("Escape closes Action Panel before popping command chip", () => {
+    useSearchStore.setState({
+      results: [MOCK_RESULT],
+      selectedIndex: 0,
+      mode: "search",
+      activeCommand: { kitId: "calc", commandId: "calculate", name: "Calculator" },
+    });
+    const actions = createActions();
+    renderHook(() => {
+      useKeybindings(actions);
+    });
+
+    // Open the panel
+    useSearchStore.getState().openActionPanel();
+
+    fireKey("Escape");
+
+    // Panel should close, command chip should still be active
+    expect(useSearchStore.getState().actionPanelOpen).toBe(false);
+    expect(useSearchStore.getState().activeCommand).not.toBeNull();
   });
 
   it("Ctrl+Shift+J does not remap (extra modifier blocks vim arrows)", () => {

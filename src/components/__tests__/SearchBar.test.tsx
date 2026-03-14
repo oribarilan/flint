@@ -179,4 +179,64 @@ describe("SearchBar", () => {
     const svg = container.querySelector("svg");
     expect(svg).toBeNull();
   });
+
+  // ── Action Panel ────────────────────────────────────────────
+
+  it("Shift+Enter opens Action Panel", () => {
+    useSearchStore.setState({
+      results: [
+        {
+          kitId: "core",
+          id: "/tmp/test.ts",
+          title: "test.ts",
+          kind: { type: "File" },
+          actions: [{ type: "Open", target: "/tmp/test.ts" }],
+        },
+      ],
+      selectedIndex: 0,
+      mode: "search",
+    });
+    render(<SearchBar onArrowDown={vi.fn()} onSubmitSearch={vi.fn()} />);
+
+    const input = screen.getByRole("textbox");
+    fireEvent.keyDown(input, { key: "Enter", shiftKey: true });
+
+    expect(useSearchStore.getState().actionPanelOpen).toBe(true);
+  });
+
+  it("shows Actions chip when Action Panel is open", () => {
+    useSearchStore.setState({
+      actionPanelOpen: true,
+      actionPanelResult: {
+        kitId: "core",
+        id: "/tmp/test.ts",
+        title: "test.ts",
+        kind: { type: "File" },
+        actions: [{ type: "Open", target: "/tmp/test.ts" }],
+      },
+      actionFilterQuery: "",
+    });
+    render(<SearchBar onArrowDown={vi.fn()} />);
+
+    const chip = screen.getByTestId("actions-chip");
+    expect(chip).toBeTruthy();
+    expect(chip.textContent).toContain("Actions");
+  });
+
+  it("shows 'Filter actions' placeholder when Action Panel is open", () => {
+    useSearchStore.setState({
+      actionPanelOpen: true,
+      actionPanelResult: {
+        kitId: "core",
+        id: "/tmp/test.ts",
+        title: "test.ts",
+        kind: { type: "File" },
+        actions: [{ type: "Open", target: "/tmp/test.ts" }],
+      },
+      actionFilterQuery: "",
+    });
+    render(<SearchBar onArrowDown={vi.fn()} />);
+
+    expect(screen.getByPlaceholderText("Filter actions\u2026")).toBeTruthy();
+  });
 });

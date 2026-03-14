@@ -31,6 +31,10 @@ pub struct FlintConfig {
 pub struct GeneralConfig {
     pub hotkey: String,
     pub launch_at_login: bool,
+    /// Default terminal command. `"auto"` = detect from environment.
+    pub terminal: String,
+    /// Default editor command. `"auto"` = detect from environment.
+    pub editor: String,
 }
 
 /// Appearance settings.
@@ -107,7 +111,12 @@ impl Default for KitConfig {
 
 impl Default for GeneralConfig {
     fn default() -> Self {
-        Self { hotkey: "CmdOrCtrl+Shift+Space".to_owned(), launch_at_login: false }
+        Self {
+            hotkey: "CmdOrCtrl+Shift+Space".to_owned(),
+            launch_at_login: false,
+            terminal: "auto".to_owned(),
+            editor: "auto".to_owned(),
+        }
     }
 }
 
@@ -413,5 +422,46 @@ hotkey = "CmdOrCtrl+="
     fn command_config_defaults_hotkey_to_none() {
         let config = CommandConfig::default();
         assert!(config.hotkey.is_none());
+    }
+
+    #[test]
+    fn general_config_defaults_terminal_and_editor_to_auto() {
+        let config = GeneralConfig::default();
+        assert_eq!(config.terminal, "auto");
+        assert_eq!(config.editor, "auto");
+    }
+
+    #[test]
+    fn should_parse_terminal_and_editor_config() {
+        let toml_str = r#"
+[general]
+terminal = "warp"
+editor = "code"
+"#;
+        let config: FlintConfig = toml::from_str(toml_str).unwrap();
+        assert_eq!(config.general.terminal, "warp");
+        assert_eq!(config.general.editor, "code");
+    }
+
+    #[test]
+    fn should_default_terminal_and_editor_when_missing() {
+        let toml_str = r#"
+[general]
+hotkey = "Alt+Space"
+"#;
+        let config: FlintConfig = toml::from_str(toml_str).unwrap();
+        assert_eq!(config.general.terminal, "auto");
+        assert_eq!(config.general.editor, "auto");
+    }
+
+    #[test]
+    fn should_round_trip_terminal_and_editor() {
+        let mut config = FlintConfig::default();
+        config.general.terminal = "alacritty".to_owned();
+        config.general.editor = "nvim".to_owned();
+        let toml_str = toml::to_string_pretty(&config).unwrap();
+        let parsed: FlintConfig = toml::from_str(&toml_str).unwrap();
+        assert_eq!(parsed.general.terminal, "alacritty");
+        assert_eq!(parsed.general.editor, "nvim");
     }
 }

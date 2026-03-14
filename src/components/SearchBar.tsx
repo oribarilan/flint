@@ -23,6 +23,8 @@ export default function SearchBar({
   const setQuery = useSearchStore((s) => s.setQuery);
   const mode = useSearchStore((s) => s.mode);
   const activeCommand = useSearchStore((s) => s.activeCommand);
+  const actionPanelOpen = useSearchStore((s) => s.actionPanelOpen);
+  const actionFilterQuery = useSearchStore((s) => s.actionFilterQuery);
   const isStreaming = useChatStore((s) => s.isStreaming);
 
   const chatMode = mode === "chat";
@@ -32,7 +34,18 @@ export default function SearchBar({
     inputRef.current?.focus();
   }, []);
 
+  // Re-focus and clear input when action panel opens/closes
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, [actionPanelOpen]);
+
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && e.shiftKey && !chatMode) {
+      // Shift+Enter: open Action Panel
+      e.preventDefault();
+      useSearchStore.getState().openActionPanel();
+      return;
+    }
     if (e.key === "Enter" && chatMode && onSendChat) {
       e.preventDefault();
       onSendChat();
@@ -76,13 +89,42 @@ export default function SearchBar({
     </svg>
   );
 
+  // Determine what to show in the search bar: icon, command chip, or actions chip
+  const showActionsChip = actionPanelOpen;
+  const showCommandChip = !actionPanelOpen && activeCommand;
+  const showIcon = !actionPanelOpen && !activeCommand;
+
+  const inputValue = actionPanelOpen ? actionFilterQuery : query;
+  const placeholder = actionPanelOpen
+    ? "Filter actions\u2026"
+    : activeCommand
+      ? `Search ${activeCommand.name}...`
+      : chatMode
+        ? "Ask anything..."
+        : "Search files...";
+
   return (
     <div className={chatMode ? styles.wrapperChat : styles.wrapper}>
-      {!activeCommand && icon}
+      {showIcon && icon}
 
-      {activeCommand && (
+      {showCommandChip && (
         <span className={styles.chip} data-testid="command-chip">
           {activeCommand.name}
+        </span>
+      )}
+
+      {showActionsChip && (
+        <span className={styles.chip} data-testid="actions-chip">
+          <svg
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            width="14"
+            height="14"
+            aria-hidden="true"
+          >
+            <path d="M10 3.75a2 2 0 10-4 0 2 2 0 004 0zM17.25 4.5a.75.75 0 000-1.5h-5.5a.75.75 0 000 1.5h5.5zM5 3.75a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5a.75.75 0 01.75.75zM4.25 17a.75.75 0 000-1.5h-1.5a.75.75 0 000 1.5h1.5zM17.25 17a.75.75 0 000-1.5h-5.5a.75.75 0 000 1.5h5.5zM9 10a2 2 0 10-4 0 2 2 0 004 0zM17.25 10.75a.75.75 0 000-1.5h-5.5a.75.75 0 000 1.5h5.5zM4.25 10.75a.75.75 0 000-1.5h-1.5a.75.75 0 000 1.5h1.5zM14 16.25a2 2 0 10-4 0 2 2 0 004 0z" />
+          </svg>
+          Actions
         </span>
       )}
 
@@ -90,18 +132,12 @@ export default function SearchBar({
         ref={inputRef}
         className={styles.input}
         type="text"
-        value={query}
+        value={inputValue}
         onChange={(e) => {
           setQuery(e.target.value);
         }}
         onKeyDown={handleKeyDown}
-        placeholder={
-          activeCommand
-            ? `Search ${activeCommand.name}...`
-            : chatMode
-              ? "Ask anything..."
-              : "Search files..."
-        }
+        placeholder={placeholder}
         spellCheck={false}
         autoComplete="off"
         aria-label="Search"

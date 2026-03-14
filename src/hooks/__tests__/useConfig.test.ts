@@ -15,8 +15,8 @@ vi.mock("../../lib/commands", () => ({
 import { useConfig } from "../useConfig";
 
 const DEFAULT_CONFIG: FlintConfig = {
-  general: { hotkey: "CmdOrCtrl+Space", launch_at_login: false },
-  appearance: { font_size: "medium", theme: "flint" },
+  general: { hotkey: "CmdOrCtrl+Space", launch_at_login: false, terminal: "auto", editor: "auto" },
+  appearance: { font_size: "medium", theme: "flint", backdrop_blur: false },
   search: { directories: ["/Users/test"], exclude: ["node_modules"], max_depth: 5 },
   chat: { default_model: "gpt-4o" },
   kits: {},
@@ -94,8 +94,8 @@ describe("useConfig", () => {
 
   it("should reset a section to defaults", async () => {
     const DEFAULTS: FlintConfig = {
-      general: { hotkey: "CmdOrCtrl+Shift+Space", launch_at_login: false },
-      appearance: { font_size: "small", theme: "flint" },
+      general: { hotkey: "CmdOrCtrl+Shift+Space", launch_at_login: false, terminal: "auto", editor: "auto" },
+      appearance: { font_size: "small", theme: "flint", backdrop_blur: false },
       search: { directories: ["~/Desktop"], exclude: ["node_modules"], max_depth: 6 },
       chat: { default_model: "gpt-4.1" },
       kits: {},

@@ -25,9 +25,11 @@ Keybindings don't know about modes. Mode-dependent behavior (e.g., `Enter` opens
 
 The `Escape` cascade is hardcoded frontend UX — the layered priority is not configurable.
 
-1. **Clear input** — if the search/chat input has text, clear it (stay in current mode)
-2. **Clear chat** — if in chat mode with messages, clear the conversation (stay in chat mode)
-3. **Hide window** — dismiss Flint
+1. **Close Action Panel** — if the Action Panel is open, close it and return to the results list
+2. **Pop command chip** — if a command chip is active, pop it and return to main search
+3. **Clear input** — if the search/chat input has text, clear it (stay in current mode)
+4. **Clear chat** — if in chat mode with messages, clear the conversation (stay in chat mode)
+5. **Hide window** — dismiss Flint
 
 ### Platform-Aware Display
 
@@ -83,8 +85,10 @@ Hints are **subtle** — they don't compete with primary content. They use `--te
 A thin footer at the bottom of the results list showing contextual keybindings:
 
 ```
-Search mode:  ↑↓ Navigate   ↵ Open   ⌃J/K Navigate   Tab Chat   ⎋ Dismiss
-Chat mode:    ↵ Send   ⇧↵ Newline   Tab Search   ⎋ Clear
+Search mode:       ↑↓ Navigate   ↵ Open   ⇧↵ Actions   ⌃J/K Navigate   Tab Chat   ⎋ Dismiss
+Action Panel:      ↑↓ Navigate   ↵ Run action   ⎋ Back
+Action (armed):    ↵ Confirm delete   ⎋ Cancel
+Chat mode:         ↵ Send   ⇧↵ Newline   Tab Search   ⎋ Clear
 ```
 
 This is always visible when there's content below the search bar, and changes based on mode. When there are no results or the view is loading, the footer still shows with generic hints (e.g., `⎋ Dismiss`).
@@ -112,8 +116,19 @@ This is always visible when there's content below the search bar, and changes ba
 |--------|-----|-------------|
 | Next result | `↓` | Move selection down |
 | Previous result | `↑` | Move selection up |
-| Vim arrows | `Ctrl+H/J/K/L` | Arrow key aliases (←↓↑→) |
+| Vim arrows | `Ctrl+H/J/K/L` | Arrow key aliases (←↓↑→); also push/pop for Action Panel depth |
 | Select Nth | `CmdOrCtrl+1..9` | Open the Nth result directly (no-op if N > result count) |
+| Open Action Panel | `Shift+Enter` | Show all actions for the selected result |
+
+### Action Panel
+
+| Action | Key | Description |
+|--------|-----|-------------|
+| Open panel | `Shift+Enter` or `Ctrl+L` | Push into Action Panel for selected result |
+| Close panel | `Escape` or `Ctrl+H` | Pop back to results list |
+| Navigate actions | `↑/↓` or `Ctrl+J/K` | Move action selection |
+| Execute action | `Enter` | Run the selected action |
+| Filter actions | Type | Narrow action list by label |
 
 ### Chat mode
 

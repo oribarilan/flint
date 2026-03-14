@@ -8,6 +8,9 @@ import {
   searchAll,
   openFile,
   getAppIcon,
+  revealInFileManager,
+  deleteToTrash,
+  openInEditor,
 } from "../commands";
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -91,5 +94,31 @@ describe("commands", () => {
     mockedInvoke.mockResolvedValue(null);
     const result = await getAppIcon("/nonexistent");
     expect(result).toBeNull();
+  });
+
+  // ── Action Panel commands ──────────────────────────────────
+
+  it("revealInFileManager passes path parameter", async () => {
+    mockedInvoke.mockResolvedValue(undefined);
+    await revealInFileManager("/tmp/test.txt");
+    expect(mockedInvoke).toHaveBeenCalledWith("reveal_in_file_manager", {
+      path: "/tmp/test.txt",
+    });
+  });
+
+  it("deleteToTrash passes path parameter", async () => {
+    mockedInvoke.mockResolvedValue(undefined);
+    await deleteToTrash("/tmp/test.txt");
+    expect(mockedInvoke).toHaveBeenCalledWith("delete_to_trash", {
+      path: "/tmp/test.txt",
+    });
+  });
+
+  it("openInEditor passes path parameter", async () => {
+    mockedInvoke.mockResolvedValue(undefined);
+    await openInEditor("/tmp/test.rs");
+    expect(mockedInvoke).toHaveBeenCalledWith("open_in_editor", {
+      path: "/tmp/test.rs",
+    });
   });
 });

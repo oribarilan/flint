@@ -99,7 +99,7 @@ All kits return results in a unified format. This ensures consistent rendering a
 
 ### Actions
 
-Each result carries an ordered list of actions. The first action fires on **Enter**.
+Each result carries an ordered list of actions. The first action fires on **Enter** (the default action). All actions are accessible via the **Action Panel** — see `specs/action-panel.md` for the full interaction model.
 
 | Action | Description |
 |--------|-------------|

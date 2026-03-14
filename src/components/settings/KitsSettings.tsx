@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { relaunch } from "@tauri-apps/plugin-process";
-import type { FlintConfig, KitManifestInfo, CommandInfo } from "../../lib/commands";
+import type { FlintConfig, KitConfig, KitManifestInfo, CommandInfo } from "../../lib/commands";
 import { getKitManifests } from "../../lib/commands";
 import HotkeyRecorder from "./HotkeyRecorder";
 import styles from "./settings.module.css";
@@ -51,9 +51,10 @@ export default function KitsSettings({ config, onUpdate }: KitsSettingsProps) {
   };
 
   const updateKitConfig = (kitId: string, patch: Record<string, unknown>) => {
-    const next = {
+    const existing: KitConfig = config.kits[kitId] ?? { enabled: true };
+    const next: FlintConfig = {
       ...config,
-      kits: { ...config.kits, [kitId]: { ...config.kits[kitId], ...patch } },
+      kits: { ...config.kits, [kitId]: { ...existing, ...patch } as KitConfig },
     };
     markDirty(next);
     void onUpdate(next);
@@ -264,7 +265,7 @@ function CommandRow({
           placeholder="none"
           onChange={onPrefixChange}
           ariaLabel={`Prefix for ${cmd.name}`}
-          className={kitStyles.prefixInput}
+          className={kitStyles.prefixInput ?? ""}
         />
       </td>
       <td className={kitStyles.tdHotkey}>

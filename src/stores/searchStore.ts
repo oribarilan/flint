@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import type { ActiveCommand, KitSearchResult } from "../kits/types";
+import type { ActiveCommand, KitAction, KitSearchResult } from "../kits/types";
+import { isMac, isWindows } from "../lib/platform";
 
 export type AppMode = "search" | "chat";
 
@@ -18,6 +19,14 @@ interface SearchState {
   selectedIndex: number;
   isLoading: boolean;
   activeCommand: ActiveCommand | null;
+
+  // Action Panel state
+  actionPanelOpen: boolean;
+  actionPanelResult: KitSearchResult | null;
+  actionFilterQuery: string;
+  selectedActionIndex: number;
+  armedActionIndex: number | null;
+
   toggleMode: () => void;
   setMode: (mode: AppMode) => void;
   setQuery: (query: string) => void;
@@ -27,6 +36,15 @@ interface SearchState {
   activateCommand: (cmd: ActiveCommand) => void;
   deactivateCommand: () => void;
   clearSearch: () => void;
+
+  // Action Panel methods
+  openActionPanel: () => void;
+  closeActionPanel: () => void;
+  setActionFilterQuery: (query: string) => void;
+  moveActionSelection: (direction: "up" | "down") => void;
+  armAction: (index: number) => void;
+  disarmAction: () => void;
+  getFilteredActions: () => KitAction[];
 }
 
 export const useSearchStore = create<SearchState>((set, get) => ({
@@ -37,6 +55,13 @@ export const useSearchStore = create<SearchState>((set, get) => ({
   isLoading: false,
   activeCommand: null,
 
+  // Action Panel defaults
+  actionPanelOpen: false,
+  actionPanelResult: null,
+  actionFilterQuery: "",
+  selectedActionIndex: 0,
+  armedActionIndex: null,
+
   toggleMode: () => {
     set({ mode: get().mode === "search" ? "chat" : "search" });
   },
@@ -46,7 +71,12 @@ export const useSearchStore = create<SearchState>((set, get) => ({
   },
 
   setQuery: (query) => {
-    set({ query, selectedIndex: 0 });
+    const state = get();
+    if (state.actionPanelOpen) {
+      set({ actionFilterQuery: query, selectedActionIndex: 0, armedActionIndex: null });
+    } else {
+      set({ query, selectedIndex: 0 });
+    }
   },
 
   setResults: (results) => {
@@ -58,7 +88,12 @@ export const useSearchStore = create<SearchState>((set, get) => ({
   },
 
   moveSelection: (direction) => {
-    const { results, selectedIndex } = get();
+    const state = get();
+    if (state.actionPanelOpen) {
+      state.moveActionSelection(direction);
+      return;
+    }
+    const { results, selectedIndex } = state;
     if (results.length === 0) return;
 
     const next =
@@ -85,6 +120,114 @@ export const useSearchStore = create<SearchState>((set, get) => ({
       selectedIndex: 0,
       isLoading: false,
       activeCommand: null,
+      actionPanelOpen: false,
+      actionPanelResult: null,
+      actionFilterQuery: "",
+      selectedActionIndex: 0,
+      armedActionIndex: null,
     });
   },
+
+  // ── Action Panel ─────────────────────────────────────────────
+
+  openActionPanel: () => {
+    const { results, selectedIndex } = get();
+    const result = results[selectedIndex];
+    if (!result) return;
+    set({
+      actionPanelOpen: true,
+      actionPanelResult: result,
+      actionFilterQuery: "",
+      selectedActionIndex: 0,
+      armedActionIndex: null,
+    });
+  },
+
+  closeActionPanel: () => {
+    set({
+      actionPanelOpen: false,
+      actionPanelResult: null,
+      actionFilterQuery: "",
+      selectedActionIndex: 0,
+      armedActionIndex: null,
+    });
+  },
+
+  setActionFilterQuery: (query) => {
+    set({ actionFilterQuery: query, selectedActionIndex: 0, armedActionIndex: null });
+  },
+
+  moveActionSelection: (direction) => {
+    const filtered = get().getFilteredActions();
+    if (filtered.length === 0) return;
+
+    const { selectedActionIndex } = get();
+    const next =
+      direction === "down"
+        ? Math.min(selectedActionIndex + 1, filtered.length - 1)
+        : Math.max(selectedActionIndex - 1, 0);
+
+    set({ selectedActionIndex: next, armedActionIndex: null });
+  },
+
+  armAction: (index) => {
+    set({ armedActionIndex: index });
+  },
+
+  disarmAction: () => {
+    set({ armedActionIndex: null });
+  },
+
+  getFilteredActions: () => {
+    const { actionPanelResult, actionFilterQuery } = get();
+    if (!actionPanelResult) return [];
+    if (!actionFilterQuery) return actionPanelResult.actions;
+    const lower = actionFilterQuery.toLowerCase();
+    return actionPanelResult.actions.filter((a) =>
+      getActionLabel(a).toLowerCase().includes(lower),
+    );
+  },
 }));
+
+// ---------------------------------------------------------------------------
+// Action helpers
+// ---------------------------------------------------------------------------
+
+/** Derive a human-readable label from a `KitAction` variant. */
+export function getActionLabel(action: KitAction): string {
+  switch (action.type) {
+    case "Open":
+      return "Open";
+    case "Copy":
+      return action.label ?? "Copy";
+    case "OpenInEditor":
+      return "Open in Editor";
+    case "RevealInFileManager":
+      if (isMac()) return "Reveal in Finder";
+      if (isWindows()) return "Show in Explorer";
+      return "Show in File Manager";
+    case "CopyPath":
+      return "Copy Path";
+    case "CopyName":
+      return "Copy Name";
+    case "Delete":
+      return "Delete";
+    case "FocusWindow":
+      return "Focus Window";
+    case "OpenApp":
+      return "Open App";
+    case "Paste":
+      return "Paste";
+    case "ActivateCommand":
+      return "Activate Command";
+    case "Custom":
+      return action.label;
+  }
+}
+
+/** Whether an action requires the armed confirmation state. */
+export function actionRequiresConfirmation(action: KitAction): boolean {
+  if (action.type === "Delete") return true;
+  if (action.type === "Custom" && action.requires_confirmation) return true;
+  return false;
+}
