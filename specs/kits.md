@@ -64,7 +64,7 @@ Commands are the primary primitive kits expose. A command is a unit of functiona
 | **icon** | ✓ | Emoji, named icon, or data URI |
 | **mode** | ✓ | `InputResults` or `Execute` |
 | **default_prefix** | | Prefix that auto-activates this command (e.g., `"="`) |
-| **default_hotkey** | | Key combination in Tauri format (e.g., `"CmdOrCtrl+Shift+="`) |
+| **default_hotkey** | | **Must be `None`.** Kits never ship with default hotkeys — users assign hotkeys through Settings. Field exists for user-configured overrides only. |
 
 ### Command Modes
 
@@ -292,9 +292,11 @@ Kits that need long-running work declare **background tasks**. The registry mana
 
 7. **Defaults should just work.** All built-in kits are enabled by default. A fresh install works with zero configuration. Power users tune via Settings.
 
-8. **The default renderer covers 80%.** Most kits don't need custom React components. Custom components are for exceptional cases.
+8. **No default hotkeys.** Kit commands never ship with pre-assigned hotkey bindings. Hotkeys are always user-configured through Settings. This avoids conflicts with other apps and keeps Flint's keyboard footprint minimal until the user opts in.
 
-9. **The core provides infrastructure, kits provide capability.** HTTP clients, data storage, event channels, task lifecycle — these are shared services.
+9. **The default renderer covers 80%.** Most kits don't need custom React components. Custom components are for exceptional cases.
+
+10. **The core provides infrastructure, kits provide capability.** HTTP clients, data storage, event channels, task lifecycle — these are shared services.
 
 ## Future (deferred)
 

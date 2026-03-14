@@ -116,6 +116,7 @@ pub fn run() {
 
             let mut registry = KitRegistry::new();
             registry.register(Box::new(kits::CalculatorKit::new()), &kit_config);
+            registry.register(Box::new(kits::WindowManagementKit::new()), &kit_config);
 
             // Register per-command global shortcuts.
             register_command_shortcuts(app, &registry);

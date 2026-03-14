@@ -9,9 +9,13 @@
 
 mod calculator;
 mod registry;
+mod window_management;
 
 pub use calculator::CalculatorKit;
-pub use registry::{CommandHotkeyEntry, CommandInfo, KitInfo, KitRegistry, KitRegistryState, KitState};
+pub use registry::{
+    CommandHotkeyEntry, CommandInfo, KitInfo, KitRegistry, KitRegistryState, KitState,
+};
+pub use window_management::WindowManagementKit;
 
 use std::path::PathBuf;
 

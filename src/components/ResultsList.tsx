@@ -44,11 +44,16 @@ export function executeDefaultAction(result: KitSearchResult): void {
   const action = result.actions[0];
   if (!action) return;
 
-  // Execute-mode commands run immediately via IPC — no chip activation.
+  // Execute-mode commands: hide Flint first (restoring previous app focus),
+  // then run the command. This ensures commands like window tiling target
+  // the correct window.
   if (result.kind.type === "Command" && result.kind.mode === "Execute") {
-    executeCommand(result.kind.kit_id, result.kind.command_id).catch((err: unknown) => {
-      console.error("Failed to execute command:", err);
-    });
+    const { kit_id, command_id } = result.kind;
+    hideWindow()
+      .then(() => executeCommand(kit_id, command_id))
+      .catch((err: unknown) => {
+        console.error("Failed to execute command:", err);
+      });
     return;
   }
 
