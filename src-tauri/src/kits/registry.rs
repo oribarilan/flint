@@ -333,18 +333,28 @@ impl KitRegistry {
             .iter()
             .filter(|ic| ic.enabled)
             .filter_map(|indexed| {
-                let name_lower = indexed.def.name.to_lowercase();
-                let haystack = Utf32Str::new(&name_lower, &mut buf);
-                let raw_score = pattern.score(haystack, &mut matcher)?;
+                let kit_name_str =
+                    self.kits.get(&indexed.kit_id).map(|k| k.manifest().name).unwrap_or_default();
+
+                // Match against both the command name and the parent kit name,
+                // taking the best score. This lets "window" surface "Left Half"
+                // because its parent kit is "Window Management".
+                let cmd_lower = indexed.def.name.to_lowercase();
+                let cmd_haystack = Utf32Str::new(&cmd_lower, &mut buf);
+                let cmd_score = pattern.score(cmd_haystack, &mut matcher);
+
+                let kit_lower = kit_name_str.to_lowercase();
+                let kit_haystack = Utf32Str::new(&kit_lower, &mut buf);
+                let kit_score = pattern.score(kit_haystack, &mut matcher);
+
+                let raw_score = cmd_score.max(kit_score)?;
                 let score = raw_score.saturating_add(crate::search::APP_BOOST);
-                let kit_name =
-                    self.kits.get(&indexed.kit_id).map(|k| k.manifest().name.to_string());
 
                 Some((
                     score,
                     KitSearchResult {
                         kit_id: indexed.kit_id.clone(),
-                        kit_name,
+                        kit_name: Some(kit_name_str.to_string()),
                         id: format!("cmd-discovery:{}:{}", indexed.kit_id, indexed.def.id),
                         title: indexed.def.name.to_string(),
                         subtitle: Some(indexed.def.description.to_string()),
@@ -482,6 +492,11 @@ mod tests {
                 cmds,
                 results: Vec::new(),
             }
+        }
+
+        fn with_name(mut self, name: &'static str) -> Self {
+            self.manifest.name = name;
+            self
         }
 
         fn with_results(mut self, results: Vec<KitResult>) -> Self {
@@ -726,6 +741,25 @@ mod tests {
     fn discovery_skips_kits_without_commands() {
         let registry = reg_with(MockKit::new("chat-only", vec![]));
         assert!(registry.discovery_results("chat").is_empty());
+    }
+
+    #[test]
+    fn discovery_matches_parent_kit_name() {
+        // "Left Half" command won't match "window" by name, but its parent
+        // kit "Window Management" should make it discoverable.
+        let cmd = CommandDef {
+            id: "left-half",
+            name: "Left Half",
+            description: "Tile left",
+            icon: KitIcon::Emoji("◧".to_string()),
+            mode: CommandMode::Execute,
+            default_prefix: None,
+            default_hotkey: None,
+        };
+        let registry = reg_with(MockKit::new("wm", vec![cmd]).with_name("Window Management"));
+        let results = registry.discovery_results("window");
+        assert_eq!(results.len(), 1, "should find 'Left Half' via kit name 'Window Management'");
+        assert_eq!(results[0].1.title, "Left Half");
     }
 
     #[test]
