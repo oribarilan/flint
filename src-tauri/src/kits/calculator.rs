@@ -2,14 +2,13 @@
 //!
 //! Activated by the `=` prefix: `= 2+3` → `5`.
 //! When the query is empty (just `=`), shows recent calculation history.
-//! Also exposes a `calculate` chat tool for the AI.
 
 use std::collections::VecDeque;
 use std::sync::Mutex;
 
 use async_trait::async_trait;
 
-use super::{ChatToolDef, KitAction, KitError, KitIcon, KitManifest, KitResult, SearchTrigger};
+use super::{CommandDef, CommandMode, KitAction, KitIcon, KitManifest, KitResult, ResultKind};
 
 /// SVG icon: minimal 2×2 operator layout (+, ×, −, =) with no outer box.
 const ICON_SVG: &str = r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="5" x2="8" y2="5"/><line x1="5" y1="2" x2="5" y2="8"/><line x1="12" y1="2" x2="18" y2="8"/><line x1="18" y1="2" x2="12" y2="8"/><line x1="2" y1="15" x2="8" y2="15"/><line x1="12" y1="13.5" x2="18" y2="13.5"/><line x1="12" y1="16.5" x2="18" y2="16.5"/></svg>"#;
@@ -41,7 +40,6 @@ struct HistoryEntry {
 /// user types just the prefix (`=`) with no expression.
 pub struct CalculatorKit {
     manifest: KitManifest,
-    trigger: SearchTrigger,
     history: Mutex<VecDeque<HistoryEntry>>,
 }
 
@@ -54,7 +52,6 @@ impl CalculatorKit {
                 description: "Evaluate math expressions",
                 icon: Self::icon(),
             },
-            trigger: SearchTrigger::Prefix(PREFIX),
             history: Mutex::new(VecDeque::new()),
         }
     }
@@ -94,6 +91,7 @@ impl CalculatorKit {
                 title: entry.result.clone(),
                 subtitle: Some(format_expression(&entry.expression)),
                 icon: Some(Self::icon()),
+                kind: ResultKind::File, // history entries are plain results, not commands
                 accessories: Vec::new(),
                 actions: vec![KitAction::Copy { text: entry.result.clone(), label: None }],
                 preview: None,
@@ -109,17 +107,28 @@ impl Default for CalculatorKit {
     }
 }
 
+/// The single command ID for calculator search.
+const COMMAND_ID: &str = "calculate";
+
 #[async_trait]
 impl super::Kit for CalculatorKit {
     fn manifest(&self) -> &KitManifest {
         &self.manifest
     }
 
-    fn search_trigger(&self) -> Option<&SearchTrigger> {
-        Some(&self.trigger)
+    fn commands(&self) -> Vec<CommandDef> {
+        vec![CommandDef {
+            id: COMMAND_ID,
+            name: "Calculator",
+            description: "Evaluate math expressions",
+            icon: Self::icon(),
+            mode: CommandMode::InputResults,
+            default_prefix: Some(PREFIX),
+            default_hotkey: None,
+        }]
     }
 
-    fn search(&self, query: &str) -> Vec<KitResult> {
+    fn search(&self, _command_id: &str, query: &str) -> Vec<KitResult> {
         let expr = query.trim();
         if expr.is_empty() {
             return self.history_results();
@@ -132,49 +141,13 @@ impl super::Kit for CalculatorKit {
                 title: result_str.clone(),
                 subtitle: Some(format_expression(expr)),
                 icon: Some(Self::icon()),
+                kind: ResultKind::File,
                 accessories: Vec::new(),
                 actions: vec![KitAction::Copy { text: result_str, label: None }],
                 preview: None,
                 score: Some(100),
             }]
         })
-    }
-
-    fn chat_tools(&self) -> Vec<ChatToolDef> {
-        vec![ChatToolDef {
-            name: "calculate".to_string(),
-            description: "Evaluate a mathematical expression. Supports +, -, *, /, ^, parentheses, and common functions (sin, cos, sqrt, abs, ln, log, etc.).".to_string(),
-            parameters: serde_json::json!({
-                "type": "object",
-                "properties": {
-                    "expression": {
-                        "type": "string",
-                        "description": "The math expression to evaluate, e.g. '2+3', 'sqrt(144)', '(5+3)*2'"
-                    }
-                },
-                "required": ["expression"]
-            }),
-        }]
-    }
-
-    async fn invoke_chat_tool(
-        &self,
-        tool_name: &str,
-        args: serde_json::Value,
-    ) -> Result<serde_json::Value, KitError> {
-        if tool_name != "calculate" {
-            return Err(KitError::ToolNotFound(tool_name.to_string()));
-        }
-
-        let expr = args
-            .get("expression")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| KitError::Internal("missing 'expression' parameter".to_string()))?;
-
-        evaluate(expr).map_or_else(
-            || Ok(serde_json::json!({ "error": "invalid expression", "expression": expr })),
-            |result| Ok(serde_json::json!({ "result": result, "expression": expr })),
-        )
     }
 }
 
@@ -292,12 +265,24 @@ mod tests {
         assert_eq!(format_expression("2+3"), "2+3");
     }
 
+    // ── commands ────────────────────────────────────────────────
+
+    #[test]
+    fn exposes_single_calculate_command() {
+        let kit = CalculatorKit::new();
+        let cmds = kit.commands();
+        assert_eq!(cmds.len(), 1);
+        assert_eq!(cmds[0].id, "calculate");
+        assert_eq!(cmds[0].mode, CommandMode::InputResults);
+        assert_eq!(cmds[0].default_prefix, Some("="));
+    }
+
     // ── Kit::search ─────────────────────────────────────────────
 
     #[test]
     fn search_returns_result_for_valid_expression() {
         let kit = CalculatorKit::new();
-        let results = kit.search("2+3");
+        let results = kit.search("calculate", "2+3");
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].title, "5");
         assert_eq!(results[0].subtitle.as_deref(), Some("2+3"));
@@ -306,58 +291,25 @@ mod tests {
     #[test]
     fn search_returns_empty_for_invalid_expression() {
         let kit = CalculatorKit::new();
-        assert!(kit.search("hello").is_empty());
+        assert!(kit.search("calculate", "hello").is_empty());
     }
 
     #[test]
     fn search_returns_empty_for_empty_query_with_no_history() {
         let kit = CalculatorKit::new();
-        assert!(kit.search("").is_empty());
-        assert!(kit.search("   ").is_empty());
+        assert!(kit.search("calculate", "").is_empty());
+        assert!(kit.search("calculate", "   ").is_empty());
     }
 
     #[test]
     fn search_result_has_copy_action() {
         let kit = CalculatorKit::new();
-        let results = kit.search("6*7");
+        let results = kit.search("calculate", "6*7");
         assert_eq!(results.len(), 1);
         match &results[0].actions[0] {
             KitAction::Copy { text, .. } => assert_eq!(text, "42"),
             other => panic!("expected Copy action, got {other:?}"),
         }
-    }
-
-    // ── Kit::invoke_chat_tool ───────────────────────────────────
-
-    #[tokio::test]
-    async fn chat_tool_evaluates_expression() {
-        let kit = CalculatorKit::new();
-        let result = kit
-            .invoke_chat_tool("calculate", serde_json::json!({ "expression": "2+3" }))
-            .await
-            .unwrap();
-
-        assert_eq!(result["result"], "5");
-    }
-
-    #[tokio::test]
-    async fn chat_tool_returns_error_for_invalid() {
-        let kit = CalculatorKit::new();
-        let result = kit
-            .invoke_chat_tool("calculate", serde_json::json!({ "expression": "invalid" }))
-            .await
-            .unwrap();
-
-        assert_eq!(result["error"], "invalid expression");
-    }
-
-    #[tokio::test]
-    async fn chat_tool_rejects_unknown_tool() {
-        let kit = CalculatorKit::new();
-        let result: Result<serde_json::Value, KitError> =
-            kit.invoke_chat_tool("unknown", serde_json::json!({})).await;
-
-        assert!(result.is_err());
     }
 
     // ── History ─────────────────────────────────────────────────
@@ -367,11 +319,11 @@ mod tests {
         let kit = CalculatorKit::new();
 
         // Evaluate some expressions
-        kit.search("2+3");
-        kit.search("6*7");
+        kit.search("calculate", "2+3");
+        kit.search("calculate", "6*7");
 
         // Empty query returns history, most recent first
-        let history = kit.search("");
+        let history = kit.search("calculate", "");
         assert_eq!(history.len(), 2);
         assert_eq!(history[0].title, "42");
         assert_eq!(history[1].title, "5");
@@ -381,11 +333,11 @@ mod tests {
     fn history_deduplicates_same_expression() {
         let kit = CalculatorKit::new();
 
-        kit.search("2+3");
-        kit.search("6*7");
-        kit.search("2+3"); // duplicate — should move to front, not add twice
+        kit.search("calculate", "2+3");
+        kit.search("calculate", "6*7");
+        kit.search("calculate", "2+3"); // duplicate — should move to front, not add twice
 
-        let history = kit.search("");
+        let history = kit.search("calculate", "");
         assert_eq!(history.len(), 2);
         assert_eq!(history[0].title, "5"); // 2+3 is now most recent
         assert_eq!(history[1].title, "42");
@@ -394,9 +346,9 @@ mod tests {
     #[test]
     fn history_entries_have_copy_action() {
         let kit = CalculatorKit::new();
-        kit.search("2+3");
+        kit.search("calculate", "2+3");
 
-        let history = kit.search("");
+        let history = kit.search("calculate", "");
         assert_eq!(history.len(), 1);
         match &history[0].actions[0] {
             KitAction::Copy { text, .. } => assert_eq!(text, "5"),
@@ -410,10 +362,10 @@ mod tests {
 
         // Fill beyond MAX_HISTORY
         for i in 0..25 {
-            kit.search(&format!("{i}+1"));
+            kit.search("calculate", &format!("{i}+1"));
         }
 
-        let history = kit.search("");
+        let history = kit.search("calculate", "");
         assert!(history.len() <= MAX_HISTORY);
     }
 
@@ -421,11 +373,11 @@ mod tests {
     fn invalid_expressions_are_not_recorded() {
         let kit = CalculatorKit::new();
 
-        kit.search("2+3");
-        kit.search("invalid");
-        kit.search("hello world");
+        kit.search("calculate", "2+3");
+        kit.search("calculate", "invalid");
+        kit.search("calculate", "hello world");
 
-        let history = kit.search("");
+        let history = kit.search("calculate", "");
         assert_eq!(history.len(), 1);
         assert_eq!(history[0].title, "5");
     }

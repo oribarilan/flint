@@ -11,12 +11,14 @@ import { hideWindow, getAuthStatus, sendChatMessage, getConfig } from "./lib/com
 import { focusSearchBar, shouldHideOnBlur } from "./lib/focus";
 import { applyFontSize, applyTheme } from "./lib/applyTheme";
 import { useSearch } from "./hooks/useSearch";
+import { usePrefixDetection } from "./hooks/usePrefixDetection";
 import { useChat } from "./hooks/useChat";
 import { useKeybindings } from "./hooks/useKeybindings";
 import styles from "./App.module.css";
 
 export default function App() {
   useSearch();
+  usePrefixDetection();
   useChat();
 
   const query = useSearchStore((s) => s.query);

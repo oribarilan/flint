@@ -61,22 +61,39 @@ pub struct ChatConfig {
 
 /// Per-kit configuration.
 ///
-/// Each kit has at minimum an `enabled` flag. Additional kit-specific
-/// settings are stored in the `extra` map and interpreted by the kit.
+/// Each kit has at minimum an `enabled` flag. Per-command overrides
+/// (enabled, prefix) are stored in the `commands` map.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(default)]
 pub struct KitConfig {
-    /// Whether the kit is active. Disabled kits produce no results,
-    /// no chat tools, and no shortcuts.
+    /// Whether the kit is active. Disabled kits produce no results.
     pub enabled: bool,
+    /// Per-command overrides, keyed by command id.
+    pub commands: HashMap<String, CommandConfig>,
     /// Kit-specific settings (opaque to the core).
     #[serde(flatten)]
     pub extra: HashMap<String, toml::Value>,
 }
 
+/// Per-command configuration overrides.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct CommandConfig {
+    /// Whether this command is active.
+    pub enabled: bool,
+    /// Custom prefix override (replaces the kit's default).
+    pub prefix: Option<String>,
+}
+
+impl Default for CommandConfig {
+    fn default() -> Self {
+        Self { enabled: true, prefix: None }
+    }
+}
+
 impl Default for KitConfig {
     fn default() -> Self {
-        Self { enabled: true, extra: HashMap::new() }
+        Self { enabled: true, commands: HashMap::new(), extra: HashMap::new() }
     }
 }
 

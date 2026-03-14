@@ -1,16 +1,17 @@
 //! Kit system — extensible tool architecture for Flint.
 //!
-//! Kits are self-contained capability modules that surface functionality
-//! through up to four surfaces: search, chat tools, app windows, and
-//! global shortcuts. File search is core to Flint, not a kit.
+//! Kits are self-contained capability modules that expose **commands** as
+//! their primary primitive. A command is discoverable via search, can have
+//! a prefix trigger, and optionally accepts sub-queries (`InputResults`) or
+//! executes immediately (Execute).
 //!
-//! See `specs/kits.md` for the full specification.
+//! See `specs/kits.md` and `.todo/kit-v2.md` for the full specification.
 
 mod calculator;
 mod registry;
 
 pub use calculator::CalculatorKit;
-pub use registry::{KitInfo, KitRegistry, KitRegistryState, KitState};
+pub use registry::{CommandInfo, KitInfo, KitRegistry, KitRegistryState, KitState};
 
 use std::path::PathBuf;
 
@@ -27,7 +28,9 @@ use crate::config::AppConfig;
 
 /// A Kit is a self-contained capability module.
 ///
-/// Implement only the surfaces your kit needs — all have default no-op impls.
+/// Kits expose commands — the primary unit of functionality. Each command is
+/// discoverable via search and can optionally accept sub-queries or execute
+/// immediately.
 #[async_trait]
 pub trait Kit: Send + Sync {
     /// Identity and metadata.
@@ -43,55 +46,29 @@ pub trait Kit: Send + Sync {
         Ok(())
     }
 
-    // ── Surface 1: Search ──────────────────────────────────────
+    // ── Commands ────────────────────────────────────────────────
 
-    /// How the user activates this kit in search. Returns `None` if the kit
-    /// has no search surface (chat-only or shortcut-only).
-    fn search_trigger(&self) -> Option<&SearchTrigger> {
-        None
-    }
+    /// The commands this kit provides.
+    fn commands(&self) -> Vec<CommandDef>;
 
-    /// Return results for the given query. Called on every keystroke when the
-    /// trigger matches — must be fast (<10ms).
+    /// Return results for a query within a specific command.
     ///
-    /// The query has already been stripped of the prefix/keyword.
-    fn search(&self, _query: &str) -> Vec<KitResult> {
+    /// Called on every keystroke when a command chip is active — must be
+    /// fast (<10ms). Only called for `InputResults` mode commands.
+    fn search(&self, _command_id: &str, _query: &str) -> Vec<KitResult> {
         vec![]
     }
 
-    // ── Surface 2: Chat Tools ──────────────────────────────────
-
-    /// OpenAI-compatible function definitions for the AI to call.
-    fn chat_tools(&self) -> Vec<ChatToolDef> {
-        vec![]
+    /// Execute a command immediately. Used for `Execute` mode commands.
+    async fn execute(&self, command_id: &str) -> Result<CommandOutput, KitError> {
+        Err(KitError::CommandNotFound(command_id.to_string()))
     }
 
-    /// Execute a chat tool call.
-    async fn invoke_chat_tool(
-        &self,
-        tool_name: &str,
-        _args: serde_json::Value,
-    ) -> Result<serde_json::Value, KitError> {
-        Err(KitError::ToolNotFound(tool_name.to_string()))
-    }
-
-    // ── Surface 3: App Window ──────────────────────────────────
+    // ── App Window (unchanged) ──────────────────────────────────
 
     /// Does this kit have a dedicated app view?
     fn app_window(&self) -> Option<&AppWindowConfig> {
         None
-    }
-
-    // ── Surface 4: Global Shortcuts ────────────────────────────
-
-    /// Shortcuts this kit wants to register.
-    fn shortcuts(&self) -> Vec<KitShortcut> {
-        vec![]
-    }
-
-    /// Handle a shortcut press. Returns an action to execute.
-    async fn handle_shortcut(&self, shortcut_id: &str) -> Result<ShortcutAction, KitError> {
-        Err(KitError::ShortcutNotFound(shortcut_id.to_string()))
     }
 }
 
@@ -125,48 +102,45 @@ pub enum KitIcon {
 }
 
 // ---------------------------------------------------------------------------
-// Search surface
+// Commands
 // ---------------------------------------------------------------------------
 
-/// When a kit should activate during search.
-///
-/// Kits are always explicit — the user types a prefix or keyword to invoke them.
-#[derive(Debug, Clone)]
-pub enum SearchTrigger {
-    /// Activates when query starts with prefix character(s): `"= 2+3"`, `"$ AAPL"`.
-    /// The prefix is stripped before passing to `search()`.
-    Prefix(&'static str),
-    /// Activates when query starts with a keyword followed by a space: `"weather SF"`.
-    /// The keyword is stripped before passing to `search()`.
-    Keyword(&'static str),
+/// Definition of a single command a kit provides.
+#[derive(Debug, Clone, Serialize)]
+pub struct CommandDef {
+    /// Unique command identifier within the kit (e.g., `"calculate"`).
+    pub id: &'static str,
+    /// Human-readable name (e.g., `"Calculator"`).
+    pub name: &'static str,
+    /// One-line description (e.g., `"Evaluate math expressions"`).
+    pub description: &'static str,
+    /// Icon for this command in search results.
+    pub icon: KitIcon,
+    /// Whether this command takes input or executes immediately.
+    pub mode: CommandMode,
+    /// Optional prefix that auto-activates this command (e.g., `"="`).
+    pub default_prefix: Option<&'static str>,
+    /// Optional hotkey (e.g., `"CmdOrCtrl+="`). Wiring deferred.
+    pub default_hotkey: Option<&'static str>,
 }
 
-impl SearchTrigger {
-    /// Check whether `query` matches this trigger.
-    pub fn matches(&self, query: &str) -> bool {
-        match self {
-            Self::Prefix(p) => query.starts_with(p),
-            Self::Keyword(kw) => {
-                query.strip_prefix(kw).is_some_and(|rest| rest.is_empty() || rest.starts_with(' '))
-            }
-        }
-    }
+/// How a command is activated.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum CommandMode {
+    /// Shows a chip in the search bar, accepts a sub-query, returns results.
+    InputResults,
+    /// Runs immediately when selected — no sub-search flow.
+    Execute,
+}
 
-    /// Strip the prefix/keyword from the query, returning the effective query
-    /// the kit should search over.
-    pub fn strip<'a>(&self, query: &'a str) -> &'a str {
-        match self {
-            Self::Prefix(p) => &query[p.len()..],
-            Self::Keyword(kw) => {
-                if query.len() > kw.len() {
-                    // Skip keyword + space
-                    &query[kw.len() + 1..]
-                } else {
-                    ""
-                }
-            }
-        }
-    }
+/// Result of executing an `Execute`-mode command.
+#[derive(Debug, Clone, Serialize)]
+#[serde(tag = "type")]
+pub enum CommandOutput {
+    /// Command completed silently.
+    Done,
+    /// Command completed with a notification/message.
+    Message { text: String },
 }
 
 // ---------------------------------------------------------------------------
@@ -184,6 +158,8 @@ pub struct KitResult {
     pub subtitle: Option<String>,
     /// Per-result icon override.
     pub icon: Option<KitIcon>,
+    /// What kind of result this is.
+    pub kind: ResultKind,
     /// Right-aligned metadata (badges, timestamps).
     pub accessories: Vec<Accessory>,
     /// What happens on Enter, Tab, etc.
@@ -214,8 +190,8 @@ pub enum KitAction {
     Custom { id: String, label: String },
     /// Paste text (write to clipboard + simulate Cmd+V).
     Paste { text: String },
-    /// Activate a kit by filling its prefix into the search bar.
-    ActivateKit { prefix: String },
+    /// Activate a command by showing its chip in the search bar.
+    ActivateCommand { kit_id: String, command_id: String },
 }
 
 /// Right-side accessories on a result row.
@@ -243,21 +219,6 @@ pub enum KitPreview {
 }
 
 // ---------------------------------------------------------------------------
-// Chat surface
-// ---------------------------------------------------------------------------
-
-/// Chat tool definition (OpenAI-compatible function calling format).
-#[derive(Debug, Clone, Serialize)]
-pub struct ChatToolDef {
-    /// Function name (e.g., `"calculate"`, `"get_stock_price"`).
-    pub name: String,
-    /// What it does (for the model).
-    pub description: String,
-    /// JSON Schema for the function arguments.
-    pub parameters: serde_json::Value,
-}
-
-// ---------------------------------------------------------------------------
 // App window surface
 // ---------------------------------------------------------------------------
 
@@ -270,33 +231,6 @@ pub struct AppWindowConfig {
     pub width: u32,
     /// Default height in pixels.
     pub height: u32,
-}
-
-// ---------------------------------------------------------------------------
-// Shortcut surface
-// ---------------------------------------------------------------------------
-
-/// A global keyboard shortcut a kit wants to register.
-#[derive(Debug, Clone, Serialize)]
-pub struct KitShortcut {
-    /// Shortcut identifier (e.g., `"clipboard-history"`).
-    pub id: String,
-    /// Default key combination (e.g., `"CmdOrCtrl+Shift+V"`).
-    pub default_key: String,
-    /// Human description (e.g., `"Show clipboard history"`).
-    pub description: String,
-}
-
-/// Action to execute when a kit shortcut fires.
-#[derive(Debug, Clone, Serialize)]
-#[serde(tag = "type")]
-pub enum ShortcutAction {
-    /// Open Flint with a pre-filled query.
-    ShowOverlayWithQuery { query: String },
-    /// Open Flint filtered to a specific kit's results.
-    ShowOverlayWithKit { kit_id: String },
-    /// Open the kit's dedicated app window.
-    OpenAppWindow { kit_id: String },
 }
 
 // ---------------------------------------------------------------------------
@@ -378,20 +312,35 @@ pub struct KitContext {
 /// Errors that can occur in kit operations.
 #[derive(Debug, thiserror::Error)]
 pub enum KitError {
-    #[error("tool not found: {0}")]
-    ToolNotFound(String),
+    #[error("command not found: {0}")]
+    CommandNotFound(String),
 
     #[error("kit not found: {0}")]
     KitNotFound(String),
-
-    #[error("shortcut not found: {0}")]
-    ShortcutNotFound(String),
 
     #[error("kit init failed: {0}")]
     InitFailed(String),
 
     #[error("{0}")]
     Internal(String),
+}
+
+// ---------------------------------------------------------------------------
+// Result kind
+// ---------------------------------------------------------------------------
+
+/// What kind of entity a search result represents.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(tag = "type")]
+pub enum ResultKind {
+    /// A system application.
+    Application,
+    /// A regular file.
+    File,
+    /// A directory.
+    Directory,
+    /// A kit command (discoverable in search).
+    Command { kit_id: String, command_id: String, mode: CommandMode },
 }
 
 // ---------------------------------------------------------------------------
@@ -415,6 +364,8 @@ pub struct KitSearchResult {
     pub subtitle: Option<String>,
     /// Result icon.
     pub icon: Option<KitIcon>,
+    /// What kind of result this is.
+    pub kind: ResultKind,
     /// Right-aligned metadata.
     pub accessories: Vec<Accessory>,
     /// Ordered action list. First action = default (Enter).
@@ -434,6 +385,7 @@ impl KitSearchResult {
             title: result.title,
             subtitle: result.subtitle,
             icon: result.icon,
+            kind: result.kind,
             accessories: result.accessories,
             actions: result.actions,
             preview: result.preview,
@@ -450,77 +402,108 @@ impl KitSearchResult {
 mod tests {
     use super::*;
 
-    // ── SearchTrigger::matches ──────────────────────────────────
+    // ── CommandMode serialization ───────────────────────────────
 
     #[test]
-    fn prefix_matches_when_query_starts_with_prefix() {
-        let trigger = SearchTrigger::Prefix("=");
-        assert!(trigger.matches("= 2+3"));
-        assert!(trigger.matches("=2+3"));
-        assert!(trigger.matches("="));
+    fn command_mode_serializes_to_string() {
+        let json = serde_json::to_string(&CommandMode::InputResults).unwrap();
+        assert_eq!(json, r#""InputResults""#);
+
+        let json = serde_json::to_string(&CommandMode::Execute).unwrap();
+        assert_eq!(json, r#""Execute""#);
     }
 
     #[test]
-    fn prefix_does_not_match_unrelated_query() {
-        let trigger = SearchTrigger::Prefix("=");
-        assert!(!trigger.matches("hello"));
-        assert!(!trigger.matches(""));
-        assert!(!trigger.matches(" ="));
+    fn command_mode_round_trips() {
+        let mode = CommandMode::InputResults;
+        let json = serde_json::to_string(&mode).unwrap();
+        let back: CommandMode = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, mode);
+    }
+
+    // ── ResultKind serialization ────────────────────────────────
+
+    #[test]
+    fn result_kind_file_serializes_correctly() {
+        let kind = ResultKind::File;
+        let json = serde_json::to_value(&kind).unwrap();
+        assert_eq!(json["type"], "File");
     }
 
     #[test]
-    fn prefix_matches_multi_char_prefix() {
-        let trigger = SearchTrigger::Prefix("$$");
-        assert!(trigger.matches("$$ something"));
-        assert!(!trigger.matches("$ something"));
+    fn result_kind_command_serializes_with_fields() {
+        let kind = ResultKind::Command {
+            kit_id: "calculator".to_string(),
+            command_id: "calculate".to_string(),
+            mode: CommandMode::InputResults,
+        };
+        let json = serde_json::to_value(&kind).unwrap();
+        assert_eq!(json["type"], "Command");
+        assert_eq!(json["kit_id"], "calculator");
+        assert_eq!(json["command_id"], "calculate");
+        assert_eq!(json["mode"], "InputResults");
     }
 
     #[test]
-    fn keyword_matches_keyword_followed_by_space() {
-        let trigger = SearchTrigger::Keyword("weather");
-        assert!(trigger.matches("weather SF"));
-        assert!(trigger.matches("weather "));
+    fn result_kind_round_trips() {
+        let kind = ResultKind::Command {
+            kit_id: "calc".to_string(),
+            command_id: "eval".to_string(),
+            mode: CommandMode::Execute,
+        };
+        let json = serde_json::to_string(&kind).unwrap();
+        let back: ResultKind = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, kind);
+    }
+
+    // ── CommandOutput serialization ─────────────────────────────
+
+    #[test]
+    fn command_output_done_serializes() {
+        let json = serde_json::to_value(&CommandOutput::Done).unwrap();
+        assert_eq!(json["type"], "Done");
     }
 
     #[test]
-    fn keyword_matches_bare_keyword() {
-        let trigger = SearchTrigger::Keyword("weather");
-        assert!(trigger.matches("weather"));
+    fn command_output_message_serializes() {
+        let output = CommandOutput::Message { text: "Cleared!".to_string() };
+        let json = serde_json::to_value(&output).unwrap();
+        assert_eq!(json["type"], "Message");
+        assert_eq!(json["text"], "Cleared!");
     }
 
+    // ── KitAction::ActivateCommand serialization ────────────────
+
     #[test]
-    fn keyword_does_not_match_partial_or_substring() {
-        let trigger = SearchTrigger::Keyword("weather");
-        assert!(!trigger.matches("weathe"));
-        assert!(!trigger.matches("weatherman"));
-        assert!(!trigger.matches(""));
+    fn activate_command_serializes_correctly() {
+        let action = KitAction::ActivateCommand {
+            kit_id: "calculator".to_string(),
+            command_id: "calculate".to_string(),
+        };
+        let json = serde_json::to_value(&action).unwrap();
+        assert_eq!(json["type"], "ActivateCommand");
+        assert_eq!(json["kit_id"], "calculator");
+        assert_eq!(json["command_id"], "calculate");
     }
 
-    // ── SearchTrigger::strip ────────────────────────────────────
+    // ── CommandDef ──────────────────────────────────────────────
 
     #[test]
-    fn prefix_strip_removes_prefix() {
-        let trigger = SearchTrigger::Prefix("= ");
-        assert_eq!(trigger.strip("= 2+3"), "2+3");
-    }
-
-    #[test]
-    fn prefix_strip_single_char() {
-        let trigger = SearchTrigger::Prefix("=");
-        assert_eq!(trigger.strip("=2+3"), "2+3");
-        assert_eq!(trigger.strip("="), "");
-    }
-
-    #[test]
-    fn keyword_strip_removes_keyword_and_space() {
-        let trigger = SearchTrigger::Keyword("weather");
-        assert_eq!(trigger.strip("weather SF"), "SF");
-        assert_eq!(trigger.strip("weather "), "");
-    }
-
-    #[test]
-    fn keyword_strip_bare_keyword_returns_empty() {
-        let trigger = SearchTrigger::Keyword("weather");
-        assert_eq!(trigger.strip("weather"), "");
+    fn command_def_serializes_with_all_fields() {
+        let def = CommandDef {
+            id: "calculate",
+            name: "Calculator",
+            description: "Evaluate math expressions",
+            icon: KitIcon::Emoji("🧮".to_string()),
+            mode: CommandMode::InputResults,
+            default_prefix: Some("="),
+            default_hotkey: None,
+        };
+        let json = serde_json::to_value(&def).unwrap();
+        assert_eq!(json["id"], "calculate");
+        assert_eq!(json["name"], "Calculator");
+        assert_eq!(json["mode"], "InputResults");
+        assert_eq!(json["default_prefix"], "=");
+        assert!(json["default_hotkey"].is_null());
     }
 }

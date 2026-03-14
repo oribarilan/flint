@@ -22,6 +22,20 @@
   color: var(--accent);
 }
 
+.chip {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--bg-accent-subtle);
+  color: var(--accent);
+  font-size: var(--font-sm);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
 .input {
   flex: 1;
   background: transparent;

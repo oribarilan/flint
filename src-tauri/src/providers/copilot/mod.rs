@@ -9,22 +9,13 @@ pub mod token;
 
 use futures::StreamExt;
 use reqwest::header::{HeaderMap, HeaderValue};
-use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 
-use super::{ChatMessage, ToolCall};
+use super::ChatMessage;
 use auth::DeviceCodeResponse;
 use token::TokenManager;
 
-use crate::kits::{ChatToolDef, KitRegistryState};
-
 const USER_AGENT: &str = "Flint/0.1.0";
-
-/// Maximum number of tool-call rounds before forcing a text response.
-const MAX_TOOL_ROUNDS: usize = 5;
-
-/// Maximum tool calls to execute in a single round.
-const MAX_CALLS_PER_ROUND: usize = 10;
 
 // ---------------------------------------------------------------------------
 // Provider
@@ -84,109 +75,41 @@ impl CopilotProvider {
 
     /// Stream a chat completion from the Copilot API.
     ///
-    /// Supports the tool-call loop: if the model responds with tool calls,
-    /// they are dispatched to the kit registry, results are appended as
-    /// messages, and the conversation continues until the model produces
-    /// text content.
+    /// Sends the conversation and streams content tokens back via Tauri events.
+    /// Tool calling is not currently supported — the chat pipeline is text-only.
     ///
     /// Emits Tauri events as tokens arrive:
-    /// - `chat:token`      — a content delta (partial text).
-    /// - `chat:tool-start` — a tool invocation has started.
-    /// - `chat:tool-done`  — a tool invocation has finished.
-    /// - `chat:done`       — the stream has finished.
-    /// - `chat:error`      — an error occurred during streaming.
+    /// - `chat:token` — a content delta (partial text).
+    /// - `chat:done`  — the stream has finished.
+    /// - `chat:error` — an error occurred during streaming.
     pub async fn send_message(
         &self,
         messages: &[ChatMessage],
         app: &AppHandle,
-        registry: &KitRegistryState,
     ) -> Result<(), String> {
         let (token, endpoint) =
             self.token_manager.get_valid_token().await.map_err(|e| e.to_string())?;
 
-        // Collect tool definitions from enabled kits.
-        let tools = {
-            let reg = registry.0.read().await;
-            build_tools_array(reg.all_chat_tools())
-        };
+        let body = build_request_body(messages);
 
-        let mut conversation: Vec<ChatMessage> = messages.to_vec();
+        let response = self
+            .client
+            .post(format!("{endpoint}/chat/completions"))
+            .headers(build_headers(&token).map_err(|e| e.to_string())?)
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| e.to_string())?;
 
-        for round in 0..MAX_TOOL_ROUNDS {
-            let body = build_request_body(&conversation, &tools);
-
-            let response = self
-                .client
-                .post(format!("{endpoint}/chat/completions"))
-                .headers(build_headers(&token).map_err(|e| e.to_string())?)
-                .json(&body)
-                .send()
-                .await
-                .map_err(|e| e.to_string())?;
-
-            if !response.status().is_success() {
-                let status = response.status();
-                let text = response.text().await.unwrap_or_default();
-                let err = format!("HTTP {status}: {text}");
-                let _ = app.emit_to("main", "chat:error", &err);
-                return Err(err);
-            }
-
-            let stream_result = stream_sse_response(response, app).await;
-
-            match stream_result {
-                StreamResult::TextOnly => {
-                    // Model responded with text — we're done.
-                    break;
-                }
-                StreamResult::ToolCalls(tool_calls) => {
-                    if tool_calls.is_empty() {
-                        break;
-                    }
-
-                    // Append the assistant's tool-call message to the conversation.
-                    conversation.push(ChatMessage::assistant_tool_calls(tool_calls.clone()));
-
-                    // Dispatch each tool call to the registry.
-                    let reg = registry.0.read().await;
-                    let calls_to_run = tool_calls.into_iter().take(MAX_CALLS_PER_ROUND);
-
-                    for call in calls_to_run {
-                        let tool_info = ToolInfo {
-                            kit_id: find_kit_for_tool(&reg, &call.function.name),
-                            tool_name: call.function.name.clone(),
-                        };
-                        let _ = app.emit_to("main", "chat:tool-start", &tool_info);
-
-                        let args: serde_json::Value =
-                            serde_json::from_str(&call.function.arguments).unwrap_or_default();
-
-                        let result = if let Some(ref kit_id) = tool_info.kit_id {
-                            match tokio::time::timeout(
-                                std::time::Duration::from_secs(10),
-                                reg.invoke_chat_tool(kit_id, &call.function.name, args),
-                            )
-                            .await
-                            {
-                                Ok(Ok(val)) => serde_json::to_string(&val).unwrap_or_default(),
-                                Ok(Err(e)) => serde_json::to_string(
-                                    &serde_json::json!({ "error": e.to_string() }),
-                                )
-                                .unwrap_or_default(),
-                                Err(_) => r#"{"error":"tool call timed out"}"#.to_string(),
-                            }
-                        } else {
-                            r#"{"error":"no kit found for this tool"}"#.to_string()
-                        };
-
-                        conversation.push(ChatMessage::tool_result(&call.id, result));
-                        let _ = app.emit_to("main", "chat:tool-done", &tool_info);
-                    }
-
-                    tracing::info!(round, "tool call round complete, continuing");
-                }
-            }
+        if !response.status().is_success() {
+            let status = response.status();
+            let text = response.text().await.unwrap_or_default();
+            let err = format!("HTTP {status}: {text}");
+            let _ = app.emit_to("main", "chat:error", &err);
+            return Err(err);
         }
+
+        stream_sse_response(response, app).await;
 
         let _ = app.emit_to("main", "chat:done", ());
         Ok(())
@@ -207,21 +130,6 @@ impl CopilotProvider {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/// Info about a tool call, emitted to the frontend for UX indicators.
-#[derive(Debug, Clone, Serialize)]
-struct ToolInfo {
-    kit_id: Option<String>,
-    tool_name: String,
-}
-
-/// Outcome of streaming a single SSE response.
-enum StreamResult {
-    /// The model produced text content (already emitted via events).
-    TextOnly,
-    /// The model requested tool calls.
-    ToolCalls(Vec<ToolCall>),
-}
-
 /// Build the required HTTP headers for the Copilot chat API.
 fn build_headers(token: &str) -> Result<HeaderMap, reqwest::header::InvalidHeaderValue> {
     let mut headers = HeaderMap::new();
@@ -235,61 +143,21 @@ fn build_headers(token: &str) -> Result<HeaderMap, reqwest::header::InvalidHeade
     Ok(headers)
 }
 
-/// Build the JSON request body for a chat completion, optionally with tools.
-fn build_request_body(messages: &[ChatMessage], tools: &serde_json::Value) -> serde_json::Value {
-    let mut body = serde_json::json!({
+/// Build the JSON request body for a chat completion (text-only, no tools).
+fn build_request_body(messages: &[ChatMessage]) -> serde_json::Value {
+    serde_json::json!({
         "model": "gpt-4.1",
         "messages": messages,
         "stream": true,
         "n": 1,
-    });
-
-    // Only include tools array if non-empty.
-    if let Some(arr) = tools.as_array() {
-        if !arr.is_empty() {
-            body["tools"] = tools.clone();
-        }
-    }
-
-    body
+    })
 }
 
-/// Convert kit chat tool definitions into the OpenAI-compatible tools array format.
-fn build_tools_array(kit_tools: &[(String, ChatToolDef)]) -> serde_json::Value {
-    let tools: Vec<serde_json::Value> = kit_tools
-        .iter()
-        .map(|(_, def)| {
-            serde_json::json!({
-                "type": "function",
-                "function": {
-                    "name": def.name,
-                    "description": def.description,
-                    "parameters": def.parameters,
-                }
-            })
-        })
-        .collect();
-    serde_json::Value::Array(tools)
-}
-
-/// Find which kit owns a given tool name.
-fn find_kit_for_tool(registry: &crate::kits::KitRegistry, tool_name: &str) -> Option<String> {
-    registry
-        .all_chat_tools()
-        .iter()
-        .find(|(_, def)| def.name == tool_name)
-        .map(|(kit_id, _)| kit_id.clone())
-}
-
-/// Read an SSE byte stream, emit content deltas, and accumulate tool calls.
-///
-/// Returns whether the response was text-only or contained tool calls.
-async fn stream_sse_response(response: reqwest::Response, app: &AppHandle) -> StreamResult {
+/// Read an SSE byte stream and emit content deltas via Tauri events.
+async fn stream_sse_response(response: reqwest::Response, app: &AppHandle) {
     let mut stream = response.bytes_stream();
     let mut buffer = String::new();
     let mut token_count: usize = 0;
-    let mut tool_acc = ToolCallAccumulator::new();
-    let mut has_tool_calls = false;
 
     while let Some(chunk) = stream.next().await {
         match chunk {
@@ -308,14 +176,10 @@ async fn stream_sse_response(response: reqwest::Response, app: &AppHandle) -> St
                             let _ = app.emit_to("main", "chat:token", content.as_str());
                             token_count += 1;
                         }
-                        SseEvent::ToolCallDelta { index, id, name, arguments } => {
-                            has_tool_calls = true;
-                            tool_acc.push(index, id, name, arguments);
-                        }
                         SseEvent::Finished(reason) => {
                             tracing::debug!(reason = reason.as_str(), "finish_reason");
                         }
-                        SseEvent::Done => {}
+                        SseEvent::ToolCallDelta { .. } | SseEvent::Done => {}
                     }
                 }
             }
@@ -326,13 +190,7 @@ async fn stream_sse_response(response: reqwest::Response, app: &AppHandle) -> St
         }
     }
 
-    tracing::info!(token_count, has_tool_calls, "SSE stream finished");
-
-    if has_tool_calls {
-        StreamResult::ToolCalls(tool_acc.take())
-    } else {
-        StreamResult::TextOnly
-    }
+    tracing::info!(token_count, "SSE stream finished");
 }
 
 /// Parsed result from a single SSE event line.
@@ -492,56 +350,22 @@ pub fn extract_sse_tokens(buffer: &str) -> (Vec<String>, String) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::kits::ChatToolDef;
 
     #[test]
-    fn build_tools_array_creates_openai_format() {
-        let kit_tools = vec![(
-            "calculator".to_string(),
-            ChatToolDef {
-                name: "calculate".to_string(),
-                description: "Evaluate math".to_string(),
-                parameters: serde_json::json!({"type": "object"}),
-            },
-        )];
-
-        let result = build_tools_array(&kit_tools);
-        let arr = result.as_array().unwrap();
-        assert_eq!(arr.len(), 1);
-        assert_eq!(arr[0]["type"], "function");
-        assert_eq!(arr[0]["function"]["name"], "calculate");
-        assert_eq!(arr[0]["function"]["description"], "Evaluate math");
-    }
-
-    #[test]
-    fn build_tools_array_empty_returns_empty_array() {
-        let result = build_tools_array(&[]);
-        assert_eq!(result.as_array().unwrap().len(), 0);
-    }
-
-    #[test]
-    fn build_request_body_includes_tools_when_present() {
+    fn build_request_body_has_required_fields() {
         let messages = vec![super::super::ChatMessage::text(super::super::ChatRole::User, "hello")];
-        let tools = serde_json::json!([{"type": "function", "function": {"name": "test"}}]);
 
-        let body = build_request_body(&messages, &tools);
-        assert!(body["tools"].is_array());
-        assert_eq!(body["tools"].as_array().unwrap().len(), 1);
-    }
-
-    #[test]
-    fn build_request_body_omits_tools_when_empty() {
-        let messages = vec![super::super::ChatMessage::text(super::super::ChatRole::User, "hello")];
-        let tools = serde_json::json!([]);
-
-        let body = build_request_body(&messages, &tools);
+        let body = build_request_body(&messages);
+        assert!(body["messages"].is_array());
+        assert_eq!(body["stream"], true);
+        assert_eq!(body["model"], "gpt-4.1");
+        // No tools field in text-only mode
         assert!(body.get("tools").is_none());
     }
 
     #[test]
     fn accumulator_filters_empty_id_calls() {
         let mut acc = ToolCallAccumulator::new();
-        // Push a delta without an id
         acc.push(0, None, Some("test".to_string()), Some("{}".to_string()));
 
         let calls = acc.take();
@@ -566,7 +390,6 @@ mod tests {
         acc.push(2, Some("c3".to_string()), Some("f3".to_string()), Some("{}".to_string()));
 
         let calls = acc.take();
-        // Index 1 has empty id, should be filtered
         assert_eq!(calls.len(), 2);
         assert_eq!(calls[0].id, "c1");
         assert_eq!(calls[1].id, "c3");

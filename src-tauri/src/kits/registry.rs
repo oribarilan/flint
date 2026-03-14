@@ -1,4 +1,4 @@
-//! Kit registry — manages kit lifecycle, search dispatch, and chat tool indexing.
+//! Kit registry — manages kit lifecycle, command indexing, and search dispatch.
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -7,7 +7,8 @@ use tokio::sync::RwLock;
 use tokio::task::AbortHandle;
 
 use super::{
-    ChatToolDef, Kit, KitContextBase, KitError, KitResult, KitSearchResult, SearchTrigger,
+    CommandDef, CommandMode, CommandOutput, Kit, KitContextBase, KitError, KitResult,
+    KitSearchResult, ResultKind,
 };
 
 // ---------------------------------------------------------------------------
@@ -76,7 +77,17 @@ impl TaskManager {
 // Registry
 // ---------------------------------------------------------------------------
 
-/// Central registry managing all kits, their state, and dispatch.
+/// Indexed command: command definition + owning kit id + effective config.
+struct IndexedCommand {
+    kit_id: String,
+    def: CommandDef,
+    /// Whether this specific command is enabled (from config).
+    enabled: bool,
+    /// Effective prefix: config override or default.
+    effective_prefix: Option<String>,
+}
+
+/// Central registry managing all kits, their state, and command dispatch.
 pub struct KitRegistry {
     /// Registered kits by id.
     kits: HashMap<String, Box<dyn Kit>>,
@@ -84,10 +95,8 @@ pub struct KitRegistry {
     states: HashMap<String, KitState>,
     /// Per-kit background task managers.
     task_managers: HashMap<String, TaskManager>,
-    /// Trigger-to-kit mapping for search dispatch (checked in order).
-    search_triggers: Vec<(SearchTrigger, String)>,
-    /// All chat tool defs, collected at registration time. `(kit_id, def)`.
-    chat_tool_index: Vec<(String, ChatToolDef)>,
+    /// All commands from all kits, with effective config baked in.
+    commands: Vec<IndexedCommand>,
 }
 
 impl KitRegistry {
@@ -97,22 +106,36 @@ impl KitRegistry {
             kits: HashMap::new(),
             states: HashMap::new(),
             task_managers: HashMap::new(),
-            search_triggers: Vec::new(),
-            chat_tool_index: Vec::new(),
+            commands: Vec::new(),
         }
     }
 
-    /// Register a kit. Collects its search trigger and chat tools into indexes.
-    pub fn register(&mut self, kit: Box<dyn Kit>) {
+    /// Register a kit. Reads config to bake in effective prefix/enabled per command.
+    ///
+    /// Skips the kit entirely if disabled in config.
+    pub fn register(&mut self, kit: Box<dyn Kit>, config: &crate::config::FlintConfig) {
         let manifest = kit.manifest();
         let id = manifest.id.to_string();
+        let kit_cfg = config.kits.get(id.as_str());
 
-        if let Some(trigger) = kit.search_trigger() {
-            self.search_triggers.push((trigger.clone(), id.clone()));
+        // Skip disabled kits entirely.
+        if kit_cfg.is_some_and(|kc| !kc.enabled) {
+            return;
         }
 
-        for tool in kit.chat_tools() {
-            self.chat_tool_index.push((id.clone(), tool));
+        for def in kit.commands() {
+            let cmd_cfg = kit_cfg.and_then(|kc| kc.commands.get(def.id));
+            let enabled = cmd_cfg.is_none_or(|cc| cc.enabled);
+            let effective_prefix = cmd_cfg
+                .and_then(|cc| cc.prefix.clone())
+                .or_else(|| def.default_prefix.map(String::from));
+
+            self.commands.push(IndexedCommand {
+                kit_id: id.clone(),
+                def,
+                enabled,
+                effective_prefix,
+            });
         }
 
         self.states.insert(id.clone(), KitState::Registered);
@@ -150,46 +173,69 @@ impl KitRegistry {
         }
     }
 
-    /// Find which kit (if any) matches the query.
+    /// Find which command's prefix matches the query.
     ///
-    /// Returns `None` if no kit trigger matches (caller falls back to core
-    /// file search). When a trigger matches but the kit isn't ready, returns
-    /// empty results — never falls through to core search for an explicitly
-    /// invoked kit.
-    pub fn search(&self, query: &str) -> Option<(String, Vec<KitResult>)> {
-        let (trigger, kit_id) =
-            self.search_triggers.iter().find(|(trigger, _)| trigger.matches(query))?;
+    /// Returns `None` if no prefix matches (caller falls back to core search).
+    /// When a prefix matches but the kit isn't ready, returns empty results.
+    pub fn search_by_prefix(&self, query: &str) -> Option<(String, String, Vec<KitResult>)> {
+        let matched = self.commands.iter().find(|ic| {
+            ic.enabled
+                && ic.effective_prefix.as_ref().is_some_and(|p| query.starts_with(p.as_str()))
+        })?;
+
+        let kit_id = &matched.kit_id;
+        let command_id = matched.def.id;
+        let prefix_len = matched.effective_prefix.as_ref().unwrap().len();
 
         if !matches!(self.states.get(kit_id), Some(KitState::Ready)) {
-            // Kit not ready — return empty. The caller spawns lazy init.
-            return Some((kit_id.clone(), vec![]));
+            return Some((kit_id.clone(), command_id.to_string(), vec![]));
         }
 
-        let effective_query = trigger.strip(query);
+        // Strip prefix and optional following space.
+        let after_prefix = &query[prefix_len..];
+        let effective_query = after_prefix.strip_prefix(' ').unwrap_or(after_prefix);
+
         let kit = &self.kits[kit_id];
-        let results = kit.search(effective_query);
-        Some((kit_id.clone(), results))
+        let results = kit.search(command_id, effective_query);
+        Some((kit_id.clone(), command_id.to_string(), results))
+    }
+
+    /// Search within a specific command of a specific kit.
+    pub fn search_command(
+        &self,
+        kit_id: &str,
+        command_id: &str,
+        query: &str,
+    ) -> Result<Vec<KitResult>, KitError> {
+        let kit = self.kits.get(kit_id).ok_or_else(|| KitError::KitNotFound(kit_id.to_string()))?;
+
+        // Validate command_id exists for this kit.
+        if !kit.commands().iter().any(|cmd| cmd.id == command_id) {
+            return Err(KitError::CommandNotFound(command_id.to_string()));
+        }
+
+        Ok(kit.search(command_id, query))
+    }
+
+    /// Execute a command (for `Execute` mode commands).
+    pub async fn execute_command(
+        &self,
+        kit_id: &str,
+        command_id: &str,
+    ) -> Result<CommandOutput, KitError> {
+        let kit = self.kits.get(kit_id).ok_or_else(|| KitError::KitNotFound(kit_id.to_string()))?;
+
+        // Validate command_id exists for this kit.
+        if !kit.commands().iter().any(|cmd| cmd.id == command_id) {
+            return Err(KitError::CommandNotFound(command_id.to_string()));
+        }
+
+        kit.execute(command_id).await
     }
 
     /// Get the lifecycle state of a kit.
     pub fn kit_state(&self, kit_id: &str) -> Option<KitState> {
         self.states.get(kit_id).copied()
-    }
-
-    /// All chat tool definitions for inclusion in API requests.
-    pub fn all_chat_tools(&self) -> &[(String, ChatToolDef)] {
-        &self.chat_tool_index
-    }
-
-    /// Dispatch a chat tool call to the owning kit.
-    pub async fn invoke_chat_tool(
-        &self,
-        kit_id: &str,
-        tool_name: &str,
-        args: serde_json::Value,
-    ) -> Result<serde_json::Value, KitError> {
-        let kit = self.kits.get(kit_id).ok_or_else(|| KitError::KitNotFound(kit_id.to_string()))?;
-        kit.invoke_chat_tool(tool_name, args).await
     }
 
     /// Shutdown all kits and abort their background tasks.
@@ -207,32 +253,45 @@ impl KitRegistry {
         self.task_managers.insert(kit_id.to_string(), tm);
     }
 
-    /// Get metadata about all registered kits for the settings UI.
+    /// Get metadata about all registered kits and their commands.
+    ///
+    /// Only kits that were enabled at registration are present. Each command
+    /// includes its effective enabled/prefix state from the config.
     pub fn kit_infos(&self) -> Vec<KitInfo> {
         self.kits
             .values()
             .map(|kit| {
                 let manifest = kit.manifest();
-                let trigger_label = kit.search_trigger().map(|t| match t {
-                    super::SearchTrigger::Prefix(p) => format!("Prefix: {p}"),
-                    super::SearchTrigger::Keyword(kw) => format!("Keyword: {kw}"),
-                });
+                let commands: Vec<CommandInfo> = self
+                    .commands
+                    .iter()
+                    .filter(|ic| ic.kit_id == manifest.id)
+                    .map(|ic| CommandInfo {
+                        id: ic.def.id.to_string(),
+                        name: ic.def.name.to_string(),
+                        description: ic.def.description.to_string(),
+                        mode: ic.def.mode.clone(),
+                        enabled: ic.enabled,
+                        default_prefix: ic.def.default_prefix.map(String::from),
+                        effective_prefix: ic.effective_prefix.clone(),
+                    })
+                    .collect();
                 KitInfo {
                     id: manifest.id.to_string(),
                     name: manifest.name.to_string(),
                     description: manifest.description.to_string(),
                     icon: manifest.icon.clone(),
-                    trigger: trigger_label,
+                    enabled: true, // only enabled kits are in the registry
+                    commands,
                 }
             })
             .collect()
     }
 
-    /// Return kits whose name matches the query, as discoverable search results.
+    /// Return commands whose name matches the query, as discoverable search results.
     ///
-    /// Uses nucleo fuzzy matching (same as file search) so kits rank
-    /// naturally alongside files and applications. The score includes
-    /// the same application boost as file search.
+    /// Each command is a separate result with `ResultKind::Command`.
+    /// Only enabled commands are included.
     pub fn discovery_results(&self, query: &str) -> Vec<(u32, KitSearchResult)> {
         use nucleo::pattern::{AtomKind, CaseMatching, Normalization, Pattern};
         use nucleo::{Matcher, Utf32Str};
@@ -242,33 +301,33 @@ impl KitRegistry {
         let mut matcher = Matcher::new(nucleo::Config::DEFAULT);
         let mut buf = Vec::new();
 
-        self.kits
-            .values()
-            .filter_map(|kit| {
-                let manifest = kit.manifest();
-                let trigger = kit.search_trigger()?;
-
-                let name_lower = manifest.name.to_lowercase();
+        self.commands
+            .iter()
+            .filter(|ic| ic.enabled)
+            .filter_map(|indexed| {
+                let name_lower = indexed.def.name.to_lowercase();
                 let haystack = Utf32Str::new(&name_lower, &mut buf);
                 let raw_score = pattern.score(haystack, &mut matcher)?;
-                // Same APP_BOOST (10) as file search — kits are like apps.
                 let score = raw_score.saturating_add(crate::search::APP_BOOST);
-
-                let prefix = match trigger {
-                    super::SearchTrigger::Prefix(p) => format!("{p} "),
-                    super::SearchTrigger::Keyword(kw) => format!("{kw} "),
-                };
 
                 Some((
                     score,
                     KitSearchResult {
-                        kit_id: manifest.id.to_string(),
-                        id: format!("kit-discovery:{}", manifest.id),
-                        title: manifest.name.to_string(),
-                        subtitle: Some(manifest.description.to_string()),
-                        icon: Some(manifest.icon.clone()),
+                        kit_id: indexed.kit_id.clone(),
+                        id: format!("cmd-discovery:{}:{}", indexed.kit_id, indexed.def.id),
+                        title: indexed.def.name.to_string(),
+                        subtitle: Some(indexed.def.description.to_string()),
+                        icon: Some(indexed.def.icon.clone()),
+                        kind: ResultKind::Command {
+                            kit_id: indexed.kit_id.clone(),
+                            command_id: indexed.def.id.to_string(),
+                            mode: indexed.def.mode.clone(),
+                        },
                         accessories: Vec::new(),
-                        actions: vec![super::KitAction::ActivateKit { prefix }],
+                        actions: vec![super::KitAction::ActivateCommand {
+                            kit_id: indexed.kit_id.clone(),
+                            command_id: indexed.def.id.to_string(),
+                        }],
                         preview: None,
                         score: Some(score),
                     },
@@ -285,8 +344,25 @@ pub struct KitInfo {
     pub name: String,
     pub description: String,
     pub icon: super::KitIcon,
-    /// Human-readable trigger description (e.g., "Prefix: =").
-    pub trigger: Option<String>,
+    /// Whether the kit is enabled in the user's config.
+    pub enabled: bool,
+    /// Commands this kit provides.
+    pub commands: Vec<CommandInfo>,
+}
+
+/// Command metadata sent to the frontend.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct CommandInfo {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub mode: CommandMode,
+    /// Whether this command is enabled.
+    pub enabled: bool,
+    /// The default prefix from the kit code.
+    pub default_prefix: Option<String>,
+    /// The effective prefix (config override or default).
+    pub effective_prefix: Option<String>,
 }
 
 impl Default for KitRegistry {
@@ -301,39 +377,18 @@ impl Default for KitRegistry {
 
 impl KitSearchResult {
     /// Convert core file search results into the unified result type.
-    ///
-    /// The `kind` is encoded as a `KitIcon::Named` so the frontend can
-    /// render the appropriate icon (file, directory, application).
     pub fn from_core_search(results: Vec<crate::search::SearchResult>) -> Vec<Self> {
-        results
-            .into_iter()
-            .map(|r| {
-                let kind_str = match r.kind {
-                    crate::indexer::EntryKind::File => "file",
-                    crate::indexer::EntryKind::Directory => "directory",
-                    crate::indexer::EntryKind::Application => "application",
-                };
-                Self {
-                    kit_id: "core".to_string(),
-                    id: r.id,
-                    title: r.name,
-                    subtitle: Some(r.path.clone()),
-                    icon: Some(super::KitIcon::Named(kind_str.to_string())),
-                    accessories: Vec::new(),
-                    actions: vec![super::KitAction::Open { target: r.path }],
-                    preview: None,
-                    score: None,
-                }
-            })
-            .collect()
+        results.into_iter().map(|r| Self::from_core_result(r, 0)).collect()
     }
 
     /// Convert a single core file search result with its score.
     pub fn from_core_result(r: crate::search::SearchResult, score: u32) -> Self {
-        let kind_str = match r.kind {
-            crate::indexer::EntryKind::File => "file",
-            crate::indexer::EntryKind::Directory => "directory",
-            crate::indexer::EntryKind::Application => "application",
+        let (kind, kind_str) = match r.kind {
+            crate::indexer::EntryKind::File => (super::ResultKind::File, "file"),
+            crate::indexer::EntryKind::Directory => (super::ResultKind::Directory, "directory"),
+            crate::indexer::EntryKind::Application => {
+                (super::ResultKind::Application, "application")
+            }
         };
         Self {
             kit_id: "core".to_string(),
@@ -341,6 +396,7 @@ impl KitSearchResult {
             title: r.name,
             subtitle: Some(r.path.clone()),
             icon: Some(super::KitIcon::Named(kind_str.to_string())),
+            kind,
             accessories: Vec::new(),
             actions: vec![super::KitAction::Open { target: r.path }],
             preview: None,
@@ -353,17 +409,24 @@ impl KitSearchResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::kits::{KitIcon, KitManifest};
+    use crate::kits::{CommandDef, CommandMode, KitIcon, KitManifest, ResultKind};
 
-    /// Minimal mock kit for testing.
+    fn default_config() -> crate::config::FlintConfig {
+        crate::config::FlintConfig::default()
+    }
+
+    fn cfg() -> crate::config::FlintConfig {
+        default_config()
+    }
+
     struct MockKit {
         manifest: KitManifest,
-        trigger: Option<SearchTrigger>,
+        cmds: Vec<CommandDef>,
         results: Vec<KitResult>,
     }
 
     impl MockKit {
-        fn new(id: &'static str, trigger: Option<SearchTrigger>) -> Self {
+        fn new(id: &'static str, cmds: Vec<CommandDef>) -> Self {
             Self {
                 manifest: KitManifest {
                     id,
@@ -371,7 +434,7 @@ mod tests {
                     description: "test kit",
                     icon: KitIcon::Emoji("🧪".to_string()),
                 },
-                trigger,
+                cmds,
                 results: Vec::new(),
             }
         }
@@ -388,12 +451,24 @@ mod tests {
             &self.manifest
         }
 
-        fn search_trigger(&self) -> Option<&SearchTrigger> {
-            self.trigger.as_ref()
+        fn commands(&self) -> Vec<CommandDef> {
+            self.cmds.clone()
         }
 
-        fn search(&self, _query: &str) -> Vec<KitResult> {
+        fn search(&self, _command_id: &str, _query: &str) -> Vec<KitResult> {
             self.results.clone()
+        }
+    }
+
+    fn calc_command() -> CommandDef {
+        CommandDef {
+            id: "calculate",
+            name: "Calculator",
+            description: "Evaluate math",
+            icon: KitIcon::Emoji("🧮".to_string()),
+            mode: CommandMode::InputResults,
+            default_prefix: Some("="),
+            default_hotkey: None,
         }
     }
 
@@ -403,6 +478,7 @@ mod tests {
             title: title.to_string(),
             subtitle: None,
             icon: None,
+            kind: ResultKind::File,
             accessories: Vec::new(),
             actions: Vec::new(),
             preview: None,
@@ -410,110 +486,110 @@ mod tests {
         }
     }
 
+    /// Helper: create registry, register a kit, return registry.
+    fn reg_with(kit: MockKit) -> KitRegistry {
+        let mut r = KitRegistry::new();
+        r.register(Box::new(kit), &cfg());
+        r
+    }
+
     #[test]
-    fn search_returns_none_when_no_kits_registered() {
+    fn search_by_prefix_returns_none_when_no_kits_registered() {
         let registry = KitRegistry::new();
-        assert!(registry.search("hello").is_none());
+        assert!(registry.search_by_prefix("hello").is_none());
     }
 
     #[test]
-    fn search_returns_none_when_no_trigger_matches() {
-        let mut registry = KitRegistry::new();
-        registry.register(Box::new(MockKit::new("calc", Some(SearchTrigger::Prefix("=")))));
-        assert!(registry.search("hello").is_none());
+    fn search_by_prefix_returns_none_when_no_prefix_matches() {
+        let registry = reg_with(MockKit::new("calc", vec![calc_command()]));
+        assert!(registry.search_by_prefix("hello").is_none());
     }
 
     #[test]
-    fn search_dispatches_to_matching_prefix_kit() {
-        let mut registry = KitRegistry::new();
-        let kit = MockKit::new("calc", Some(SearchTrigger::Prefix("=")))
-            .with_results(vec![make_result("r1", "42")]);
-        registry.register(Box::new(kit));
+    fn search_by_prefix_dispatches_to_matching_command() {
+        let kit =
+            MockKit::new("calc", vec![calc_command()]).with_results(vec![make_result("r1", "42")]);
+        let registry = reg_with(kit);
 
-        // Kit is Registered, not Ready — returns empty (not None)
-        let result = registry.search("= 2+3");
+        let result = registry.search_by_prefix("= 2+3");
         assert!(result.is_some());
-        let (id, results) = result.unwrap();
-        assert_eq!(id, "calc");
+        let (kit_id, cmd_id, results) = result.unwrap();
+        assert_eq!(kit_id, "calc");
+        assert_eq!(cmd_id, "calculate");
         assert!(results.is_empty()); // not ready yet
     }
 
     #[test]
-    fn search_returns_results_from_ready_kit() {
-        let mut registry = KitRegistry::new();
-        let kit = MockKit::new("calc", Some(SearchTrigger::Prefix("=")))
-            .with_results(vec![make_result("r1", "42")]);
-        registry.register(Box::new(kit));
+    fn search_by_prefix_returns_results_from_ready_kit() {
+        let kit =
+            MockKit::new("calc", vec![calc_command()]).with_results(vec![make_result("r1", "42")]);
+        let mut registry = reg_with(kit);
         registry.states.insert("calc".to_string(), KitState::Ready);
 
-        let result = registry.search("= 2+3");
+        let result = registry.search_by_prefix("= 2+3");
         assert!(result.is_some());
-        let (id, results) = result.unwrap();
-        assert_eq!(id, "calc");
+        let (kit_id, _, results) = result.unwrap();
+        assert_eq!(kit_id, "calc");
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].title, "42");
     }
 
     #[test]
-    fn search_dispatches_to_matching_keyword_kit() {
-        let mut registry = KitRegistry::new();
-        let kit = MockKit::new("weather", Some(SearchTrigger::Keyword("weather")))
-            .with_results(vec![make_result("w1", "Sunny 72°F")]);
-        registry.register(Box::new(kit));
-        registry.states.insert("weather".to_string(), KitState::Ready);
-
-        let result = registry.search("weather SF");
-        assert!(result.is_some());
-        let (id, results) = result.unwrap();
-        assert_eq!(id, "weather");
-        assert_eq!(results.len(), 1);
-    }
-
-    #[test]
-    fn search_does_not_fallthrough_for_failed_kit() {
-        let mut registry = KitRegistry::new();
-        registry.register(Box::new(MockKit::new("calc", Some(SearchTrigger::Prefix("=")))));
+    fn search_by_prefix_does_not_fallthrough_for_failed_kit() {
+        let mut registry = reg_with(MockKit::new("calc", vec![calc_command()]));
         registry.states.insert("calc".to_string(), KitState::Failed);
 
-        // Trigger matches but kit failed → returns Some with empty, not None
-        let result = registry.search("= 2+3");
+        let result = registry.search_by_prefix("= 2+3");
         assert!(result.is_some());
-        let (_, results) = result.unwrap();
+        let (_, _, results) = result.unwrap();
         assert!(results.is_empty());
     }
 
     #[test]
-    fn first_matching_trigger_wins() {
+    fn first_matching_prefix_wins() {
         let mut registry = KitRegistry::new();
-        registry.register(Box::new(
-            MockKit::new("kit-a", Some(SearchTrigger::Prefix("=")))
-                .with_results(vec![make_result("a1", "from A")]),
-        ));
-        registry.register(Box::new(
-            MockKit::new("kit-b", Some(SearchTrigger::Prefix("=")))
-                .with_results(vec![make_result("b1", "from B")]),
-        ));
+        registry.register(
+            Box::new(
+                MockKit::new("kit-a", vec![calc_command()])
+                    .with_results(vec![make_result("a1", "from A")]),
+            ),
+            &cfg(),
+        );
+        let mut cmd = calc_command();
+        cmd.id = "calc-b";
+        registry.register(
+            Box::new(
+                MockKit::new("kit-b", vec![cmd]).with_results(vec![make_result("b1", "from B")]),
+            ),
+            &cfg(),
+        );
         registry.states.insert("kit-a".to_string(), KitState::Ready);
         registry.states.insert("kit-b".to_string(), KitState::Ready);
 
-        let (id, _) = registry.search("= test").unwrap();
+        let (id, _, _) = registry.search_by_prefix("= test").unwrap();
         assert_eq!(id, "kit-a");
+    }
+
+    #[test]
+    fn search_by_prefix_strips_prefix_and_space() {
+        let kit =
+            MockKit::new("calc", vec![calc_command()]).with_results(vec![make_result("r1", "5")]);
+        let mut registry = reg_with(kit);
+        registry.states.insert("calc".to_string(), KitState::Ready);
+
+        assert!(registry.search_by_prefix("= 2+3").is_some());
+        assert!(registry.search_by_prefix("=2+3").is_some());
     }
 
     #[test]
     fn task_manager_spawn_and_abort() {
         let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
-
         rt.block_on(async {
             let mut tm = TaskManager::new();
             assert_eq!(tm.len(), 0);
-
             tm.spawn(async { tokio::time::sleep(std::time::Duration::from_secs(100)).await });
             assert_eq!(tm.len(), 1);
-
             tm.abort_all();
-            // After abort, the spawned task should be cancelled.
-            // Give it a moment to propagate.
             tokio::time::sleep(std::time::Duration::from_millis(10)).await;
         });
     }
@@ -521,35 +597,18 @@ mod tests {
     #[test]
     fn shutdown_aborts_all_task_managers() {
         let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
-
         rt.block_on(async {
-            let mut registry = KitRegistry::new();
-            registry.register(Box::new(MockKit::new("calc", None)));
-
+            let mut registry = reg_with(MockKit::new("calc", vec![]));
             let mut tm = TaskManager::new();
             tm.spawn(async { tokio::time::sleep(std::time::Duration::from_secs(100)).await });
             registry.set_task_manager("calc", tm);
-
             registry.shutdown_all().await;
-            // No panic = success; tasks were aborted cleanly.
         });
     }
 
     #[test]
-    fn register_builds_trigger_index() {
-        let mut registry = KitRegistry::new();
-        registry.register(Box::new(MockKit::new("calc", Some(SearchTrigger::Prefix("=")))));
-        registry.register(Box::new(MockKit::new("weather", None)));
-
-        assert_eq!(registry.search_triggers.len(), 1);
-        assert_eq!(registry.search_triggers[0].1, "calc");
-    }
-
-    #[test]
     fn register_sets_state_to_registered() {
-        let mut registry = KitRegistry::new();
-        registry.register(Box::new(MockKit::new("calc", None)));
-
+        let registry = reg_with(MockKit::new("calc", vec![]));
         assert_eq!(registry.kit_state("calc"), Some(KitState::Registered));
     }
 
@@ -561,82 +620,185 @@ mod tests {
             path: "/tmp/foo.txt".to_string(),
             kind: crate::indexer::EntryKind::File,
         }];
-
         let converted = KitSearchResult::from_core_search(core);
         assert_eq!(converted.len(), 1);
         assert_eq!(converted[0].kit_id, "core");
         assert_eq!(converted[0].title, "foo.txt");
-        assert_eq!(converted[0].subtitle.as_deref(), Some("/tmp/foo.txt"));
-        assert!(matches!(
-            converted[0].actions.first(),
-            Some(super::super::KitAction::Open { target }) if target == "/tmp/foo.txt"
-        ));
+        assert!(matches!(converted[0].kind, super::super::ResultKind::File));
     }
 
     #[test]
-    fn from_core_search_encodes_kind_as_named_icon() {
+    fn from_core_search_encodes_kind_correctly() {
         let core = vec![crate::search::SearchResult {
             id: "/app/Slack".to_string(),
             name: "Slack".to_string(),
             path: "/app/Slack".to_string(),
             kind: crate::indexer::EntryKind::Application,
         }];
-
         let converted = KitSearchResult::from_core_search(core);
-        assert!(matches!(
-            &converted[0].icon,
-            Some(super::super::KitIcon::Named(kind)) if kind == "application"
-        ));
+        assert!(matches!(converted[0].kind, super::super::ResultKind::Application));
     }
 
     #[test]
     fn from_kit_result_preserves_fields() {
         let result = make_result("r1", "Hello");
         let converted = KitSearchResult::from_kit_result("my-kit", result);
-
         assert_eq!(converted.kit_id, "my-kit");
         assert_eq!(converted.id, "r1");
         assert_eq!(converted.title, "Hello");
     }
 
     #[test]
-    fn discovery_returns_matching_kits() {
-        let mut registry = KitRegistry::new();
-        registry.register(Box::new(MockKit::new("calc", Some(SearchTrigger::Prefix("=")))));
-
+    fn discovery_returns_matching_commands() {
+        let registry = reg_with(MockKit::new("calc", vec![calc_command()]));
         let results = registry.discovery_results("calc");
         assert_eq!(results.len(), 1);
         let (score, result) = &results[0];
-        assert_eq!(result.title, "calc"); // MockKit uses id as name
+        assert_eq!(result.title, "Calculator");
         assert!(*score > 0);
         assert!(matches!(
-            &result.actions[0],
-            super::super::KitAction::ActivateKit { prefix } if prefix == "= "
+            &result.kind,
+            super::super::ResultKind::Command { kit_id, command_id, mode }
+            if kit_id == "calc" && command_id == "calculate" && *mode == CommandMode::InputResults
         ));
     }
 
     #[test]
     fn discovery_is_case_insensitive() {
-        let mut registry = KitRegistry::new();
-        registry.register(Box::new(MockKit::new("calc", Some(SearchTrigger::Prefix("=")))));
-
+        let registry = reg_with(MockKit::new("calc", vec![calc_command()]));
         assert_eq!(registry.discovery_results("CALC").len(), 1);
         assert_eq!(registry.discovery_results("Calc").len(), 1);
     }
 
     #[test]
     fn discovery_returns_empty_for_no_match() {
-        let mut registry = KitRegistry::new();
-        registry.register(Box::new(MockKit::new("calc", Some(SearchTrigger::Prefix("=")))));
-
+        let registry = reg_with(MockKit::new("calc", vec![calc_command()]));
         assert!(registry.discovery_results("weather").is_empty());
     }
 
     #[test]
-    fn discovery_skips_kits_without_triggers() {
-        let mut registry = KitRegistry::new();
-        registry.register(Box::new(MockKit::new("chat-only", None)));
-
+    fn discovery_skips_kits_without_commands() {
+        let registry = reg_with(MockKit::new("chat-only", vec![]));
         assert!(registry.discovery_results("chat").is_empty());
+    }
+
+    #[test]
+    fn kit_infos_includes_commands() {
+        let registry = reg_with(MockKit::new("calc", vec![calc_command()]));
+        let infos = registry.kit_infos();
+        assert_eq!(infos.len(), 1);
+        assert_eq!(infos[0].commands.len(), 1);
+        assert_eq!(infos[0].commands[0].id, "calculate");
+        assert_eq!(infos[0].commands[0].effective_prefix.as_deref(), Some("="));
+    }
+
+    #[test]
+    fn search_command_returns_results_for_valid_command() {
+        let kit =
+            MockKit::new("calc", vec![calc_command()]).with_results(vec![make_result("r1", "42")]);
+        let mut registry = reg_with(kit);
+        registry.states.insert("calc".to_string(), KitState::Ready);
+
+        let results = registry.search_command("calc", "calculate", "2+3").unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title, "42");
+    }
+
+    #[test]
+    fn search_command_rejects_unknown_kit() {
+        let registry = KitRegistry::new();
+        assert!(registry.search_command("nonexistent", "calculate", "2+3").is_err());
+    }
+
+    #[test]
+    fn search_command_rejects_unknown_command_id() {
+        let mut registry = reg_with(MockKit::new("calc", vec![calc_command()]));
+        registry.states.insert("calc".to_string(), KitState::Ready);
+        assert!(registry.search_command("calc", "nonexistent", "2+3").is_err());
+    }
+
+    #[test]
+    fn execute_command_rejects_unknown_command_id() {
+        let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
+        rt.block_on(async {
+            let mut registry = reg_with(MockKit::new("calc", vec![calc_command()]));
+            registry.states.insert("calc".to_string(), KitState::Ready);
+            assert!(registry.execute_command("calc", "nonexistent").await.is_err());
+        });
+    }
+
+    #[test]
+    fn disabled_kit_not_registered() {
+        let mut cfg = default_config();
+        cfg.kits.insert(
+            "calc".to_string(),
+            crate::config::KitConfig { enabled: false, ..Default::default() },
+        );
+        let mut registry = KitRegistry::new();
+        registry.register(Box::new(MockKit::new("calc", vec![calc_command()])), &cfg);
+
+        // Kit was not registered at all
+        assert!(registry.search_by_prefix("= 2+3").is_none());
+        assert!(registry.discovery_results("calc").is_empty());
+        assert!(registry.kit_infos().is_empty());
+    }
+
+    #[test]
+    fn disabled_command_excluded_from_search_and_discovery() {
+        let mut cfg = default_config();
+        cfg.kits.insert(
+            "calc".to_string(),
+            crate::config::KitConfig {
+                enabled: true,
+                commands: {
+                    let mut m = std::collections::HashMap::new();
+                    m.insert(
+                        "calculate".to_string(),
+                        crate::config::CommandConfig { enabled: false, prefix: None },
+                    );
+                    m
+                },
+                ..Default::default()
+            },
+        );
+        let mut registry = KitRegistry::new();
+        registry.register(Box::new(MockKit::new("calc", vec![calc_command()])), &cfg);
+        registry.states.insert("calc".to_string(), KitState::Ready);
+
+        assert!(registry.search_by_prefix("= 2+3").is_none());
+        assert!(registry.discovery_results("calc").is_empty());
+    }
+
+    #[test]
+    fn config_prefix_override_used_in_search() {
+        let mut cfg = default_config();
+        cfg.kits.insert(
+            "calc".to_string(),
+            crate::config::KitConfig {
+                enabled: true,
+                commands: {
+                    let mut m = std::collections::HashMap::new();
+                    m.insert(
+                        "calculate".to_string(),
+                        crate::config::CommandConfig {
+                            enabled: true,
+                            prefix: Some("//".to_string()),
+                        },
+                    );
+                    m
+                },
+                ..Default::default()
+            },
+        );
+        let kit =
+            MockKit::new("calc", vec![calc_command()]).with_results(vec![make_result("r1", "5")]);
+        let mut registry = KitRegistry::new();
+        registry.register(Box::new(kit), &cfg);
+        registry.states.insert("calc".to_string(), KitState::Ready);
+
+        // Old prefix should not match
+        assert!(registry.search_by_prefix("= 2+3").is_none());
+        // New prefix should match
+        assert!(registry.search_by_prefix("// 2+3").is_some());
     }
 }

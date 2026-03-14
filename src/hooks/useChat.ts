@@ -2,11 +2,6 @@ import { useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { useChatStore } from "../stores/chatStore";
 
-interface ToolInfo {
-  kit_id: string | null;
-  tool_name: string;
-}
-
 /**
  * Subscribes to Tauri chat events and forwards them to the chat store.
  *
@@ -30,24 +25,13 @@ export function useChat(): void {
       const errorUn = await listen<string>("chat:error", (event) => {
         useChatStore.getState().setError(event.payload);
       });
-      const toolStartUn = await listen<ToolInfo>("chat:tool-start", (event) => {
-        useChatStore.getState().addToolCall({
-          kitId: event.payload.kit_id,
-          toolName: event.payload.tool_name,
-        });
-      });
-      const toolDoneUn = await listen<ToolInfo>("chat:tool-done", (event) => {
-        useChatStore.getState().removeToolCall(event.payload.tool_name);
-      });
 
       if (cancelled) {
         tokenUn();
         doneUn();
         errorUn();
-        toolStartUn();
-        toolDoneUn();
       } else {
-        unlisteners.push(tokenUn, doneUn, errorUn, toolStartUn, toolDoneUn);
+        unlisteners.push(tokenUn, doneUn, errorUn);
       }
     };
 

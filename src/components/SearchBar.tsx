@@ -22,6 +22,7 @@ export default function SearchBar({
   const isLoading = useSearchStore((s) => s.isLoading);
   const setQuery = useSearchStore((s) => s.setQuery);
   const mode = useSearchStore((s) => s.mode);
+  const activeCommand = useSearchStore((s) => s.activeCommand);
   const isStreaming = useChatStore((s) => s.isStreaming);
 
   const chatMode = mode === "chat";
@@ -77,7 +78,13 @@ export default function SearchBar({
 
   return (
     <div className={chatMode ? styles.wrapperChat : styles.wrapper}>
-      {icon}
+      {!activeCommand && icon}
+
+      {activeCommand && (
+        <span className={styles.chip} data-testid="command-chip">
+          {activeCommand.name}
+        </span>
+      )}
 
       <input
         ref={inputRef}
@@ -88,7 +95,13 @@ export default function SearchBar({
           setQuery(e.target.value);
         }}
         onKeyDown={handleKeyDown}
-        placeholder={chatMode ? "Ask anything..." : "Search files..."}
+        placeholder={
+          activeCommand
+            ? `Search ${activeCommand.name}...`
+            : chatMode
+              ? "Ask anything..."
+              : "Search files..."
+        }
         spellCheck={false}
         autoComplete="off"
         aria-label="Search"

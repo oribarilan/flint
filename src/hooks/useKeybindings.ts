@@ -89,6 +89,13 @@ export function useKeybindings(actions: KeybindingActions): void {
       if (e.key === "Escape") {
         e.preventDefault();
 
+        // Layer 0: pop command chip (return to main search)
+        if (useSearchStore.getState().activeCommand) {
+          useSearchStore.getState().deactivateCommand();
+          actions.onFocusSearchBar();
+          return;
+        }
+
         // Layer 1: clear input text (stay in current mode)
         if (useSearchStore.getState().query.length > 0) {
           useSearchStore.setState({

@@ -15,6 +15,7 @@ beforeEach(() => {
     results: [],
     selectedIndex: 0,
     isLoading: false,
+    activeCommand: null,
   });
   useChatStore.setState({
     messages: [],
@@ -147,5 +148,35 @@ describe("SearchBar", () => {
 
     const kbd = container.querySelector("kbd");
     expect(kbd).toBeNull();
+  });
+
+  it("renders chip when activeCommand is set", () => {
+    useSearchStore.setState({
+      activeCommand: { kitId: "calc", commandId: "calculate", name: "Calculator" },
+    });
+    render(<SearchBar onArrowDown={vi.fn()} />);
+
+    const chip = screen.getByTestId("command-chip");
+    expect(chip).toBeTruthy();
+    expect(chip.textContent).toContain("Calculator");
+  });
+
+  it("shows command-specific placeholder when chip is active", () => {
+    useSearchStore.setState({
+      activeCommand: { kitId: "calc", commandId: "calculate", name: "Calculator" },
+    });
+    render(<SearchBar onArrowDown={vi.fn()} />);
+
+    expect(screen.getByPlaceholderText("Search Calculator...")).toBeTruthy();
+  });
+
+  it("hides search icon when chip is active", () => {
+    useSearchStore.setState({
+      activeCommand: { kitId: "calc", commandId: "calculate", name: "Calculator" },
+    });
+    const { container } = render(<SearchBar onArrowDown={vi.fn()} />);
+
+    const svg = container.querySelector("svg");
+    expect(svg).toBeNull();
   });
 });

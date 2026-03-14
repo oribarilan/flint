@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flint Icon — Stone Variants</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e;
+    color: #e0e0e0;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+    padding: 40px;
+    min-height: 100vh;
+  }
+  h1 {
+    text-align: center;
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #f97316, #fb923c, #fbbf24);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .subtitle {
+    text-align: center;
+    color: #888;
+    font-size: 14px;
+    margin-bottom: 48px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 32px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .card:hover {
+    border-color: rgba(249, 115, 22, 0.3);
+    background: rgba(255,255,255,0.06);
+  }
+  .card-number {
+    position: relative;
+    align-self: flex-start;
+    font-size: 11px;
+    font-weight: 700;
+    color: #f97316;
+    background: rgba(249,115,22,0.12);
+    padding: 2px 10px;
+    border-radius: 99px;
+    margin-bottom: 16px;
+    letter-spacing: 0.5px;
+  }
+  .icon-container {
+    width: 128px;
+    height: 128px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+  .icon-container svg {
+    width: 128px;
+    height: 128px;
+  }
+  .card h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .card .desc {
+    font-size: 12px;
+    color: #777;
+    text-align: center;
+    margin-bottom: 12px;
+    max-width: 260px;
+    line-height: 1.5;
+  }
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+  }
+  .tag {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 99px;
+    background: rgba(255,255,255,0.06);
+    color: #aaa;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  /* Dock section */
+  .dock-section {
+    margin-top: 80px;
+    max-width: 1400px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .dock-section h2 {
+    text-align: center;
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .dock-subtitle {
+    text-align: center;
+    color: #888;
+    font-size: 13px;
+    margin-bottom: 32px;
+  }
+  .dock-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 12px 20px 10px;
+    margin-bottom: 24px;
+    overflow-x: auto;
+  }
+  .dock-icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .dock-icon svg {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    transition: transform 0.15s;
+  }
+  .dock-icon:hover svg {
+    transform: scale(1.2) translateY(-4px);
+  }
+  .dock-label {
+    font-size: 9px;
+    color: #777;
+    max-width: 56px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .dock-separator {
+    width: 1px;
+    height: 48px;
+    background: rgba(255,255,255,0.1);
+    margin: 0 8px;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+<h1>Flint — Chevron Variants</h1>
+<p class="subtitle">10 variations on a chevron / arrowhead motif · simple → complex</p>
+
+<div class="grid">
+
+  <!-- ====== 1. Clean Chevron ====== -->
+  <div class="card">
+    <span class="card-number">#1</span>
+    <div class="icon-container">
+      <svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#f97316"/>
+            <stop offset="100%" stop-color="#ea580c"/>
+          </linearGradient>
+        </defs>
+        <rect x="4" y="4" width="120" height="120" rx="28" fill="#141414"/>
+        <path d="M36 86 L64 30 L92 86" fill="none" stroke="url(#g1)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <h3>Clean Chevron</h3>
+    <p class="desc">Single upward chevron stroke. Maximum simplicity.</p>
+    <div class="tags">
+      <span class="tag">ultra-minimal</span>
+      <span class="tag">outline</span>
+      <span class="tag">clean</span>
+    </div>
+  </div>
+
+  <!-- ====== 2. Solid Arrowhead ====== -->
+  <div class="card">
+    <span class="card-number">#2</span>
+    <div class="icon-container">
+      <svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="g2" x1="0.5" y1="0" x2="0.5" y2="1">
+            <stop offset="0%" stop-color="#fbbf24"/>
+            <stop offset="100%" stop-color="#c2410c"/>
+          </linearGradient>
+        </defs>
+        <rect x="4" y="4" width="120" height="120" rx="28" fill="#141414"/>
+        <path d="M64 24 L92 88 L64 72 L36 88 Z" fill="url(#g2)"/>
+      </svg>
+    </div>
+    <h3>Solid Arrowhead</h3>
+    <p class="desc">Filled flint arrowhead — the original tool. Notched base.</p>
+    <div class="tags">
+      <span class="tag">solid</span>
+      <span class="tag">arrowhead</span>
+      <span class="tag">warm-gradient</span>
+      <span class="tag">primitive</span>
+    </div>
+  </div>
+
+  <!-- ====== 3. Chevron + Spark ====== -->
+  <div class="card">
+    <span class="card-number">#3</span>
+    <div class="icon-container">
+      <svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="g3a" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#f97316"/>
+            <stop offset="100%" stop-color="#ea580c"/>
+          </linearGradient>
+          <linearGradient id="g3b" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#fbbf24"/>
+            <stop offset="100%" stop-color="#f59e0b"/>
+          </linearGradient>
+          <filter id="glow3" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <rect x="4" y="4" width="120" height="120" rx="28" fill="#141414"/>
+        <rect x="4" y="4" width="120" height="120" rx="28" fill="url(#g3a)" opacity="0.08"/>
+        <!-- Chevron -->
+        <path d="M36 86 L64 30 L92 86" fill="none" stroke="url(#g3a)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M36 86 L64 30 L92 86" fill="url(#g3a)" opacity="0.1"/>
+        <!-- Sparks from tip -->
+        <g filter="url(#glow3)">
+          <line x1="64" y1="30" x2="64" y2="16" stroke="url(#g3b)" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="64" y1="30" x2="76" y2="18" stroke="url(#g3b)" stroke-width="2" stroke-linecap="round"/>
+          <line x1="64" y1="30" x2="52" y2="18" stroke="url(#g3b)" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="64" cy="14" r="2.5" fill="#fbbf24"/>
+          <circle cx="78" cy="16" r="1.8" fill="#fbbf24" opacity="0.7"/>
+          <circle cx="50" cy="16" r="1.8" fill="#fbbf24" opacity="0.7"/>
+        </g>
+      </svg>
+    </div>
+    <h3>Chevron Spark</h3>
+    <p class="desc">Outline chevron with spark burst from the apex. The "original stone" feel.</p>
+    <div class="tags">
+      <span class="tag">baseline</span>
+      <span class="tag">geometric</span>
+      <span class="tag">spark</span>
+      <span class="tag">symmetrical</span>
+    </div>
+  </div>
+
+  <!-- ====== 4. Thick Rounded Chevron ====== -->
+  <div class="card">
+    <span class="card-number">#4</span>
+    <div class="icon-container">
+      <svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="g4" x1="0.5" y1="0" x2="0.5" y2="1">
+            <stop offset="0%" stop-color="#fb923c"/>
+            <stop offset="100%" stop-color="#ea580c"/>
+          </linearGradient>
+        </defs>
+        <rect x="4" y="4" width="120" height="120" rx="28" fill="#141414"/>
+        <path d="M32 88 L64 28 L96 88" fill="none" stroke="url(#g4)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <h3>Thick Rounded</h3>
+    <p class="desc">Heavy stroke weight with rounded caps. Soft and approachable.</p>
+    <div class="tags">
+      <span class="tag">thick</span>
+      <span class="tag">rounded</span>
+      <span class="tag">friendly</span>
+      <span class="tag">bold</span>
+    </div>
+  </div>
+
+  <!-- ====== 5. Double Chevron ====== -->
+  <div class="card">
+    <span class="card-number">#5</span>
+    <div class="icon-container">
+      <svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="g5a" x1="0.5" y1="0" x2="0.5" y2="1">
+            <stop offset="0%" stop-color="#fbbf24"/>
+            <stop offset="100%" stop-color="#f97316"/>
+          </linearGradient>
+          <linearGradient id="g5b" x1="0.5" y1="0" x2="0.5" y2="1">
+            <stop offset="0%" stop-color="#f97316"/>
+            <stop offset="100%" stop-color="#c2410c"/>
+          </linearGradient>
+        </defs>
+        <rect x="4" y="4" width="120" height="120" rx="28" fill="#111"/>
+        <!-- Front chevron -->
+        <path d="M36 78 L64 26 L92 78" fill="none" stroke="url(#g5a)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Back chevron (offset down) -->
+        <path d="M36 98 L64 46 L92 98" fill="none" stroke="url(#g5b)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.45"/>
+      </svg>
+    </div>
+    <h3>Double Chevron</h3>
+    <p class="desc">Stacked chevrons create depth and a sense of motion upward.</p>
+    <div class="tags">
+      <span class="tag">layered</span>
+      <span class="tag">motion</span>
+      <span class="tag">depth</span>
+      <span class="tag">elegant</span>
+    </div>
+  </div>
+
+  <!-- ====== 6. Faceted Arrowhead ====== -->
+  <div class="card">
+    <span class="card-number">#6</span>
+    <div class="icon-container">
+      <svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="g6a" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#fbbf24"/>
+            <stop offset="100%" stop-color="#f97316"/>
+          </linearGradient>
+          <linearGradient id="g6spark" x1="0" y1="1" x2="1" y2="0">
+            <stop offset="0%" stop-color="#f97316"/>
+            <stop offset="100%" stop-color="#fbbf24"/>
+          </linearGradient>
+          <filter id="glow6" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="2.5" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <rect x="4" y="4" width="120" height="120" rx="28" fill="#0f0f0f"/>
+        <!-- Arrowhead with center spine -->
+        <!-- Left facet -->
+        <polygon points="64,24 36,88 64,72" fill="#f97316" opacity="0.35"/>
+        <!-- Right facet -->
+        <polygon points="64,24 92,88 64,72" fill="#fb923c" opacity="0.5"/>
+        <!-- Outer stroke -->
+        <path d="M64 24 L36 88 L64 72 L92 88 Z" fill="none" stroke="#f97316" stroke-width="2.5" stroke-linejoin="round" opacity="0.8"/>
+        <!-- Center spine -->
+        <line x1="64" y1="24" x2="64" y2="72" stroke="#fbbf24" stroke-width="1" opacity="0.4"/>
+        <!-- Spark -->
+        <g filter="url(#glow6)">
+          <line x1="64" y1="24" x2="64" y2="12" stroke="url(#g6spark)" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="64" y1="24" x2="74" y2="14" stroke="url(#g6spark)" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="64" cy="10" r="2" fill="#fbbf24"/>
+          <circle cx="76" cy="12" r="1.5" fill="#fbbf24" opacity="0.6"/>
+        </g>
+      </svg>
+    </div>
+    <h3>Faceted Arrowhead</h3>
+    <p class="desc">Notched arrowhead with left/right facets at different brightness + center spine.</p>
+    <div class="tags">
+      <span class="tag">faceted</span>
+      <span class="tag">arrowhead</span>
+      <span class="tag">knapped</span>
+      <span class="tag">spark</span>
+      <span class="tag">two-tone</span>
+    </div>
+  </div>
+
+  <!-- ====== 7. Negative Space Chevron ====== -->
+  <div class="card">
+    <span class="card-number">#7</span>
+    <div class="icon-container">
+      <svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="g7bg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#f97316"/>
+            <stop offset="100%" stop-color="#c2410c"/>
+          </linearGradient>
+          <mask id="chevMask">
+            <rect x="4" y="4" width="120" height="120" rx="28" fill="white"/>
+            <path d="M34 90 L64 26 L94 90 L64 74 Z" fill="black"/>
+          </mask>
+          <filter id="glow7" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="2.5" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <rect x="4" y="4" width="120" height="120" rx="28" fill="url(#g7bg)" mask="url(#chevMask)"/>
+        <path d="M34 90 L64 26 L94 90 L64 74 Z" fill="none" stroke="#fbbf24" stroke-width="0.75" opacity="0.25"/>
+        <!-- Spark at tip -->
+        <g filter="url(#glow7)">
+          <line x1="64" y1="26" x2="64" y2="14" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="64" y1="26" x2="74" y2="16" stroke="#fbbf24" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="64" cy="12" r="2" fill="#fbbf24"/>
+        </g>
+      </svg>
+    </div>
+    <h3>Negative Space</h3>
+    <p class="desc">Arrowhead cut out of warm gradient. The void is the icon.</p>
+    <div class="tags">
+      <span class="tag">negative-space</span>
+      <span class="tag">inverted</span>
+      <span class="tag">bold-bg</span>
+      <span class="tag">modern</span>
+    </div>
+  </div>
+
+  <!-- ====== 8. Gray Steel + Hot Tip ====== -->
+  <div class="card">
+    <span class="card-number">#8</span>
+    <div class="icon-container">
+      <svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="g8steel" x1="0.5" y1="0" x2="0.5" y2="1">
+            <stop offset="0%" stop-color="#a8a29e"/>
+            <stop offset="100%" stop-color="#44403c"/>
+          </linearGradient>
+          <linearGradient id="g8hot" x1="0.5" y1="1" x2="0.5" y2="0">
+            <stop offset="0%" stop-color="#ea580c"/>
+            <stop offset="40%" stop-color="#f97316"/>
+            <stop offset="100%" stop-color="#fbbf24"/>
+          </linearGradient>
+          <linearGradient id="g8spark" x1="0.5" y1="1" x2="0.5" y2="0">
+            <stop offset="0%" stop-color="#f97316"/>
+            <stop offset="100%" stop-color="#fbbf24"/>
+          </linearGradient>
+          <filter id="glow8" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3.5" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <rect x="4" y="4" width="120" height="120" rx="28" fill="#0a0a0a"/>
+        <!-- Chevron body in gray steel -->
+        <path d="M34 92 L64 28 L94 92" fill="none" stroke="url(#g8steel)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Hot glowing tip overlay (just the top portion) -->
+        <path d="M50 60 L64 28 L78 60" fill="none" stroke="url(#g8hot)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Spark burst from tip -->
+        <g filter="url(#glow8)">
+          <circle cx="64" cy="28" r="6" fill="#f97316" opacity="0.25"/>
+          <circle cx="64" cy="28" r="3" fill="#fbbf24" opacity="0.6"/>
+          <circle cx="64" cy="28" r="1.5" fill="#fef3c7"/>
+          <line x1="64" y1="28" x2="64" y2="12" stroke="url(#g8spark)" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="64" y1="28" x2="78" y2="16" stroke="url(#g8spark)" stroke-width="2" stroke-linecap="round"/>
+          <line x1="64" y1="28" x2="50" y2="16" stroke="url(#g8spark)" stroke-width="2" stroke-linecap="round"/>
+          <line x1="64" y1="28" x2="72" y2="14" stroke="url(#g8spark)" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="64" y1="28" x2="56" y2="14" stroke="url(#g8spark)" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="64" cy="10" r="2" fill="#fbbf24"/>
+          <circle cx="80" cy="14" r="1.5" fill="#fbbf24" opacity="0.7"/>
+          <circle cx="48" cy="14" r="1.5" fill="#fbbf24" opacity="0.7"/>
+          <circle cx="73" cy="12" r="1" fill="#fef3c7" opacity="0.8"/>
+        </g>
+      </svg>
+    </div>
+    <h3>Gray Steel, Hot Tip</h3>
+    <p class="desc">Gray steel chevron with a glowing hot tip fading into the body. Big spark burst.</p>
+    <div class="tags">
+      <span class="tag">contrast</span>
+      <span class="tag">steel</span>
+      <span class="tag">hot-tip</span>
+      <span class="tag">dramatic</span>
+      <span class="tag">radiating</span>
+    </div>
+  </div>
+
+  <!-- ====== 9. Shattered Chevron ====== -->
+  <div class="card">
+    <span class="card-number">#9</span>
+    <div class="icon-container">
+      <svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="g9" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#f97316"/>
+            <stop offset="100%" stop-color="#ea580c"/>
+          </linearGradient>
+          <linearGradient id="g9spark" x1="0.5" y1="1" x2="0.5" y2="0">
+            <stop offset="0%" stop-color="#f97316"/>
+            <stop offset="100%" stop-color="#fbbf24"/>
+          </linearGradient>
+          <filter id="glow9" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <rect x="4" y="4" width="120" height="120" rx="28" fill="#0e0e0e"/>
+        <!-- Left arm fragment -->
+        <path d="M34 90 L58 40 L64 52 L44 90 Z" fill="url(#g9)" opacity="0.3"/>
+        <path d="M34 90 L58 40 L64 52 L44 90 Z" fill="none" stroke="url(#g9)" stroke-width="2" stroke-linejoin="round"/>
+        <!-- Right arm fragment (offset slightly) -->
+        <path d="M94 90 L70 40 L64 52 L84 90 Z" fill="url(#g9)" opacity="0.3" transform="translate(2, -3)"/>
+        <path d="M94 90 L70 40 L64 52 L84 90 Z" fill="none" stroke="url(#g9)" stroke-width="2" stroke-linejoin="round" transform="translate(2, -3)"/>
+        <!-- Apex tip chip flying off -->
+        <path d="M58 40 L64 24 L70 40 Z" fill="url(#g9)" opacity="0.45" transform="translate(0, -5)"/>
+        <path d="M58 40 L64 24 L70 40 Z" fill="none" stroke="url(#g9)" stroke-width="1.5" stroke-linejoin="round" transform="translate(0, -5)"/>
+        <!-- Spark from fracture point -->
+        <g filter="url(#glow9)">
+          <circle cx="64" cy="42" r="4" fill="#fbbf24" opacity="0.4"/>
+          <circle cx="64" cy="42" r="2" fill="#fef3c7" opacity="0.8"/>
+          <line x1="64" y1="42" x2="64" y2="28" stroke="url(#g9spark)" stroke-width="2" stroke-linecap="round"/>
+          <line x1="64" y1="42" x2="76" y2="32" stroke="url(#g9spark)" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="64" y1="42" x2="52" y2="32" stroke="url(#g9spark)" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="64" cy="26" r="1.5" fill="#fbbf24" opacity="0.7"/>
+        </g>
+      </svg>
+    </div>
+    <h3>Shattered Chevron</h3>
+    <p class="desc">Chevron splitting apart at the apex, fragments separating with sparks.</p>
+    <div class="tags">
+      <span class="tag">shattered</span>
+      <span class="tag">kinetic</span>
+      <span class="tag">fragments</span>
+      <span class="tag">dynamic</span>
+      <span class="tag">complex</span>
+    </div>
+  </div>
+
+  <!-- ====== 10. Full Render Chevron ====== -->
+  <div class="card">
+    <span class="card-number">#10</span>
+    <div class="icon-container">
+      <svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="g10left" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#78716c"/>
+            <stop offset="100%" stop-color="#44403c"/>
+          </linearGradient>
+          <linearGradient id="g10right" x1="1" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#a8a29e"/>
+            <stop offset="100%" stop-color="#57534e"/>
+          </linearGradient>
+          <linearGradient id="g10spark" x1="0.5" y1="1" x2="0.5" y2="0">
+            <stop offset="0%" stop-color="#f97316"/>
+            <stop offset="100%" stop-color="#fbbf24"/>
+          </linearGradient>
+          <radialGradient id="g10glow" cx="0.5" cy="0.2" r="0.35">
+            <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.2"/>
+            <stop offset="100%" stop-color="#fbbf24" stop-opacity="0"/>
+          </radialGradient>
+          <filter id="glow10" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="4" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <filter id="innerShadow10">
+            <feOffset dx="1" dy="2"/>
+            <feGaussianBlur stdDeviation="2"/>
+            <feComposite operator="out" in="SourceGraphic"/>
+            <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.4 0"/>
+            <feBlend in="SourceGraphic"/>
+          </filter>
+        </defs>
+        <rect x="4" y="4" width="120" height="120" rx="28" fill="#0a0a0a"/>
+        <rect x="4" y="4" width="120" height="120" rx="28" fill="url(#g10glow)"/>
+        <!-- Arrowhead body -->
+        <g filter="url(#innerShadow10)">
+          <!-- Left half -->
+          <polygon points="64,26 34,92 64,76" fill="url(#g10left)"/>
+          <!-- Right half -->
+          <polygon points="64,26 94,92 64,76" fill="url(#g10right)"/>
+        </g>
+        <!-- Center spine -->
+        <line x1="64" y1="26" x2="64" y2="76" stroke="#d6d3d1" stroke-width="0.75" opacity="0.3"/>
+        <!-- Top edge highlight -->
+        <path d="M34 92 L64 26 L94 92" fill="none" stroke="#d6d3d1" stroke-width="1" opacity="0.25" stroke-linejoin="round"/>
+        <!-- Lit leading edges -->
+        <line x1="64" y1="26" x2="34" y2="92" stroke="#a8a29e" stroke-width="1.5" opacity="0.15"/>
+        <line x1="64" y1="26" x2="94" y2="92" stroke="#d6d3d1" stroke-width="1.5" opacity="0.3"/>
+        <!-- Outer stroke -->
+        <path d="M64 26 L34 92 L64 76 L94 92 Z" fill="none" stroke="#a8a29e" stroke-width="1.5" stroke-linejoin="round" opacity="0.4"/>
+        <!-- Notch highlight -->
+        <path d="M34 92 L64 76 L94 92" fill="none" stroke="#78716c" stroke-width="1" opacity="0.3" stroke-linejoin="round"/>
+        <!-- Full spark explosion -->
+        <g filter="url(#glow10)">
+          <circle cx="64" cy="26" r="8" fill="#f97316" opacity="0.12"/>
+          <circle cx="64" cy="26" r="4" fill="#fbbf24" opacity="0.5"/>
+          <circle cx="64" cy="26" r="2" fill="#fef3c7"/>
+          <line x1="64" y1="26" x2="64" y2="8" stroke="url(#g10spark)" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="64" y1="26" x2="80" y2="12" stroke="url(#g10spark)" stroke-width="2" stroke-linecap="round"/>
+          <line x1="64" y1="26" x2="48" y2="12" stroke="url(#g10spark)" stroke-width="2" stroke-linecap="round"/>
+          <line x1="64" y1="26" x2="74" y2="10" stroke="url(#g10spark)" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="64" y1="26" x2="54" y2="10" stroke="url(#g10spark)" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="64" y1="26" x2="84" y2="20" stroke="url(#g10spark)" stroke-width="1.2" stroke-linecap="round"/>
+          <line x1="64" y1="26" x2="44" y2="20" stroke="url(#g10spark)" stroke-width="1.2" stroke-linecap="round"/>
+          <circle cx="64" cy="6" r="2" fill="#fbbf24"/>
+          <circle cx="82" cy="10" r="1.5" fill="#fbbf24" opacity="0.8"/>
+          <circle cx="46" cy="10" r="1.5" fill="#fbbf24" opacity="0.8"/>
+          <circle cx="75" cy="8" r="1" fill="#fef3c7" opacity="0.8"/>
+          <circle cx="53" cy="8" r="1" fill="#fef3c7" opacity="0.8"/>
+          <circle cx="86" cy="18" r="1" fill="#fbbf24" opacity="0.5"/>
+        </g>
+      </svg>
+    </div>
+    <h3>Full Render</h3>
+    <p class="desc">Gray textured arrowhead, inner shadow, facets, lit edges, ambient glow, full spark explosion.</p>
+    <div class="tags">
+      <span class="tag">complex</span>
+      <span class="tag">textured</span>
+      <span class="tag">inner-shadow</span>
+      <span class="tag">ambient-glow</span>
+      <span class="tag">premium</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- ====== Dock simulation ====== -->
+<div class="dock-section">
+  <h2>macOS Dock Context</h2>
+  <p class="dock-subtitle">All 10 chevron variants at dock scale alongside common macOS apps</p>
+
+  <div class="dock-row">
+    <!-- Finder -->
+    <div class="dock-icon">
+      <svg viewBox="0 0 52 52"><rect width="52" height="52" rx="12" fill="#1a8ff5"/><circle cx="22" cy="22" r="2.5" fill="white"/><circle cx="32" cy="22" r="2.5" fill="white"/><path d="M18 32 C22 38, 32 38, 36 32" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+      <span class="dock-label">Finder</span>
+    </div>
+    <!-- Safari -->
+    <div class="dock-icon">
+      <svg viewBox="0 0 52 52"><defs><linearGradient id="dsaf" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#5ac8fa"/><stop offset="100%" stop-color="#007aff"/></linearGradient></defs><rect width="52" height="52" rx="12" fill="url(#dsaf)"/><circle cx="26" cy="26" r="18" fill="none" stroke="white" stroke-width="1.5" opacity="0.5"/><polygon points="26,10 30,24 26,26 22,24" fill="#ff3b30"/><polygon points="26,42 22,28 26,26 30,28" fill="white"/></svg>
+      <span class="dock-label">Safari</span>
+    </div>
+    <!-- VS Code -->
+    <div class="dock-icon">
+      <svg viewBox="0 0 52 52"><rect width="52" height="52" rx="12" fill="#1e1e1e"/><defs><linearGradient id="dvsc" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#007acc"/><stop offset="100%" stop-color="#0065a9"/></linearGradient></defs><path d="M36 10 L36 42 L14 34 L14 18 Z" fill="url(#dvsc)" opacity="0.8"/><path d="M36 10 L20 26 L14 20" fill="none" stroke="#007acc" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M36 42 L20 26 L14 32" fill="none" stroke="#007acc" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="dock-label">VS Code</span>
+    </div>
+    <!-- Spotify -->
+    <div class="dock-icon">
+      <svg viewBox="0 0 52 52"><rect width="52" height="52" rx="12" fill="#1db954"/><g fill="none" stroke="#191414" stroke-width="3" stroke-linecap="round"><path d="M16 20 C22 18, 32 18, 38 22"/><path d="M18 26 C23 24, 31 24, 36 28"/><path d="M20 32 C24 31, 30 31, 34 34"/></g></svg>
+      <span class="dock-label">Spotify</span>
+    </div>
+
+    <div class="dock-separator"></div>
+
+    <!-- #1 Clean Chevron -->
+    <div class="dock-icon">
+      <svg viewBox="0 0 128 128"><rect x="4" y="4" width="120" height="120" rx="28" fill="#141414"/><path d="M36 86 L64 30 L92 86" fill="none" stroke="#f97316" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="dock-label">#1</span>
+    </div>
+    <!-- #2 Solid Arrowhead -->
+    <div class="dock-icon">
+      <svg viewBox="0 0 128 128"><defs><linearGradient id="dd2" x1="0.5" y1="0" x2="0.5" y2="1"><stop offset="0%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#c2410c"/></linearGradient></defs><rect x="4" y="4" width="120" height="120" rx="28" fill="#141414"/><path d="M64 24 L92 88 L64 72 L36 88 Z" fill="url(#dd2)"/></svg>
+      <span class="dock-label">#2</span>
+    </div>
+    <!-- #3 Chevron Spark -->
+    <div class="dock-icon">
+      <svg viewBox="0 0 128 128"><defs><linearGradient id="dd3a" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f97316"/><stop offset="100%" stop-color="#ea580c"/></linearGradient></defs><rect x="4" y="4" width="120" height="120" rx="28" fill="#141414"/><path d="M36 86 L64 30 L92 86" fill="none" stroke="url(#dd3a)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M36 86 L64 30 L92 86" fill="url(#dd3a)" opacity="0.1"/><line x1="64" y1="30" x2="64" y2="16" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round"/><line x1="64" y1="30" x2="76" y2="18" stroke="#fbbf24" stroke-width="2" stroke-linecap="round"/><line x1="64" y1="30" x2="52" y2="18" stroke="#fbbf24" stroke-width="2" stroke-linecap="round"/><circle cx="64" cy="14" r="2.5" fill="#fbbf24"/></svg>
+      <span class="dock-label">#3</span>
+    </div>
+    <!-- #4 Thick Rounded -->
+    <div class="dock-icon">
+      <svg viewBox="0 0 128 128"><defs><linearGradient id="dd4" x1="0.5" y1="0" x2="0.5" y2="1"><stop offset="0%" stop-color="#fb923c"/><stop offset="100%" stop-color="#ea580c"/></linearGradient></defs><rect x="4" y="4" width="120" height="120" rx="28" fill="#141414"/><path d="M32 88 L64 28 L96 88" fill="none" stroke="url(#dd4)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="dock-label">#4</span>
+    </div>
+    <!-- #5 Double Chevron -->
+    <div class="dock-icon">
+      <svg viewBox="0 0 128 128"><defs><linearGradient id="dd5a" x1="0.5" y1="0" x2="0.5" y2="1"><stop offset="0%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#f97316"/></linearGradient><linearGradient id="dd5b" x1="0.5" y1="0" x2="0.5" y2="1"><stop offset="0%" stop-color="#f97316"/><stop offset="100%" stop-color="#c2410c"/></linearGradient></defs><rect x="4" y="4" width="120" height="120" rx="28" fill="#111"/><path d="M36 78 L64 26 L92 78" fill="none" stroke="url(#dd5a)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M36 98 L64 46 L92 98" fill="none" stroke="url(#dd5b)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.45"/></svg>
+      <span class="dock-label">#5</span>
+    </div>
+    <!-- #6 Faceted Arrowhead -->
+    <div class="dock-icon">
+      <svg viewBox="0 0 128 128"><rect x="4" y="4" width="120" height="120" rx="28" fill="#0f0f0f"/><polygon points="64,24 36,88 64,72" fill="#f97316" opacity="0.35"/><polygon points="64,24 92,88 64,72" fill="#fb923c" opacity="0.5"/><path d="M64 24 L36 88 L64 72 L92 88 Z" fill="none" stroke="#f97316" stroke-width="2.5" stroke-linejoin="round" opacity="0.8"/><line x1="64" y1="24" x2="64" y2="72" stroke="#fbbf24" stroke-width="1" opacity="0.4"/><line x1="64" y1="24" x2="64" y2="12" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round"/><circle cx="64" cy="10" r="2" fill="#fbbf24"/></svg>
+      <span class="dock-label">#6</span>
+    </div>
+    <!-- #7 Negative Space -->
+    <div class="dock-icon">
+      <svg viewBox="0 0 128 128"><defs><linearGradient id="dd7bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f97316"/><stop offset="100%" stop-color="#c2410c"/></linearGradient><mask id="dd7m"><rect x="4" y="4" width="120" height="120" rx="28" fill="white"/><path d="M34 90 L64 26 L94 90 L64 74 Z" fill="black"/></mask></defs><rect x="4" y="4" width="120" height="120" rx="28" fill="url(#dd7bg)" mask="url(#dd7m)"/><path d="M34 90 L64 26 L94 90 L64 74 Z" fill="none" stroke="#fbbf24" stroke-width="0.75" opacity="0.25"/><line x1="64" y1="26" x2="64" y2="14" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round"/><circle cx="64" cy="12" r="2" fill="#fbbf24"/></svg>
+      <span class="dock-label">#7</span>
+    </div>
+    <!-- #8 Gray Steel Hot Tip -->
+    <div class="dock-icon">
+      <svg viewBox="0 0 128 128"><defs><linearGradient id="dd8s" x1="0.5" y1="0" x2="0.5" y2="1"><stop offset="0%" stop-color="#a8a29e"/><stop offset="100%" stop-color="#44403c"/></linearGradient><linearGradient id="dd8h" x1="0.5" y1="1" x2="0.5" y2="0"><stop offset="0%" stop-color="#ea580c"/><stop offset="40%" stop-color="#f97316"/><stop offset="100%" stop-color="#fbbf24"/></linearGradient><linearGradient id="dd8sp" x1="0.5" y1="1" x2="0.5" y2="0"><stop offset="0%" stop-color="#f97316"/><stop offset="100%" stop-color="#fbbf24"/></linearGradient></defs><rect x="4" y="4" width="120" height="120" rx="28" fill="#0a0a0a"/><path d="M34 92 L64 28 L94 92" fill="none" stroke="url(#dd8s)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M50 60 L64 28 L78 60" fill="none" stroke="url(#dd8h)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="64" cy="28" r="3" fill="#fbbf24" opacity="0.6"/><circle cx="64" cy="28" r="1.5" fill="#fef3c7"/><line x1="64" y1="28" x2="64" y2="12" stroke="url(#dd8sp)" stroke-width="2.5" stroke-linecap="round"/><line x1="64" y1="28" x2="78" y2="16" stroke="url(#dd8sp)" stroke-width="2" stroke-linecap="round"/><line x1="64" y1="28" x2="50" y2="16" stroke="url(#dd8sp)" stroke-width="2" stroke-linecap="round"/><circle cx="64" cy="10" r="2" fill="#fbbf24"/></svg>
+      <span class="dock-label">#8</span>
+    </div>
+    <!-- #9 Shattered Chevron -->
+    <div class="dock-icon">
+      <svg viewBox="0 0 128 128"><defs><linearGradient id="dd9" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f97316"/><stop offset="100%" stop-color="#ea580c"/></linearGradient></defs><rect x="4" y="4" width="120" height="120" rx="28" fill="#0e0e0e"/><path d="M34 90 L58 40 L64 52 L44 90 Z" fill="url(#dd9)" opacity="0.3"/><path d="M34 90 L58 40 L64 52 L44 90 Z" fill="none" stroke="url(#dd9)" stroke-width="2" stroke-linejoin="round"/><path d="M94 90 L70 40 L64 52 L84 90 Z" fill="url(#dd9)" opacity="0.3" transform="translate(2,-3)"/><path d="M94 90 L70 40 L64 52 L84 90 Z" fill="none" stroke="url(#dd9)" stroke-width="2" stroke-linejoin="round" transform="translate(2,-3)"/><path d="M58 40 L64 24 L70 40 Z" fill="url(#dd9)" opacity="0.45" transform="translate(0,-5)"/><path d="M58 40 L64 24 L70 40 Z" fill="none" stroke="url(#dd9)" stroke-width="1.5" stroke-linejoin="round" transform="translate(0,-5)"/><circle cx="64" cy="42" r="2" fill="#fef3c7" opacity="0.8"/></svg>
+      <span class="dock-label">#9</span>
+    </div>
+    <!-- #10 Full Render -->
+    <div class="dock-icon">
+      <svg viewBox="0 0 128 128"><defs><linearGradient id="dd10l" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#78716c"/><stop offset="100%" stop-color="#44403c"/></linearGradient><linearGradient id="dd10r" x1="1" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#a8a29e"/><stop offset="100%" stop-color="#57534e"/></linearGradient><linearGradient id="dd10sp" x1="0.5" y1="1" x2="0.5" y2="0"><stop offset="0%" stop-color="#f97316"/><stop offset="100%" stop-color="#fbbf24"/></linearGradient><radialGradient id="dd10g" cx="0.5" cy="0.2" r="0.35"><stop offset="0%" stop-color="#fbbf24" stop-opacity="0.2"/><stop offset="100%" stop-color="#fbbf24" stop-opacity="0"/></radialGradient></defs><rect x="4" y="4" width="120" height="120" rx="28" fill="#0a0a0a"/><rect x="4" y="4" width="120" height="120" rx="28" fill="url(#dd10g)"/><polygon points="64,26 34,92 64,76" fill="url(#dd10l)"/><polygon points="64,26 94,92 64,76" fill="url(#dd10r)"/><line x1="64" y1="26" x2="64" y2="76" stroke="#d6d3d1" stroke-width="0.75" opacity="0.3"/><path d="M64 26 L34 92 L64 76 L94 92 Z" fill="none" stroke="#a8a29e" stroke-width="1.5" stroke-linejoin="round" opacity="0.4"/><circle cx="64" cy="26" r="4" fill="#fbbf24" opacity="0.5"/><circle cx="64" cy="26" r="2" fill="#fef3c7"/><line x1="64" y1="26" x2="64" y2="8" stroke="url(#dd10sp)" stroke-width="2.5" stroke-linecap="round"/><line x1="64" y1="26" x2="80" y2="12" stroke="url(#dd10sp)" stroke-width="2" stroke-linecap="round"/><line x1="64" y1="26" x2="48" y2="12" stroke="url(#dd10sp)" stroke-width="2" stroke-linecap="round"/><circle cx="64" cy="6" r="2" fill="#fbbf24"/><circle cx="82" cy="10" r="1.5" fill="#fbbf24" opacity="0.8"/><circle cx="46" cy="10" r="1.5" fill="#fbbf24" opacity="0.8"/></svg>
+      <span class="dock-label">#10</span>
+    </div>
+
+    <div class="dock-separator"></div>
+
+    <!-- Terminal -->
+    <div class="dock-icon">
+      <svg viewBox="0 0 52 52"><rect width="52" height="52" rx="12" fill="#1e1e1e"/><path d="M14 16 L26 26 L14 36" fill="none" stroke="#4ade80" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><line x1="28" y1="36" x2="38" y2="36" stroke="#4ade80" stroke-width="3" stroke-linecap="round"/></svg>
+      <span class="dock-label">Terminal</span>
+    </div>
+    <!-- Slack -->
+    <div class="dock-icon">
+      <svg viewBox="0 0 52 52"><rect width="52" height="52" rx="12" fill="#4a154b"/><rect x="12" y="20" width="8" height="4" rx="2" fill="#e01e5a"/><rect x="20" y="12" width="4" height="12" rx="2" fill="#e01e5a"/><rect x="28" y="12" width="12" height="4" rx="2" fill="#36c5f0"/><rect x="28" y="16" width="4" height="8" rx="2" fill="#36c5f0"/><rect x="32" y="28" width="8" height="4" rx="2" fill="#2eb67d"/><rect x="28" y="28" width="4" height="12" rx="2" fill="#2eb67d"/><rect x="12" y="36" width="12" height="4" rx="2" fill="#ecb22e"/><rect x="20" y="28" width="4" height="8" rx="2" fill="#ecb22e"/></svg>
+      <span class="dock-label">Slack</span>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

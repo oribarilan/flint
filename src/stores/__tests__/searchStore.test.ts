@@ -9,6 +9,7 @@ const mockResults: KitSearchResult[] = [
     title: "file1.txt",
     subtitle: "/tmp/file1.txt",
     icon: { type: "Named", value: "file" },
+    kind: { type: "File" },
     actions: [{ type: "Open", target: "/tmp/file1.txt" }],
   },
   {
@@ -17,6 +18,7 @@ const mockResults: KitSearchResult[] = [
     title: "file2.txt",
     subtitle: "/tmp/file2.txt",
     icon: { type: "Named", value: "file" },
+    kind: { type: "File" },
     actions: [{ type: "Open", target: "/tmp/file2.txt" }],
   },
   {
@@ -25,6 +27,7 @@ const mockResults: KitSearchResult[] = [
     title: "Apps",
     subtitle: "/Applications",
     icon: { type: "Named", value: "directory" },
+    kind: { type: "Directory" },
     actions: [{ type: "Open", target: "/Applications" }],
   },
 ];
@@ -36,6 +39,7 @@ beforeEach(() => {
     results: [],
     selectedIndex: 0,
     isLoading: false,
+    activeCommand: null,
   });
 });
 
@@ -103,6 +107,7 @@ describe("searchStore", () => {
       results: mockResults,
       selectedIndex: 2,
       isLoading: true,
+      activeCommand: { kitId: "calc", commandId: "calculate", name: "Calculator" },
     });
     useSearchStore.getState().clearSearch();
 
@@ -112,6 +117,7 @@ describe("searchStore", () => {
     expect(state.results).toEqual([]);
     expect(state.selectedIndex).toBe(0);
     expect(state.isLoading).toBe(false);
+    expect(state.activeCommand).toBeNull();
   });
 
   it("setSelectedIndex updates index", () => {
@@ -144,5 +150,42 @@ describe("searchStore", () => {
 
   it("defaults to search mode", () => {
     expect(useSearchStore.getState().mode).toBe("search");
+  });
+
+  it("activeCommand starts as null", () => {
+    expect(useSearchStore.getState().activeCommand).toBeNull();
+  });
+
+  it("activateCommand sets active command and clears query/results", () => {
+    useSearchStore.setState({ query: "hello", results: mockResults, selectedIndex: 2 });
+    useSearchStore.getState().activateCommand({
+      kitId: "calc",
+      commandId: "calculate",
+      name: "Calculator",
+    });
+
+    const state = useSearchStore.getState();
+    expect(state.activeCommand).toEqual({
+      kitId: "calc",
+      commandId: "calculate",
+      name: "Calculator",
+    });
+    expect(state.query).toBe("");
+    expect(state.results).toEqual([]);
+    expect(state.selectedIndex).toBe(0);
+  });
+
+  it("deactivateCommand clears active command and resets state", () => {
+    useSearchStore.setState({
+      activeCommand: { kitId: "calc", commandId: "calculate", name: "Calculator" },
+      query: "2+3",
+      results: mockResults,
+    });
+    useSearchStore.getState().deactivateCommand();
+
+    const state = useSearchStore.getState();
+    expect(state.activeCommand).toBeNull();
+    expect(state.query).toBe("");
+    expect(state.results).toEqual([]);
   });
 });

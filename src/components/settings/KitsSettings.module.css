@@ -1,0 +1,121 @@
+/* ── Kit settings ─────────────────────────────────────────── */
+
+.restartBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--bg-accent-subtle);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: var(--radius-md);
+  font-size: var(--font-sm);
+  color: var(--accent);
+}
+
+/* ── Kit header row ──────────────────────────────────────── */
+
+.kitHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.kitTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: var(--font-md);
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  transition: color var(--transition-fast);
+}
+
+.kitTitle:hover {
+  color: var(--accent);
+}
+
+.chevron {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  width: 1em;
+  text-align: center;
+}
+
+/* ── Command list (expanded) ─────────────────────────────── */
+
+.commandList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding-top: var(--space-sm);
+  margin-top: var(--space-sm);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.commandRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-xs) 0 var(--space-xs) var(--space-lg);
+}
+
+.commandInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  min-width: 0;
+}
+
+.commandName {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* ── Prefix input ────────────────────────────────────────── */
+
+.prefixField {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.prefixLabel {
+  font-size: var(--font-xs);
+  color: var(--text-placeholder);
+  white-space: nowrap;
+}
+
+.prefixInput {
+  width: 48px;
+  padding: 2px var(--space-xs);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: var(--font-sm);
+  font-family: var(--font-mono);
+  text-align: center;
+  transition: border-color var(--transition-fast);
+}
+
+.prefixInput:hover {
+  border-color: var(--border-hover);
+}
+
+.prefixInput:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.prefixInput::placeholder {
+  color: var(--text-placeholder);
+  font-family: var(--font-sans);
+  font-style: italic;
+}

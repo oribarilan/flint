@@ -1,16 +1,17 @@
 import { useEffect, useRef } from "react";
 import { useSearchStore } from "../stores/searchStore";
-import { searchAll } from "../lib/commands";
+import { searchAll, searchCommand } from "../lib/commands";
 
 export function useSearch(): void {
   const query = useSearchStore((s) => s.query);
+  const activeCommand = useSearchStore((s) => s.activeCommand);
   const setResults = useSearchStore((s) => s.setResults);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
 
-    if (query.length < 2) {
+    if (query.length < 2 && !activeCommand) {
       setResults([]);
       return;
     }
@@ -18,9 +19,12 @@ export function useSearch(): void {
     useSearchStore.setState({ isLoading: true });
 
     timerRef.current = setTimeout(() => {
-      searchAll(query)
+      const searchPromise = activeCommand
+        ? searchCommand(activeCommand.kitId, activeCommand.commandId, query)
+        : searchAll(query);
+
+      searchPromise
         .then((results) => {
-          // Only update if query hasn't changed since we fired
           if (useSearchStore.getState().query === query) {
             setResults(results);
           }
@@ -36,5 +40,5 @@ export function useSearch(): void {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [query, setResults]);
+  }, [query, activeCommand, setResults]);
 }

@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { SearchResult } from "../stores/searchStore";
-import type { KitSearchResult } from "../kits/types";
+import type { CommandMode, KitIcon, KitSearchResult } from "../kits/types";
 
 export async function hideWindow(): Promise<void> {
   return invoke("hide_window");
@@ -92,8 +92,14 @@ export interface ChatConfig {
   default_model: string;
 }
 
+export interface CommandConfigEntry {
+  enabled?: boolean;
+  prefix?: string;
+}
+
 export interface KitConfig {
   enabled: boolean;
+  commands?: Record<string, CommandConfigEntry>;
   [key: string]: unknown;
 }
 
@@ -119,14 +125,40 @@ export async function updateConfig(config: FlintConfig): Promise<void> {
 
 // ── Kit commands ───────────────────────────────────────────
 
+export interface CommandInfo {
+  id: string;
+  name: string;
+  description: string;
+  mode: CommandMode;
+  enabled: boolean;
+  default_prefix: string | null;
+  effective_prefix: string | null;
+}
+
 export interface KitManifestInfo {
   id: string;
   name: string;
   description: string;
-  icon: import("../kits/types").KitIcon;
-  trigger: string | null;
+  icon: KitIcon;
+  enabled: boolean;
+  commands: CommandInfo[];
 }
 
 export async function getKitManifests(): Promise<KitManifestInfo[]> {
   return invoke("get_kit_manifests");
+}
+
+export async function searchCommand(
+  kitId: string,
+  commandId: string,
+  query: string,
+): Promise<KitSearchResult[]> {
+  return invoke("search_command", { kitId, commandId, query });
+}
+
+export async function executeCommand(
+  kitId: string,
+  commandId: string,
+): Promise<{ type: "Done" } | { type: "Message"; text: string }> {
+  return invoke("execute_command", { kitId, commandId });
 }

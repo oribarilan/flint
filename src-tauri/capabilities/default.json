@@ -15,6 +15,7 @@
     "global-shortcut:allow-unregister",
     "shell:default",
     "shell:allow-open",
-    "os:default"
+    "os:default",
+    "process:allow-restart"
   ]
 }

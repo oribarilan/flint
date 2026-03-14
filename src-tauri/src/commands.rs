@@ -73,9 +73,10 @@ pub fn search_files(
     Ok(crate::search::search(&query, &entries, 20))
 }
 
-/// Unified search: checks kit triggers first, falls back to core file search.
+/// Unified search: checks command prefixes first, falls back to core file search.
 ///
-/// Returns results in the unified [`KitSearchResult`] format.
+/// Returns results in the unified [`KitSearchResult`] format. Each result
+/// includes a `kind` field (`File`, `Directory`, `Application`, or `Command`).
 #[tauri::command]
 pub async fn search_all(
     query: String,
@@ -85,16 +86,16 @@ pub async fn search_all(
 ) -> Result<Vec<KitSearchResult>, String> {
     const MAX_RESULTS: usize = 20;
 
-    // Check kit triggers under a read lock.
+    // Check command prefix triggers under a read lock.
     let search_result = {
         let registry = registry_state.0.read().await;
-        registry.search(&query).map(|(kit_id, results)| {
+        registry.search_by_prefix(&query).map(|(kit_id, cmd_id, results)| {
             let needs_init = matches!(registry.kit_state(&kit_id), Some(KitState::Registered));
-            (kit_id, results, needs_init)
+            (kit_id, cmd_id, results, needs_init)
         })
     };
 
-    if let Some((kit_id, results, needs_init)) = search_result {
+    if let Some((kit_id, _cmd_id, results, needs_init)) = search_result {
         // Spawn lazy init in background if kit was just registered.
         if needs_init {
             let registry_arc = Arc::clone(&registry_state.0);
@@ -116,8 +117,7 @@ pub async fn search_all(
         return Ok(kit_results);
     }
 
-    // No kit matched — fall through to core file search + kit discovery.
-    // Both are scored with nucleo fuzzy matching and merged by score descending.
+    // No prefix matched — fall through to core file search + command discovery.
     let registry = registry_state.0.read().await;
     let kit_discovery = registry.discovery_results(&query);
     drop(registry);
@@ -127,7 +127,7 @@ pub async fn search_all(
         crate::search::scored_search(&query, &entries, MAX_RESULTS)
     };
 
-    // Merge core results and kit discovery results by score descending.
+    // Merge core results and command discovery results by score descending.
     let mut merged: Vec<(u32, KitSearchResult)> = core_scored
         .into_iter()
         .map(|(score, r)| (score, KitSearchResult::from_core_result(r, score)))
@@ -136,6 +136,39 @@ pub async fn search_all(
     merged.sort_by(|a, b| b.0.cmp(&a.0));
 
     Ok(merged.into_iter().take(MAX_RESULTS).map(|(_, r)| r).collect())
+}
+
+/// Search within an active command (chip is shown in the search bar).
+#[tauri::command]
+pub async fn search_command(
+    kit_id: String,
+    command_id: String,
+    query: String,
+    registry_state: State<'_, KitRegistryState>,
+) -> Result<Vec<KitSearchResult>, String> {
+    const MAX_RESULTS: usize = 20;
+
+    let registry = registry_state.0.read().await;
+    let results =
+        registry.search_command(&kit_id, &command_id, &query).map_err(|e| e.to_string())?;
+    drop(registry);
+
+    Ok(results
+        .into_iter()
+        .take(MAX_RESULTS)
+        .map(|r| KitSearchResult::from_kit_result(&kit_id, r))
+        .collect())
+}
+
+/// Execute an Execute-mode command.
+#[tauri::command]
+pub async fn execute_command(
+    kit_id: String,
+    command_id: String,
+    registry_state: State<'_, KitRegistryState>,
+) -> Result<crate::kits::CommandOutput, String> {
+    let registry = registry_state.0.read().await;
+    registry.execute_command(&kit_id, &command_id).await.map_err(|e| e.to_string())
 }
 
 /// Open a file or application at `path` with the system default handler.
@@ -203,18 +236,16 @@ pub async fn get_auth_status(
 
 /// Send chat messages and stream the response via Tauri events.
 ///
-/// Emits `chat:token`, `chat:tool-start`, `chat:tool-done`, `chat:done`,
-/// and `chat:error` events.
+/// Emits `chat:token`, `chat:done`, and `chat:error` events.
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)] // Tauri injects AppHandle by value
 pub async fn send_chat_message(
     app: AppHandle,
     provider: State<'_, CopilotProviderState>,
-    registry: State<'_, KitRegistryState>,
     message: String,
 ) -> Result<(), String> {
     let messages = vec![ChatMessage::text(ChatRole::User, message)];
-    provider.0.send_message(&messages, &app, &registry).await
+    provider.0.send_message(&messages, &app).await
 }
 
 /// Sign out and clear all stored Copilot tokens.

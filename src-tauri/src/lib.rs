@@ -50,6 +50,7 @@ pub fn run() {
         )
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_os::init())
+        .plugin(tauri_plugin_process::init())
         .invoke_handler(tauri::generate_handler![
             commands::toggle_window,
             commands::show_window,
@@ -57,6 +58,8 @@ pub fn run() {
             commands::open_settings,
             commands::search_files,
             commands::search_all,
+            commands::search_command,
+            commands::execute_command,
             commands::open_file,
             commands::get_app_icon,
             commands::start_copilot_auth,
@@ -88,6 +91,7 @@ pub fn run() {
             let search_exclude = cfg.search.exclude.clone();
             let search_depth = cfg.search.max_depth;
             let app_config = config::AppConfig::new(cfg);
+            let kit_config = app_config.get();
             app.manage(app_config.clone());
 
             // Initialise kit registry and register built-in kits.
@@ -100,7 +104,7 @@ pub fn run() {
             app.manage(kit_ctx_base);
 
             let mut registry = KitRegistry::new();
-            registry.register(Box::new(kits::CalculatorKit::new()));
+            registry.register(Box::new(kits::CalculatorKit::new()), &kit_config);
             app.manage(KitRegistryState(Arc::new(tokio::sync::RwLock::new(registry))));
 
             // Initialise file index as managed state and populate in background.

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useSearchStore } from "../stores/searchStore";
-import { openFile, hideWindow } from "../lib/commands";
+import { openFile, hideWindow, executeCommand } from "../lib/commands";
 import { focusSearchBar } from "../lib/focus";
 import { getKitComponents } from "../kits/registry";
 import type { KitAction, KitSearchResult } from "../kits/types";
@@ -24,8 +24,12 @@ export function executeAction(action: KitAction): void {
           console.error("Failed to copy:", err);
         });
       break;
-    case "ActivateKit":
-      useSearchStore.getState().setQuery(action.prefix);
+    case "ActivateCommand":
+      useSearchStore.getState().activateCommand({
+        kitId: action.kit_id,
+        commandId: action.command_id,
+        name: action.command_id,
+      });
       focusSearchBar();
       break;
     default:
@@ -38,9 +42,29 @@ export function executeAction(action: KitAction): void {
 /** Execute the default (first) action for a result. */
 export function executeDefaultAction(result: KitSearchResult): void {
   const action = result.actions[0];
-  if (action) {
-    executeAction(action);
+  if (!action) return;
+
+  // Execute-mode commands run immediately via IPC — no chip activation.
+  if (result.kind.type === "Command" && result.kind.mode === "Execute") {
+    executeCommand(result.kind.kit_id, result.kind.command_id).catch((err: unknown) => {
+      console.error("Failed to execute command:", err);
+    });
+    return;
   }
+
+  // For ActivateCommand, use the result title/icon for a better chip label.
+  if (action.type === "ActivateCommand") {
+    useSearchStore.getState().activateCommand({
+      kitId: action.kit_id,
+      commandId: action.command_id,
+      name: result.title,
+      icon: result.icon,
+    });
+    focusSearchBar();
+    return;
+  }
+
+  executeAction(action);
 }
 
 export default function ResultsList() {

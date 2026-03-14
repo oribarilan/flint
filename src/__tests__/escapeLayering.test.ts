@@ -39,6 +39,7 @@ beforeEach(() => {
     results: [],
     selectedIndex: 0,
     isLoading: false,
+    activeCommand: null,
   });
   useChatStore.setState({
     messages: [],
@@ -51,6 +52,24 @@ beforeEach(() => {
 });
 
 describe("Escape layering", () => {
+  it("Layer 0: pops command chip before clearing input", () => {
+    useSearchStore.setState({
+      query: "2+3",
+      mode: "search",
+      activeCommand: { kitId: "calc", commandId: "calculate", name: "Calculator" },
+    });
+    renderHook(() => {
+      useKeybindings(createActions());
+    });
+
+    fireEscape();
+
+    // Chip should be popped first, query cleared as part of deactivation
+    expect(useSearchStore.getState().activeCommand).toBeNull();
+    expect(useSearchStore.getState().query).toBe("");
+    expect(useSearchStore.getState().mode).toBe("search");
+  });
+
   it("Layer 1: clears input when query has text in search mode", () => {
     useSearchStore.setState({ query: "hello", mode: "search" });
     renderHook(() => {

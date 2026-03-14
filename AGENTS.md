@@ -21,8 +21,24 @@ These are non-negotiable. When any of these are at risk, raise a red flag.
 2. **DRY.** One source of truth. Don't duplicate logic, constants, types, or configuration. Extract shared code early.
 3. **KISS.** Both implementation and UX must be simple and elegant. Prefer the straightforward solution. Complexity must justify itself.
 4. **Clean Code.** Readable, intention-revealing names. No dead code, no commented-out code. Small functions. Code should explain itself; comments explain *why*, not *what*.
-5. **Unit Tests.** Every module ships with isolated unit tests. Coverage should be very high — all public functions, positive + negative cases, edge cases. Tests are not optional.
-6. **TDD When Debugging.** When an issue surfaces, write a failing test first if feasible, then fix and see it go green. Regression tests are mandatory for bugs.
+5. **Performance.** This is an app launcher — it must feel instant. Never block the main thread. Be allocation-aware in hot paths. Defer non-critical work. Virtualize long lists. Debounce expensive operations. Every feature should be evaluated for its performance impact.
+6. **Security.** Minimize attack surface. Apply least-privilege to Tauri capabilities, CSP, OAuth scopes, and IPC data boundaries. Sanitize and validate all inputs — especially file paths and IPC parameters. Never log secrets or PII. Treat dependencies as attack surface: audit, minimize, prefer well-maintained libraries.
+7. **Accessibility.** This is a keyboard-driven app. Focus management, ARIA roles, and semantic HTML are required. Screen reader support is a goal, not an afterthought.
+8. **Observability.** Use structured logging. Errors should be traceable. Define clear log levels and never log sensitive data.
+9. **Error Resilience.** Handle failures gracefully at every layer. Rust: `Result`/`Option` everywhere. Frontend: error boundaries for each major UI section, user-friendly messages for IPC failures, no white screens or raw stack traces.
+10. **Unit Tests.** Every module ships with isolated unit tests. Coverage should be very high — all public functions, positive + negative cases, edge cases. Tests are not optional.
+11. **TDD When Debugging.** When an issue surfaces, write a failing test first if feasible, then fix and see it go green. Regression tests are mandatory for bugs.
+
+**Challenge and suggest.** When implementing any feature, if there is an alternative approach that is more performant, more secure, simpler, or more accessible — raise it. Don't silently pick a suboptimal path. Present the tradeoff and let the decision be made explicitly.
+
+### Performance-Critical Paths
+
+Two code paths are **sacred** and must remain as close to zero-overhead as possible:
+
+1. **Overlay ready path** — everything that runs when Flint's overlay becomes visible (hotkey pressed → window shown → input focused and responsive). This must feel instantaneous. No network calls, no heavy computation, no disk I/O on this path.
+2. **Result processing path** — from the moment search results or AI responses are received to the moment they are rendered and interactive. Parsing, filtering, sorting, and rendering results must never introduce perceptible lag.
+
+**Enforcement rule:** If any ask, spec change, or new requirement would add work to either of these paths — warn the user, quantify the impact if possible, and challenge whether it truly belongs there. Suggest deferring, batching, or moving the work off the critical path. Do not silently accept changes that degrade these paths.
 
 ## Architecture
 
@@ -142,11 +158,16 @@ Three layers, each serving a different purpose:
 
 ## Security
 
+See also: **Security** principle in Engineering Principles above.
+
 - Minimal OAuth scope: `read:user` only.
 - Tokens stored exclusively in OS keychain. Never logged, never sent to frontend state.
 - All user input validated at the Rust IPC boundary.
+- File paths from the frontend must be canonicalized and checked against allowed directories before access.
 - No secrets in source code. Use environment variables for dev-only config.
-- Dependencies audited via `cargo audit` and `npm audit`.
+- Dependencies audited via `cargo audit` and `npm audit` in CI.
+- Tauri capabilities (`src-tauri/capabilities/`) follow least-privilege — only grant permissions each window actually needs.
+- CSP defined in `tauri.conf.json` — no `unsafe-inline`, no `unsafe-eval`, restrict `connect-src` to known domains.
 
 ## Git
 

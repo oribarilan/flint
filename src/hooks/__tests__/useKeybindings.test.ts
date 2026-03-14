@@ -45,6 +45,7 @@ beforeEach(() => {
     results: [],
     selectedIndex: 0,
     isLoading: false,
+    activeCommand: null,
   });
   useChatStore.setState({
     messages: [],
@@ -84,6 +85,23 @@ describe("useKeybindings", () => {
   });
 
   // ── Escape ─────────────────────────────────────────────────
+
+  it("Escape layer 0: pops command chip when active", () => {
+    useSearchStore.setState({
+      activeCommand: { kitId: "calc", commandId: "calculate", name: "Calculator" },
+      query: "2+3",
+    });
+    const actions = createActions();
+    renderHook(() => {
+      useKeybindings(actions);
+    });
+
+    fireKey("Escape");
+
+    expect(useSearchStore.getState().activeCommand).toBeNull();
+    expect(useSearchStore.getState().query).toBe("");
+    expect(actions.onFocusSearchBar).toHaveBeenCalledTimes(1);
+  });
 
   it("Escape layer 1: clears input text", () => {
     useSearchStore.setState({ query: "hello", mode: "search" });

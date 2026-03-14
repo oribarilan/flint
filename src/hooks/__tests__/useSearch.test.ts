@@ -5,12 +5,14 @@ import type { KitSearchResult } from "../../kits/types";
 
 vi.mock("../../lib/commands", () => ({
   searchAll: vi.fn(),
+  searchCommand: vi.fn(),
 }));
 
-import { searchAll } from "../../lib/commands";
+import { searchAll, searchCommand } from "../../lib/commands";
 import { useSearch } from "../useSearch";
 
 const mockedSearchAll = vi.mocked(searchAll);
+const mockedSearchCommand = vi.mocked(searchCommand);
 
 const mockResults: KitSearchResult[] = [
   {
@@ -18,6 +20,7 @@ const mockResults: KitSearchResult[] = [
     id: "1",
     title: "file1.txt",
     subtitle: "/tmp/file1.txt",
+    kind: { type: "File" },
     actions: [{ type: "Open", target: "/tmp/file1.txt" }],
   },
   {
@@ -25,6 +28,7 @@ const mockResults: KitSearchResult[] = [
     id: "2",
     title: "file2.txt",
     subtitle: "/tmp/file2.txt",
+    kind: { type: "File" },
     actions: [{ type: "Open", target: "/tmp/file2.txt" }],
   },
 ];
@@ -42,9 +46,12 @@ beforeEach(() => {
     results: [],
     selectedIndex: 0,
     isLoading: false,
+    activeCommand: null,
   });
   mockedSearchAll.mockReset();
   mockedSearchAll.mockResolvedValue([]);
+  mockedSearchCommand.mockReset();
+  mockedSearchCommand.mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -167,6 +174,7 @@ describe("useSearch", () => {
         id: "old",
         title: "old.txt",
         subtitle: "/old.txt",
+        kind: { type: "File" },
         actions: [{ type: "Open", target: "/old.txt" }],
       },
     ];
@@ -176,6 +184,7 @@ describe("useSearch", () => {
         id: "new",
         title: "new.txt",
         subtitle: "/new.txt",
+        kind: { type: "File" },
         actions: [{ type: "Open", target: "/new.txt" }],
       },
     ];
@@ -213,5 +222,49 @@ describe("useSearch", () => {
 
     // Results should be from the "new" query, not the stale "old" query
     expect(useSearchStore.getState().results).toEqual(freshResults);
+  });
+
+  it("should call searchCommand when activeCommand is set", async () => {
+    const cmdResults: KitSearchResult[] = [
+      {
+        kitId: "calculator",
+        id: "calc-result",
+        title: "5",
+        kind: { type: "File" },
+        actions: [{ type: "Copy", text: "5" }],
+      },
+    ];
+    mockedSearchCommand.mockResolvedValue(cmdResults);
+    useSearchStore.setState({
+      query: "2+3",
+      activeCommand: { kitId: "calculator", commandId: "calculate", name: "Calculator" },
+    });
+
+    renderUseSearch();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(50);
+    });
+
+    expect(mockedSearchCommand).toHaveBeenCalledWith("calculator", "calculate", "2+3");
+    expect(mockedSearchAll).not.toHaveBeenCalled();
+    expect(useSearchStore.getState().results).toEqual(cmdResults);
+  });
+
+  it("should allow empty query when activeCommand is set", async () => {
+    mockedSearchCommand.mockResolvedValue([]);
+    useSearchStore.setState({
+      query: "",
+      activeCommand: { kitId: "calculator", commandId: "calculate", name: "Calculator" },
+    });
+
+    renderUseSearch();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(50);
+    });
+
+    // With active command, empty query is allowed (shows history)
+    expect(mockedSearchCommand).toHaveBeenCalledWith("calculator", "calculate", "");
   });
 });

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { KitSearchResult } from "../kits/types";
+import type { ActiveCommand, KitSearchResult } from "../kits/types";
 
 export type AppMode = "search" | "chat";
 
@@ -17,12 +17,15 @@ interface SearchState {
   results: KitSearchResult[];
   selectedIndex: number;
   isLoading: boolean;
+  activeCommand: ActiveCommand | null;
   toggleMode: () => void;
   setMode: (mode: AppMode) => void;
   setQuery: (query: string) => void;
   setResults: (results: KitSearchResult[]) => void;
   setSelectedIndex: (index: number) => void;
   moveSelection: (direction: "up" | "down") => void;
+  activateCommand: (cmd: ActiveCommand) => void;
+  deactivateCommand: () => void;
   clearSearch: () => void;
 }
 
@@ -32,6 +35,7 @@ export const useSearchStore = create<SearchState>((set, get) => ({
   results: [],
   selectedIndex: 0,
   isLoading: false,
+  activeCommand: null,
 
   toggleMode: () => {
     set({ mode: get().mode === "search" ? "chat" : "search" });
@@ -65,7 +69,22 @@ export const useSearchStore = create<SearchState>((set, get) => ({
     set({ selectedIndex: next });
   },
 
+  activateCommand: (cmd) => {
+    set({ activeCommand: cmd, query: "", results: [], selectedIndex: 0 });
+  },
+
+  deactivateCommand: () => {
+    set({ activeCommand: null, query: "", results: [], selectedIndex: 0 });
+  },
+
   clearSearch: () => {
-    set({ mode: "search", query: "", results: [], selectedIndex: 0, isLoading: false });
+    set({
+      mode: "search",
+      query: "",
+      results: [],
+      selectedIndex: 0,
+      isLoading: false,
+      activeCommand: null,
+    });
   },
 }));
