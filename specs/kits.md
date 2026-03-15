@@ -164,7 +164,7 @@ When a user selects an `InputResults` command (from discovery or prefix), the se
 A kit can declare a **dedicated app window** — a separate Tauri webview with its own UI. Examples:
 
 - **Stocks Kit** → watchlist dashboard with charts
-- **Clipboard Kit** → full clipboard history browser
+- ~~**Clipboard Kit**~~ — uses chip + result list only (no dedicated window)
 
 App windows are opened by selecting a result action ("Open in Stocks") or a global shortcut. Each app window uses the same visual language as Flint (dark theme, design tokens) but has its own layout.
 
@@ -239,7 +239,7 @@ The **"Kits"** category in the Settings sidebar. Each kit is displayed as an exp
 | Kit | Commands | Default Prefix | App Window |
 |-----|----------|---------------|------------|
 | **Calculator** | `calculate` (InputResults) | `=` | — |
-| **Clipboard** | `history` (InputResults), `clear` (Execute) | `@` | ✓ History browser |
+| **Clipboard** | `history` (InputResults), `clear` (Execute) | — | — |
 | **Windows** | `list` (InputResults) | `win` | — |
 | **Stocks** | `quote` (InputResults) | `$` | ✓ Watchlist dashboard |
 | **Weather** | `forecast` (InputResults) | `weather` | — |
