@@ -22,7 +22,9 @@
   font-size: var(--font-md);
   font-weight: 600;
   cursor: pointer;
-  transition: background var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .button:hover {
@@ -30,7 +32,7 @@
 }
 
 .button:active {
-  transform: scale(0.98);
+  transform: scale(0.95);
 }
 
 .code {
@@ -48,7 +50,7 @@
 .waiting {
   font-size: var(--font-base);
   color: var(--text-secondary);
-  animation: pulse 1.5s ease-in-out infinite;
+  animation: pulse 1.5s var(--ease-in-out) infinite;
 }
 
 @keyframes pulse {

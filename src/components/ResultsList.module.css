@@ -1,8 +1,27 @@
 .container {
+  position: relative;
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   padding: var(--space-xs) 0;
+}
+
+/* Sliding selection highlight — positioned behind items */
+.highlight {
+  position: absolute;
+  left: var(--space-xs);
+  right: var(--space-xs);
+  background: var(--bg-accent-subtle);
+  border-radius: var(--radius-md);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.highlightAnimated {
+  composes: highlight;
+  transition:
+    top var(--transition-fast),
+    height var(--transition-fast);
 }
 
 .emptyState {
@@ -23,6 +42,8 @@
 }
 
 .item {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: var(--space-md);
@@ -39,11 +60,11 @@
 
 .itemSelected {
   composes: item;
-  background: var(--bg-accent-subtle);
 }
 
+/* Suppress hover bg on selected item — highlight provides it */
 .itemSelected:hover {
-  background: var(--bg-accent-subtle);
+  background: transparent;
 }
 
 .details {

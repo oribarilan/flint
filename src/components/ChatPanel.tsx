@@ -47,15 +47,19 @@ export default function ChatPanel() {
         <Message key={i} message={msg} />
       ))}
       {activeToolCalls.length > 0 && (
-        <div className={styles.thinking}>
+        <div className={styles.toolStatus}>
           {activeToolCalls.map((tc) => `Using ${toolDisplayName(tc.toolName)}…`).join(" ")}
         </div>
       )}
       {isStreaming && currentResponse.length > 0 && (
-        <div className={styles.assistantMessage}>{currentResponse}</div>
+        <div className={styles.streaming}>{currentResponse}</div>
       )}
       {isStreaming && currentResponse.length === 0 && activeToolCalls.length === 0 && (
-        <div className={styles.thinking}>Thinking…</div>
+        <div className={styles.thinking} aria-label="Thinking">
+          <span className={styles.dot} />
+          <span className={styles.dot} />
+          <span className={styles.dot} />
+        </div>
       )}
     </div>
   );

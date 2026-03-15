@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { useSearchStore } from "../stores/searchStore";
 import {
   openFile,
@@ -176,16 +176,47 @@ export function executeDefaultAction(result: KitSearchResult): void {
 
 export default function ResultsList() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const highlightRef = useRef<HTMLDivElement>(null);
   const results = useSearchStore((s) => s.results);
   const query = useSearchStore((s) => s.query);
   const selectedIndex = useSearchStore((s) => s.selectedIndex);
   const setSelectedIndex = useSearchStore((s) => s.setSelectedIndex);
+  const prevResultsRef = useRef(results);
+
+  // Position the sliding highlight over the selected item.
+  useLayoutEffect(() => {
+    const highlight = highlightRef.current;
+    const container = containerRef.current;
+    if (!highlight || !container || results.length === 0) return;
+
+    const items = container.querySelectorAll<HTMLElement>('[role="option"]');
+    const selectedEl = items[selectedIndex];
+    if (!selectedEl) return;
+
+    // Animate only when navigating within the same result set AND the target
+    // item is already visible in the scroll viewport. When the item is
+    // off-screen, snap instantly — scrollIntoView handles the rest.
+    const itemTop = selectedEl.offsetTop;
+    const itemBottom = itemTop + selectedEl.offsetHeight;
+    const scrollTop = container.scrollTop;
+    const scrollBottom = scrollTop + container.clientHeight;
+    const isVisible = itemTop >= scrollTop && itemBottom <= scrollBottom;
+
+    const shouldAnimate = prevResultsRef.current === results && isVisible;
+    highlight.className =
+      (shouldAnimate ? styles.highlightAnimated : styles.highlight) ?? "";
+    highlight.style.top = `${String(selectedEl.offsetTop)}px`;
+    highlight.style.height = `${String(selectedEl.offsetHeight)}px`;
+
+    prevResultsRef.current = results;
+  }, [results, selectedIndex]);
 
   // Scroll selected item into view.
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-    const selected = container.children[selectedIndex] as HTMLElement | undefined;
+    const items = container.querySelectorAll<HTMLElement>('[role="option"]');
+    const selected = items[selectedIndex];
     selected?.scrollIntoView({ block: "nearest" });
   }, [selectedIndex]);
 
@@ -208,6 +239,7 @@ export default function ResultsList() {
 
   return (
     <div ref={containerRef} className={styles.container} role="listbox" aria-label="Search results">
+      <div ref={highlightRef} className={styles.highlight} aria-hidden="true" />
       {results.map((result, index) => {
         const { SearchResult } = getKitComponents(result.kitId);
         return (

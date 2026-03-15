@@ -161,10 +161,6 @@ export default function SearchBar({
         aria-label="Search"
       />
 
-      {(isLoading || (chatMode && isStreaming)) && (
-        <div className={styles.spinner} aria-label="Loading" />
-      )}
-
       {!isLoading && !(chatMode && isStreaming) && !actionPanelOpen && <Kbd keys="Tab" />}
     </div>
   );

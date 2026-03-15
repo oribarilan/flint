@@ -316,7 +316,9 @@
   font-size: var(--font-md);
   font-weight: 500;
   cursor: pointer;
-  transition: background var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .button:hover {
@@ -324,7 +326,7 @@
 }
 
 .button:active {
-  transform: scale(0.98);
+  transform: scale(0.95);
 }
 
 .buttonGhost {
