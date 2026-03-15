@@ -92,7 +92,9 @@ export default function App() {
       const unlisten = await appWindow.onFocusChanged(({ payload: focused }) => {
         if (!focused) {
           if (shouldHideOnBlur()) {
-            void hideWindow();
+            void hideWindow().catch((err: unknown) => {
+              console.warn("Failed to hide window:", err);
+            });
           }
           // Clear state eagerly on blur so the window is clean when reopened.
           // Preserve active chat sessions and command chips across hide/show.
@@ -119,7 +121,9 @@ export default function App() {
       unlistenFocus = unlisten;
     };
 
-    void setup();
+    void setup().catch((err: unknown) => {
+      console.error("Failed to setup window focus listener:", err);
+    });
     return () => unlistenFocus?.();
   }, [focusSearchBar, refreshAuth]);
 

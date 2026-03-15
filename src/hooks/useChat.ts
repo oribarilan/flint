@@ -35,7 +35,9 @@ export function useChat(): void {
       }
     };
 
-    void setup();
+    void setup().catch((err: unknown) => {
+      console.error("Failed to setup chat listeners:", err);
+    });
     return () => {
       cancelled = true;
       unlisteners.forEach((fn) => {

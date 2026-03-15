@@ -10,7 +10,9 @@ export default function AuthPrompt() {
         className={styles.button}
         onClick={() => {
           suppressNextBlurHide();
-          void openSettings();
+          void openSettings().catch((err: unknown) => {
+            console.error("Failed to open settings:", err);
+          });
         }}
       >
         Sign in via Settings

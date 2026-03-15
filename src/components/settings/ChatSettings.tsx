@@ -42,9 +42,11 @@ function useDeviceFlow(onAuthComplete: () => void) {
   const [countdown, setCountdown] = useState(0);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const cancelledRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const cleanup = useCallback(() => {
+    cancelledRef.current = true;
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
@@ -55,15 +57,20 @@ function useDeviceFlow(onAuthComplete: () => void) {
 
   const start = useCallback(async () => {
     cleanup();
+    cancelledRef.current = false;
     setError(null);
     setCopied(false);
 
     try {
       const info = await startCopilotAuth();
+      // Ref may be mutated by cleanup() between awaits
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (cancelledRef.current) return;
+
       setDeviceInfo(info);
       setPhase("code-shown");
 
-      // Start countdown
+      // Countdown before opening browser
       setCountdown(COUNTDOWN_SECONDS);
       let remaining = COUNTDOWN_SECONDS;
 
@@ -72,24 +79,30 @@ function useDeviceFlow(onAuthComplete: () => void) {
         setCountdown(remaining);
 
         if (remaining <= 0) {
-          cleanup();
-          setPhase("polling");
-          void open(info.verification_uri);
-
-          // Start polling for authorization
-          completeCopilotAuth(info.device_code, info.interval)
-            .then(() => {
-              setPhase("done");
-              onAuthComplete();
-            })
-            .catch((err: unknown) => {
-              const message = err instanceof Error ? err.message : String(err);
-              setError(message);
-              setPhase("idle");
-            });
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+          }
         }
       }, 1000);
+
+      // Wait for countdown to finish, then poll
+      await new Promise((resolve) => setTimeout(resolve, COUNTDOWN_SECONDS * 1000));
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (cancelledRef.current) return;
+
+      setPhase("polling");
+      void open(info.verification_uri);
+
+      await completeCopilotAuth(info.device_code, info.interval);
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (cancelledRef.current) return;
+
+      setPhase("done");
+      onAuthComplete();
     } catch (err: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (cancelledRef.current) return;
       const message = err instanceof Error ? err.message : String(err);
       setError(message);
       setPhase("idle");

@@ -131,11 +131,20 @@ pub fn run() {
             let index = Arc::new(RwLock::new(Vec::new()));
             app.manage(FileIndex(index.clone()));
 
-            std::thread::spawn(move || {
-                let entries =
-                    indexer::build_index_with_config(&search_dirs, &search_exclude, search_depth);
-                if let Ok(mut lock) = index.write() {
-                    *lock = entries;
+            tauri::async_runtime::spawn(async move {
+                let entries = tokio::task::spawn_blocking(move || {
+                    indexer::build_index_with_config(&search_dirs, &search_exclude, search_depth)
+                })
+                .await;
+                match entries {
+                    Ok(entries) => {
+                        if let Ok(mut lock) = index.write() {
+                            *lock = entries;
+                        }
+                    }
+                    Err(err) => {
+                        tracing::error!("File indexing task failed: {err}");
+                    }
                 }
             });
 
