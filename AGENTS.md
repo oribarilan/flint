@@ -10,9 +10,52 @@ Flint is an AI-native application launcher built with Tauri v2. It provides a gl
 - **`specs/design.md`** — Visual identity, design tokens, and UI principles. This is the source of truth for how Flint looks and feels. All frontend CSS and component structure must follow it. Covers: identity (Spark × Strike), typography, color system, spacing, icons, interaction states, motion, accessibility, and empty states.
 - **`plan.md`** — Implementation roadmap and phasing.
 - **`gaps.md`** — Known cross-platform and feature gaps.
-- **`.todo/`** — Standalone tasks with full context for future sessions.
+- **`.todo/`** — Standalone tasks with full context for future sessions. See [Task Management](#task-management) below.
 
 When proposing changes that would alter the spec or design spec (new modes, different interaction patterns, visual identity changes, etc.), flag them for review rather than updating the specs directly.
+
+## Task Management
+
+Work items live in `.todo/` as self-contained Markdown files. Each file carries enough context for a fresh session to pick it up and execute without external knowledge.
+
+### Directory Structure
+
+| Directory | Purpose | Contents |
+|-----------|---------|----------|
+| `.todo/` | **Ready to implement** — clear tasks with defined scope | Requirements, implementation steps, file changes |
+| `.todo/explore/` | **Needs research** — ideas that need investigation before committing | Options, trade-offs, platform considerations, phased breakdown |
+| `.todo/done/` | **Historical record** — completed tasks preserved for future reference | Decisions made, rationale, architecture chosen |
+
+### Lifecycle
+
+```
+explore/  ──(promote)──▶  .todo/  ──(finalize)──▶  done/
+                            ▲
+               (clear tasks go directly here)
+```
+
+- **Clear tasks** go directly to `.todo/` root — no exploration needed.
+- **Exploratory items** start in `explore/`. When research is complete, update the file with findings and decisions, then promote it to `.todo/` root.
+- **Completed tasks** move to `done/` via `git mv` when the user says to finalize. The `done/` directory serves as a decision log — future sessions can reference it for rationale and context.
+
+### File Format
+
+Every `.todo/` file follows this structure:
+
+1. **`# Title`** — Feature or task name.
+2. **`## Summary`** — 2–4 sentences: what and why.
+3. **`## Requirements`** or **`## Decisions`** — Scope, constraints, decision tables.
+4. **`## Implementation`** — Architecture, code sketches, numbered steps.
+5. (Optional) **`## Notes`**, **`## Risks`**, **`## Out of Scope`** — Caveats and boundaries.
+
+Explore files tend to be longer with more options and trade-off analysis. Root files are focused and imperative.
+
+### Rules for Agents
+
+- **Only work on a `.todo/` item when the user explicitly asks.** Do not proactively pick up tasks.
+- **Do not move files to `done/` until the user says to finalize.** The user decides when a task is truly complete.
+- **Either the user or the agent can create new `.todo/` files.** When an agent identifies follow-up work during a task, it can create a new `.todo/` file for it.
+- **Treat `.todo/` files as the task spec.** Read the file thoroughly before starting. If the file conflicts with `spec.md` or `specs/design.md`, raise it.
 
 ## Engineering Principles
 
