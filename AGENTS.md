@@ -123,6 +123,7 @@ All visual properties must use **semantic design tokens** defined in `src/styles
 - Use Tauri's plugin system (`tauri-plugin-global-shortcut`, `tauri-plugin-shell`, etc.) instead of reimplementing OS integrations.
 - Window configuration (borderless, always-on-top, transparent) is defined in `tauri.conf.json`, not programmatically unless dynamic behavior is needed.
 - Tokens and secrets go in the OS keychain via `keyring`. Never in localStorage, files, or frontend state.
+- **Dynamic windows must avoid flash-of-white.** When creating windows programmatically via `WebviewWindowBuilder`, always: (1) set `.visible(false)` so the window starts hidden, (2) set `.background_color()` matching the app's dark theme so the native surface is never white, and (3) call `getCurrentWindow().show()` from a React `useEffect` that fires only after async data (config, theme) has loaded **and** the component has rendered. Never show from `main.tsx` — the webview may not have painted yet.
 
 ## Cross-Platform
 

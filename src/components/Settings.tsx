@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import GeneralSettings from "./settings/GeneralSettings";
 import SearchSettings from "./settings/SearchSettings";
 import ChatSettings from "./settings/ChatSettings";
@@ -56,6 +57,14 @@ const PAGES: PageDef[] = [
 export default function Settings() {
   const [activePage, setActivePage] = useState<SettingsPage>("general");
   const { config, isLoading, update, resetSection } = useConfig();
+
+  // Show the window once content is ready. The window starts hidden (visible:
+  // false on the Rust side) to avoid a white flash while the theme loads.
+  useEffect(() => {
+    if (!isLoading && config) {
+      getCurrentWindow().show();
+    }
+  }, [isLoading, config]);
 
   if (isLoading || !config) {
     return <div className={styles.container}>Loading…</div>;

@@ -1,5 +1,6 @@
 //! Window management helpers for the main launcher overlay.
 
+use tauri::utils::config::Color;
 use tauri::{AppHandle, Manager, WebviewUrl};
 
 use crate::error::StringResult;
@@ -73,10 +74,15 @@ pub fn open_settings(app: &AppHandle) -> Result<(), String> {
     // Create a new settings window loading the same frontend with ?page=settings.
     let url = WebviewUrl::App("index.html?page=settings".into());
 
+    // Dark background matching `--bg-solid` so the native surface is never white.
+    let bg = Color(11, 9, 7, 255);
+
     tauri::WebviewWindowBuilder::new(app, SETTINGS_WINDOW_LABEL, url)
         .title("Flint Settings")
         .inner_size(740.0, 510.0)
         .resizable(false)
+        .visible(false)
+        .background_color(bg)
         .center()
         .build()
         .str_err()?;
