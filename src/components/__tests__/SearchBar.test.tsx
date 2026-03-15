@@ -204,7 +204,7 @@ describe("SearchBar", () => {
     expect(useSearchStore.getState().actionPanelOpen).toBe(true);
   });
 
-  it("shows Actions chip when Action Panel is open", () => {
+  it("shows kind chip when Action Panel is open", () => {
     useSearchStore.setState({
       actionPanelOpen: true,
       actionPanelResult: {
@@ -220,16 +220,17 @@ describe("SearchBar", () => {
 
     const chip = screen.getByTestId("actions-chip");
     expect(chip).toBeTruthy();
-    expect(chip.textContent).toContain("Actions");
+    expect(chip.textContent).toContain("File");
   });
 
-  it("shows 'Filter actions' placeholder when Action Panel is open", () => {
+  it("shows result info instead of input when Action Panel is open", () => {
     useSearchStore.setState({
       actionPanelOpen: true,
       actionPanelResult: {
         kitId: "core",
         id: "/tmp/test.ts",
         title: "test.ts",
+        subtitle: "/tmp",
         kind: { type: "File" },
         actions: [{ type: "Open", target: "/tmp/test.ts" }],
       },
@@ -237,6 +238,7 @@ describe("SearchBar", () => {
     });
     render(<SearchBar onArrowDown={vi.fn()} />);
 
-    expect(screen.getByPlaceholderText("Filter actions\u2026")).toBeTruthy();
+    expect(screen.getByText("test.ts")).toBeTruthy();
+    expect(screen.getByText("/tmp")).toBeTruthy();
   });
 });

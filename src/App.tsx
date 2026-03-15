@@ -16,6 +16,7 @@ import { usePrefixDetection } from "./hooks/usePrefixDetection";
 import { useChat } from "./hooks/useChat";
 import { useCommandActivation } from "./hooks/useCommandActivation";
 import { useKeybindings } from "./hooks/useKeybindings";
+import { useActionPanelDebug } from "./hooks/useActionPanelDebug";
 import styles from "./App.module.css";
 
 export default function App() {
@@ -23,6 +24,7 @@ export default function App() {
   usePrefixDetection();
   useChat();
   useCommandActivation();
+  useActionPanelDebug();
 
   const query = useSearchStore((s) => s.query);
   const mode = useSearchStore((s) => s.mode);

@@ -63,7 +63,7 @@ export default function ActionPanel() {
   useEffect(() => {
     const container = listRef.current;
     if (!container) return;
-    const selected = container.children[selectedActionIndex + 1] as HTMLElement | undefined;
+    const selected = container.children[selectedActionIndex] as HTMLElement | undefined;
     selected?.scrollIntoView({ block: "nearest" });
   }, [selectedActionIndex]);
 
@@ -88,9 +88,9 @@ export default function ActionPanel() {
   return (
     <div ref={listRef} className={styles.actionList} role="listbox" aria-label="Actions">
       {filteredActions.length === 0 && (
-          <div className={styles.emptyState}>No matching actions</div>
-        )}
-        {filteredActions.map((action, index) => {
+        <div className={styles.emptyState}>No matching actions</div>
+      )}
+      {filteredActions.map((action, index) => {
         const isDestructive = actionRequiresConfirmation(action);
         const isSelected = index === selectedActionIndex;
         const isArmed = index === armedActionIndex;
@@ -156,6 +156,7 @@ function ActionItem({
         className={itemClass}
         role="option"
         aria-selected={isSelected}
+        data-action-type={action.type}
         onMouseEnter={() => {
           // Use the store's raw setter since we're setting action index
           useSearchStore.setState({ selectedActionIndex: index, armedActionIndex: null });
