@@ -75,7 +75,7 @@ pub fn open_settings(app: &AppHandle) -> Result<(), String> {
 
     tauri::WebviewWindowBuilder::new(app, SETTINGS_WINDOW_LABEL, url)
         .title("Flint Settings")
-        .inner_size(600.0, 450.0)
+        .inner_size(740.0, 510.0)
         .resizable(false)
         .center()
         .build()

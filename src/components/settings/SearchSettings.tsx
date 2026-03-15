@@ -118,6 +118,22 @@ export default function SearchSettings({ config, onUpdate, onResetSection }: Sea
             + Add directory
           </button>
         )}
+        <div className={styles.row}>
+          <span className={styles.label}>Max directory depth</span>
+          <input
+            className={styles.numberInput}
+            type="number"
+            min={1}
+            max={10}
+            value={config.search.max_depth}
+            onChange={(e) => {
+              const parsed = parseInt(e.target.value, 10);
+              if (!isNaN(parsed)) {
+                updateMaxDepth(parsed);
+              }
+            }}
+          />
+        </div>
       </section>
 
       <section className={styles.section}>
@@ -165,26 +181,6 @@ export default function SearchSettings({ config, onUpdate, onResetSection }: Sea
             + Add pattern
           </button>
         )}
-      </section>
-
-      <section className={styles.section}>
-        <h3 className={styles.sectionTitle}>Depth</h3>
-        <div className={styles.row}>
-          <span className={styles.label}>Max directory depth</span>
-          <input
-            className={styles.numberInput}
-            type="number"
-            min={1}
-            max={10}
-            value={config.search.max_depth}
-            onChange={(e) => {
-              const parsed = parseInt(e.target.value, 10);
-              if (!isNaN(parsed)) {
-                updateMaxDepth(parsed);
-              }
-            }}
-          />
-        </div>
       </section>
 
       <ResetSection

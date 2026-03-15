@@ -71,17 +71,19 @@ export default function GeneralSettings({
       <h2 className={styles.pageTitle}>General</h2>
 
       <section className={styles.section}>
-        <h3 className={styles.sectionTitle}>Keyboard</h3>
+        <h3 className={styles.sectionTitle}>Behavior</h3>
         <div className={styles.row}>
-          <span className={styles.label}>Global hotkey</span>
+          <div>
+            <span className={styles.label}>Global hotkey</span>
+            <span className={styles.sublabel}>Opens Flint from anywhere</span>
+          </div>
           <span className={styles.value}>{config.general.hotkey}</span>
         </div>
-      </section>
-
-      <section className={styles.section}>
-        <h3 className={styles.sectionTitle}>Startup</h3>
         <div className={styles.row}>
-          <span className={styles.label}>Launch at login</span>
+          <div>
+            <span className={styles.label}>Launch at login</span>
+            <span className={styles.sublabel}>Start Flint when you log in</span>
+          </div>
           <button
             className={config.general.launch_at_login ? styles.toggleOn : styles.toggle}
             onClick={handleLaunchToggle}
@@ -91,7 +93,7 @@ export default function GeneralSettings({
       </section>
 
       <section className={styles.section}>
-        <h3 className={styles.sectionTitle}>Theme</h3>
+        <h3 className={styles.sectionTitle}>Appearance</h3>
         <div className={styles.row}>
           <span className={styles.label}>Color theme</span>
           <div className={styles.segmentedControl}>
@@ -133,10 +135,6 @@ export default function GeneralSettings({
             </button>
           </div>
         </div>
-      </section>
-
-      <section className={styles.section}>
-        <h3 className={styles.sectionTitle}>Appearance</h3>
         <div className={styles.row}>
           <span className={styles.label}>Font size</span>
           <div className={styles.segmentedControl}>
