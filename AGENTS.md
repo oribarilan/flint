@@ -90,6 +90,13 @@ Two code paths are **sacred** and must remain as close to zero-overhead as possi
 - **React frontend** (`src/`): Search bar, results list, AI chat panel. State via Zustand. Bundled with Vite.
 - **IPC bridge**: All I/O and business logic lives in Rust. Frontend calls Rust via `tauri::command` invoke. Never use Node.js APIs for I/O.
 
+### Config & State Consistency
+
+The app has two layers of state: the **config file** (TOML on disk, source of truth for user preferences) and **in-memory runtime state** (registry, stores). These can diverge. Rules:
+
+- **Backend-reported state is authoritative for the frontend.** When the Settings UI needs to display a value (e.g., whether a kit is enabled), use the backend API response — not config values with fallback defaults. Config fallbacks like `config.kits[id]?.enabled ?? true` will silently produce wrong answers when the backend has a different default.
+- **Features that are disabled by default must still be visible in Settings.** Register all entities (kits, commands) in the registry regardless of enabled state. Track enabled/disabled as a flag, don't drop disabled entities from the registry entirely — that makes them invisible and untoggleable.
+
 ## Tech Stack
 
 | Layer | Choice |
@@ -158,6 +165,8 @@ All visual properties must use **semantic design tokens** defined in `src/styles
 - **Theming**: Component CSS references only semantic tokens. Swapping themes changes `global.css` / `themes.css` — component files stay untouched.
 - **No CSS transitions on keyboard-driven selection states.** Transitions cause cross-fade jitter when arrow keys move selection between items (old fading out + new fading in = smearing). Selection changes must be instant. Transitions are only appropriate for mouse hover, which is continuous.
 - **`prefers-reduced-motion` must be respected.** See motion section in design spec.
+- **Scrollable containers must set `overscroll-behavior: contain`.** Without this, macOS elastic rubber-banding propagates to the parent, causing a non-linear bouncy feel — especially noticeable when result lists first become scrollable (e.g., clipboard history returning 20+ items on empty query).
+- **Animated UI elements (highlights, selection indicators) must handle empty state.** When a list empties (results cleared, command deactivated), any absolutely-positioned highlight or indicator must be explicitly hidden. Stale position/dimensions from the previous state cause ghost artifacts.
 
 ## Tauri v2 Patterns
 
@@ -167,6 +176,8 @@ All visual properties must use **semantic design tokens** defined in `src/styles
 - Window configuration (borderless, always-on-top, transparent) is defined in `tauri.conf.json`, not programmatically unless dynamic behavior is needed.
 - Tokens and secrets go in the OS keychain via `keyring`. Never in localStorage, files, or frontend state.
 - **Dynamic windows must avoid flash-of-white.** When creating windows programmatically via `WebviewWindowBuilder`, always: (1) set `.visible(false)` so the window starts hidden, (2) set `.background_color()` matching the app's dark theme so the native surface is never white, and (3) call `getCurrentWindow().show()` from a React `useEffect` that fires only after async data (config, theme) has loaded **and** the component has rendered. Never show from `main.tsx` — the webview may not have painted yet.
+- **Hiding the window must produce a clean slate.** Any action that hides the overlay (Copy, Open, etc.) must reset transient UI state — deactivate command chips, clear action panels, hide selection highlights. When the user re-invokes Flint, they must see a fresh search bar, not a stale mid-workflow state.
+- **Lazy init vs. eager init.** Kits are initialized lazily on first use (e.g., when a prefix matches). Kits that run background tasks (clipboard watcher, stock ticker) must declare `eager_init() → true` so their `init()` runs at startup — a prefix-less kit will otherwise never be initialized because no user action triggers it.
 
 ## Cross-Platform
 
