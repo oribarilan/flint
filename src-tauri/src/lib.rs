@@ -42,6 +42,7 @@ struct CommandActivatePayload {
 ///
 /// Initialises tracing, registers plugins, commands, hotkey, and the
 /// system tray, spawns background file indexing, then enters the event loop.
+#[allow(clippy::too_many_lines)]
 pub fn run() {
     // Initialise structured logging; default to `info` if RUST_LOG is unset.
     tracing_subscriber::fmt()
@@ -64,6 +65,7 @@ pub fn run() {
             commands::search_all,
             commands::search_command,
             commands::execute_command,
+            commands::handle_custom_action,
             commands::open_file,
             commands::reveal_in_file_manager,
             commands::delete_to_trash,
@@ -116,16 +118,34 @@ pub fn run() {
                 http: reqwest::Client::new(),
                 base_data_dir: config::config_base_dir().join("flint").join("kits"),
             };
+            let kit_ctx_for_eager = kit_ctx_base.clone();
             app.manage(kit_ctx_base);
 
             let mut registry = KitRegistry::new();
             registry.register(Box::new(kits::CalculatorKit::new()), &kit_config);
             registry.register(Box::new(kits::WindowManagementKit::new()), &kit_config);
+            registry.register(Box::new(kits::ClipboardKit::new(&kit_config)), &kit_config);
+
+            // Eagerly init kits that run background tasks (e.g., clipboard watcher).
+            let eager_ids = registry.eager_init_kit_ids();
 
             // Register per-command global shortcuts.
             register_command_shortcuts(app, &registry);
 
-            app.manage(KitRegistryState(Arc::new(tokio::sync::RwLock::new(registry))));
+            let registry_arc = Arc::new(tokio::sync::RwLock::new(registry));
+            app.manage(KitRegistryState(registry_arc.clone()));
+
+            // Spawn eager init in background (async — can't await in setup).
+            if !eager_ids.is_empty() {
+                tauri::async_runtime::spawn(async move {
+                    let mut reg = registry_arc.write().await;
+                    for id in &eager_ids {
+                        if let Err(e) = reg.ensure_init(id, &kit_ctx_for_eager).await {
+                            tracing::warn!(kit = %id, error = %e, "eager kit init failed");
+                        }
+                    }
+                });
+            }
 
             // Initialise file index as managed state and populate in background.
             let index = Arc::new(RwLock::new(Vec::new()));

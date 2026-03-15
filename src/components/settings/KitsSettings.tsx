@@ -35,7 +35,12 @@ export default function KitsSettings({ config, onUpdate }: KitsSettingsProps) {
   };
 
   const isKitEnabled = (kitId: string): boolean => {
-    return config.kits[kitId]?.enabled ?? true;
+    // Config is the source of truth after toggling. For initial state (no config
+    // entry), fall back to what the backend reports via kit_infos().
+    const fromConfig = config.kits[kitId]?.enabled;
+    if (fromConfig !== undefined) return fromConfig;
+    const kit = kits.find((k) => k.id === kitId);
+    return kit?.enabled ?? false;
   };
 
   const isCommandEnabled = (kitId: string, commandId: string): boolean => {
@@ -51,7 +56,8 @@ export default function KitsSettings({ config, onUpdate }: KitsSettingsProps) {
   };
 
   const updateKitConfig = (kitId: string, patch: Record<string, unknown>) => {
-    const existing: KitConfig = config.kits[kitId] ?? { enabled: true };
+    const kit = kits.find((k) => k.id === kitId);
+    const existing: KitConfig = config.kits[kitId] ?? { enabled: kit?.enabled ?? false };
     const next: FlintConfig = {
       ...config,
       kits: { ...config.kits, [kitId]: { ...existing, ...patch } as KitConfig },

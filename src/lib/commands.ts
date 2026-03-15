@@ -185,3 +185,10 @@ export async function executeCommand(
 ): Promise<{ type: "Done" } | { type: "Message"; text: string }> {
   return invoke("execute_command", { kitId, commandId });
 }
+
+export async function handleCustomAction(
+  kitId: string,
+  actionId: string,
+): Promise<string | null> {
+  return invoke("handle_custom_action", { kitId, actionId });
+}

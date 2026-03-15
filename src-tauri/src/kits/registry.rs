@@ -95,6 +95,8 @@ pub struct KitRegistry {
     kits: HashMap<String, Box<dyn Kit>>,
     /// Per-kit lifecycle state.
     states: HashMap<String, KitState>,
+    /// Per-kit enabled flag (disabled kits are visible in settings but inactive).
+    enabled: HashMap<String, bool>,
     /// Per-kit background task managers.
     task_managers: HashMap<String, TaskManager>,
     /// All commands from all kits, with effective config baked in.
@@ -107,6 +109,7 @@ impl KitRegistry {
         Self {
             kits: HashMap::new(),
             states: HashMap::new(),
+            enabled: HashMap::new(),
             task_managers: HashMap::new(),
             commands: Vec::new(),
         }
@@ -114,20 +117,19 @@ impl KitRegistry {
 
     /// Register a kit. Reads config to bake in effective prefix/enabled per command.
     ///
-    /// Skips the kit entirely if disabled in config.
+    /// All kits are registered (so they appear in Settings). Disabled kits
+    /// don't participate in search, discovery, or eager init.
     pub fn register(&mut self, kit: Box<dyn Kit>, config: &crate::config::FlintConfig) {
         let manifest = kit.manifest();
         let id = manifest.id.to_string();
         let kit_cfg = config.kits.get(id.as_str());
 
-        // Skip disabled kits entirely.
-        if kit_cfg.is_some_and(|kc| !kc.enabled) {
-            return;
-        }
+        // Determine enabled state: explicit config wins, else kit's default.
+        let kit_enabled = kit_cfg.map_or_else(|| kit.default_enabled(), |kc| kc.enabled);
 
         for def in kit.commands() {
             let cmd_cfg = kit_cfg.and_then(|kc| kc.commands.get(def.id));
-            let enabled = cmd_cfg.is_none_or(|cc| cc.enabled);
+            let enabled = kit_enabled && cmd_cfg.is_none_or(|cc| cc.enabled);
             let effective_prefix = cmd_cfg
                 .and_then(|cc| cc.prefix.clone())
                 .or_else(|| def.default_prefix.map(String::from));
@@ -144,6 +146,7 @@ impl KitRegistry {
             });
         }
 
+        self.enabled.insert(id.clone(), kit_enabled);
         self.states.insert(id.clone(), KitState::Registered);
         self.kits.insert(id, kit);
     }
@@ -239,6 +242,16 @@ impl KitRegistry {
         kit.execute(command_id).await
     }
 
+    /// Dispatch a custom action to the owning kit.
+    pub async fn handle_custom_action(
+        &self,
+        kit_id: &str,
+        action_id: &str,
+    ) -> Result<Option<String>, KitError> {
+        let kit = self.kits.get(kit_id).ok_or_else(|| KitError::KitNotFound(kit_id.to_string()))?;
+        kit.handle_custom_action(action_id).await
+    }
+
     /// Get the lifecycle state of a kit.
     pub fn kit_state(&self, kit_id: &str) -> Option<KitState> {
         self.states.get(kit_id).copied()
@@ -264,6 +277,17 @@ impl KitRegistry {
         self.task_managers.insert(kit_id.to_string(), tm);
     }
 
+    /// Return IDs of enabled kits that request eager initialization.
+    pub fn eager_init_kit_ids(&self) -> Vec<String> {
+        self.kits
+            .iter()
+            .filter(|(id, kit)| {
+                kit.eager_init() && self.enabled.get(id.as_str()).copied().unwrap_or(true)
+            })
+            .map(|(id, _)| id.clone())
+            .collect()
+    }
+
     /// Return all enabled commands that have a hotkey assigned.
     pub fn commands_with_hotkeys(&self) -> Vec<CommandHotkeyEntry> {
         self.commands
@@ -282,13 +306,14 @@ impl KitRegistry {
 
     /// Get metadata about all registered kits and their commands.
     ///
-    /// Only kits that were enabled at registration are present. Each command
-    /// includes its effective enabled/prefix state from the config.
+    /// Returns all kits (enabled and disabled) so the Settings UI can
+    /// display toggles for all of them.
     pub fn kit_infos(&self) -> Vec<KitInfo> {
         self.kits
             .values()
             .map(|kit| {
                 let manifest = kit.manifest();
+                let kit_enabled = self.enabled.get(manifest.id).copied().unwrap_or(true);
                 let commands: Vec<CommandInfo> = self
                     .commands
                     .iter()
@@ -309,7 +334,7 @@ impl KitRegistry {
                     name: manifest.name.to_string(),
                     description: manifest.description.to_string(),
                     icon: manifest.icon.clone(),
-                    enabled: true, // only enabled kits are in the registry
+                    enabled: kit_enabled,
                     commands,
                 }
             })
@@ -500,6 +525,7 @@ fn build_core_actions(
 
 /// Heuristic: consider a file "text/code" if its extension is in this set.
 /// Binary/media files get fewer actions (no "Open in Editor").
+#[allow(clippy::too_many_lines)]
 fn is_text_file(name: &str) -> bool {
     let ext = match name.rsplit('.').next() {
         Some(e) => e.to_ascii_lowercase(),
@@ -507,19 +533,100 @@ fn is_text_file(name: &str) -> bool {
     };
     matches!(
         ext.as_str(),
-        "txt" | "md" | "markdown" | "rs" | "ts" | "tsx" | "js" | "jsx" | "json"
-        | "toml" | "yaml" | "yml" | "xml" | "html" | "htm" | "css" | "scss"
-        | "less" | "py" | "rb" | "go" | "java" | "kt" | "kts" | "c" | "h"
-        | "cpp" | "hpp" | "cc" | "cs" | "swift" | "m" | "mm" | "sh" | "bash"
-        | "zsh" | "fish" | "ps1" | "bat" | "cmd" | "lua" | "vim" | "el"
-        | "clj" | "cljs" | "ex" | "exs" | "erl" | "hs" | "ml" | "mli"
-        | "r" | "sql" | "graphql" | "gql" | "proto" | "tf" | "hcl"
-        | "dockerfile" | "makefile" | "cmake" | "conf" | "ini" | "cfg"
-        | "env" | "gitignore" | "gitattributes" | "editorconfig"
-        | "lock" | "log" | "csv" | "tsv" | "svg" | "tex" | "bib"
-        | "rst" | "adoc" | "org" | "vue" | "svelte" | "astro"
-        | "php" | "pl" | "pm" | "scala" | "sbt" | "dart" | "zig"
-        | "nim" | "v" | "d" | "f90" | "f95" | "jl"
+        "txt"
+            | "md"
+            | "markdown"
+            | "rs"
+            | "ts"
+            | "tsx"
+            | "js"
+            | "jsx"
+            | "json"
+            | "toml"
+            | "yaml"
+            | "yml"
+            | "xml"
+            | "html"
+            | "htm"
+            | "css"
+            | "scss"
+            | "less"
+            | "py"
+            | "rb"
+            | "go"
+            | "java"
+            | "kt"
+            | "kts"
+            | "c"
+            | "h"
+            | "cpp"
+            | "hpp"
+            | "cc"
+            | "cs"
+            | "swift"
+            | "m"
+            | "mm"
+            | "sh"
+            | "bash"
+            | "zsh"
+            | "fish"
+            | "ps1"
+            | "bat"
+            | "cmd"
+            | "lua"
+            | "vim"
+            | "el"
+            | "clj"
+            | "cljs"
+            | "ex"
+            | "exs"
+            | "erl"
+            | "hs"
+            | "ml"
+            | "mli"
+            | "r"
+            | "sql"
+            | "graphql"
+            | "gql"
+            | "proto"
+            | "tf"
+            | "hcl"
+            | "dockerfile"
+            | "makefile"
+            | "cmake"
+            | "conf"
+            | "ini"
+            | "cfg"
+            | "env"
+            | "gitignore"
+            | "gitattributes"
+            | "editorconfig"
+            | "lock"
+            | "log"
+            | "csv"
+            | "tsv"
+            | "svg"
+            | "tex"
+            | "bib"
+            | "rst"
+            | "adoc"
+            | "org"
+            | "vue"
+            | "svelte"
+            | "astro"
+            | "php"
+            | "pl"
+            | "pm"
+            | "scala"
+            | "sbt"
+            | "dart"
+            | "zig"
+            | "nim"
+            | "v"
+            | "d"
+            | "f90"
+            | "f95"
+            | "jl"
     )
 }
 // ---------------------------------------------------------------------------
@@ -871,7 +978,7 @@ mod tests {
     }
 
     #[test]
-    fn disabled_kit_not_registered() {
+    fn disabled_kit_excluded_from_search_and_discovery() {
         let mut cfg = default_config();
         cfg.kits.insert(
             "calc".to_string(),
@@ -880,10 +987,62 @@ mod tests {
         let mut registry = KitRegistry::new();
         registry.register(Box::new(MockKit::new("calc", vec![calc_command()])), &cfg);
 
-        // Kit was not registered at all
+        // Kit is registered but disabled — visible in settings, not in search.
         assert!(registry.search_by_prefix("= 2+3").is_none());
         assert!(registry.discovery_results("calc").is_empty());
-        assert!(registry.kit_infos().is_empty());
+        let infos = registry.kit_infos();
+        assert_eq!(infos.len(), 1);
+        assert!(!infos[0].enabled);
+    }
+
+    /// Mock kit that opts out of being enabled by default.
+    struct DefaultDisabledKit(MockKit);
+
+    #[async_trait::async_trait]
+    impl Kit for DefaultDisabledKit {
+        fn manifest(&self) -> &KitManifest {
+            self.0.manifest()
+        }
+        fn default_enabled(&self) -> bool {
+            false
+        }
+        fn commands(&self) -> Vec<CommandDef> {
+            self.0.commands()
+        }
+    }
+
+    #[test]
+    fn default_disabled_kit_visible_in_settings_but_inactive() {
+        let mut registry = KitRegistry::new();
+        registry.register(
+            Box::new(DefaultDisabledKit(MockKit::new("clip", vec![calc_command()]))),
+            &cfg(),
+        );
+        // No config entry for "clip" → kit.default_enabled() returns false.
+        // Kit shows in settings but is marked disabled.
+        let infos = registry.kit_infos();
+        assert_eq!(infos.len(), 1);
+        assert!(!infos[0].enabled);
+        // Disabled kit's commands don't appear in search/discovery.
+        assert!(registry.search_by_prefix("= test").is_none());
+        assert!(registry.discovery_results("calc").is_empty());
+    }
+
+    #[test]
+    fn default_disabled_kit_active_when_config_enables() {
+        let mut cfg = default_config();
+        cfg.kits.insert(
+            "clip".to_string(),
+            crate::config::KitConfig { enabled: true, ..Default::default() },
+        );
+        let mut registry = KitRegistry::new();
+        registry.register(
+            Box::new(DefaultDisabledKit(MockKit::new("clip", vec![calc_command()]))),
+            &cfg,
+        );
+        let infos = registry.kit_infos();
+        assert_eq!(infos.len(), 1);
+        assert!(infos[0].enabled);
     }
 
     #[test]
@@ -1166,9 +1325,10 @@ mod tests {
             kind: crate::indexer::EntryKind::File,
         }];
         let converted = KitSearchResult::from_core_search(core);
-        let copy_name = converted[0].actions.iter().find(|a| {
-            matches!(a, super::super::KitAction::CopyName { .. })
-        });
+        let copy_name = converted[0]
+            .actions
+            .iter()
+            .find(|a| matches!(a, super::super::KitAction::CopyName { .. }));
         assert!(copy_name.is_some());
         if let super::super::KitAction::CopyName { name } = copy_name.unwrap() {
             assert_eq!(name, "file.ts");

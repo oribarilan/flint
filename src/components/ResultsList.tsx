@@ -7,6 +7,7 @@ import {
   revealInFileManager,
   deleteToTrash,
   openInEditor,
+  handleCustomAction,
 } from "../lib/commands";
 import { focusSearchBar } from "../lib/focus";
 import { getKitComponents } from "../kits/registry";
@@ -14,7 +15,7 @@ import type { KitAction, KitSearchResult } from "../kits/types";
 import styles from "./ResultsList.module.css";
 
 /** Execute an action. Hides the window for most actions. */
-export function executeAction(action: KitAction): void {
+export function executeAction(action: KitAction, kitId?: string): void {
   switch (action.type) {
     case "Open":
       openFile(action.target)
@@ -26,7 +27,10 @@ export function executeAction(action: KitAction): void {
     case "Copy":
       navigator.clipboard
         .writeText(action.text)
-        .then(() => hideWindow())
+        .then(() => {
+          useSearchStore.getState().deactivateCommand();
+          return hideWindow();
+        })
         .catch((err: unknown) => {
           console.error("Failed to copy:", err);
         });
@@ -76,8 +80,20 @@ export function executeAction(action: KitAction): void {
           console.error("Failed to open in editor:", err);
         });
       break;
+    case "Custom":
+      if (kitId) {
+        handleCustomAction(kitId, action.id)
+          .then(() => {
+            // Re-trigger search to refresh results after mutation.
+            useSearchStore.getState().refreshSearch();
+          })
+          .catch((err: unknown) => {
+            console.error("Failed to handle custom action:", err);
+          });
+      }
+      break;
     default:
-      // Other action types (FocusWindow, Paste, Custom, OpenApp, OpenInTerminal)
+      // Other action types (FocusWindow, Paste, OpenApp, OpenInTerminal)
       // will be implemented alongside the kits that use them.
       break;
   }
@@ -91,15 +107,26 @@ export function executeAction(action: KitAction): void {
  * focus naturally. This matches the Execute-mode command pattern.
  */
 export function executeActionFromPanel(action: KitAction): void {
+  // Get kitId from the currently selected result for Custom actions.
+  const state = useSearchStore.getState();
+  const selectedResult = state.results[state.selectedIndex];
+  const kitId = selectedResult?.kitId;
+
+  // Custom actions stay in Flint — no hide, refresh results.
+  if (action.type === "Custom") {
+    executeAction(action, kitId);
+    return;
+  }
+
   // Clipboard actions don't spawn processes — hide after copying.
   if (action.type === "Copy" || action.type === "CopyPath" || action.type === "CopyName") {
-    executeAction(action);
+    executeAction(action, kitId);
     return;
   }
 
   // ActivateCommand stays in Flint — no hide.
   if (action.type === "ActivateCommand") {
-    executeAction(action);
+    executeAction(action, kitId);
     return;
   }
 
@@ -171,7 +198,7 @@ export function executeDefaultAction(result: KitSearchResult): void {
     return;
   }
 
-  executeAction(action);
+  executeAction(action, result.kitId);
 }
 
 export default function ResultsList() {
@@ -187,7 +214,15 @@ export default function ResultsList() {
   useLayoutEffect(() => {
     const highlight = highlightRef.current;
     const container = containerRef.current;
-    if (!highlight || !container || results.length === 0) return;
+    if (!highlight || !container || results.length === 0) {
+      // Hide highlight when results are empty (prevents ghost border).
+      if (highlight) {
+        highlight.style.display = "none";
+      }
+      return;
+    }
+
+    highlight.style.display = "";
 
     const items = container.querySelectorAll<HTMLElement>('[role="option"]');
     const selectedEl = items[selectedIndex];

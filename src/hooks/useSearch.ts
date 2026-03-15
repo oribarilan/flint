@@ -5,6 +5,7 @@ import { searchAll, searchCommand } from "../lib/commands";
 export function useSearch(): void {
   const query = useSearchStore((s) => s.query);
   const activeCommand = useSearchStore((s) => s.activeCommand);
+  const searchVersion = useSearchStore((s) => s.searchVersion);
   const setResults = useSearchStore((s) => s.setResults);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -40,5 +41,5 @@ export function useSearch(): void {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [query, activeCommand, setResults]);
+  }, [query, activeCommand, searchVersion, setResults]);
 }

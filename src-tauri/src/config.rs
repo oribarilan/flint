@@ -122,11 +122,7 @@ impl Default for GeneralConfig {
 
 impl Default for AppearanceConfig {
     fn default() -> Self {
-        Self {
-            font_size: "small".to_owned(),
-            theme: "flint".to_owned(),
-            backdrop_blur: false,
-        }
+        Self { font_size: "small".to_owned(), theme: "flint".to_owned(), backdrop_blur: false }
     }
 }
 

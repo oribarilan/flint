@@ -19,6 +19,8 @@ interface SearchState {
   selectedIndex: number;
   isLoading: boolean;
   activeCommand: ActiveCommand | null;
+  /** Incremented to force a re-search with the same query. */
+  searchVersion: number;
 
   // Action Panel state
   actionPanelOpen: boolean;
@@ -45,6 +47,7 @@ interface SearchState {
   armAction: (index: number) => void;
   disarmAction: () => void;
   getFilteredActions: () => KitAction[];
+  refreshSearch: () => void;
 }
 
 export const useSearchStore = create<SearchState>((set, get) => ({
@@ -54,6 +57,7 @@ export const useSearchStore = create<SearchState>((set, get) => ({
   selectedIndex: 0,
   isLoading: false,
   activeCommand: null,
+  searchVersion: 0,
 
   // Action Panel defaults
   actionPanelOpen: false,
@@ -186,6 +190,12 @@ export const useSearchStore = create<SearchState>((set, get) => ({
     return actionPanelResult.actions.filter((a) =>
       getActionLabel(a).toLowerCase().includes(lower),
     );
+  },
+
+  refreshSearch: () => {
+    // Increment version to force the useSearch hook to re-run
+    // even when the query hasn't changed (e.g., after a pin/delete).
+    set({ searchVersion: get().searchVersion + 1 });
   },
 }));
 

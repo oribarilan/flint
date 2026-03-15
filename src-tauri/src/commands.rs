@@ -174,6 +174,17 @@ pub async fn execute_command(
     registry.execute_command(&kit_id, &command_id).await.map_err(|e| e.to_string())
 }
 
+/// Handle a custom action dispatched from the frontend Action Panel.
+#[tauri::command]
+pub async fn handle_custom_action(
+    kit_id: String,
+    action_id: String,
+    registry_state: State<'_, KitRegistryState>,
+) -> Result<Option<String>, String> {
+    let registry = registry_state.0.read().await;
+    registry.handle_custom_action(&kit_id, &action_id).await.map_err(|e| e.to_string())
+}
+
 /// Open a file or application at `path` with the system default handler.
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)] // Tauri deserialises into owned String
@@ -359,7 +370,10 @@ fn canonicalize_path(path: &str) -> Result<PathBuf, String> {
 
 /// Validate that a canonical path falls within one of the configured indexed
 /// directories. Used for destructive operations (delete) to limit blast radius.
-fn validate_path_in_indexed_dirs(canonical: &std::path::Path, config: &FlintConfig) -> Result<(), String> {
+fn validate_path_in_indexed_dirs(
+    canonical: &std::path::Path,
+    config: &FlintConfig,
+) -> Result<(), String> {
     let home = dirs::home_dir();
     let allowed: Vec<PathBuf> = config
         .search
@@ -367,10 +381,8 @@ fn validate_path_in_indexed_dirs(canonical: &std::path::Path, config: &FlintConf
         .iter()
         .map(|d| {
             if d.starts_with('~') {
-                home.as_ref().map_or_else(
-                    || PathBuf::from(d),
-                    |h| h.join(d.strip_prefix("~/").unwrap_or(d)),
-                )
+                home.as_ref()
+                    .map_or_else(|| PathBuf::from(d), |h| h.join(d.strip_prefix("~/").unwrap_or(d)))
             } else {
                 PathBuf::from(d)
             }
@@ -382,10 +394,7 @@ fn validate_path_in_indexed_dirs(canonical: &std::path::Path, config: &FlintConf
         return Ok(());
     }
 
-    Err(format!(
-        "path '{}' is outside indexed directories",
-        canonical.display()
-    ))
+    Err(format!("path '{}' is outside indexed directories", canonical.display()))
 }
 
 // ---------------------------------------------------------------------------
@@ -416,10 +425,7 @@ fn open_with_system(path: &str) -> Result<(), std::io::Error> {
 fn reveal_path_in_file_manager(path: &str) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     {
-        std::process::Command::new("open")
-            .args(["-R", path])
-            .spawn()
-            .map_err(|e| e.to_string())?;
+        std::process::Command::new("open").args(["-R", path]).spawn().map_err(|e| e.to_string())?;
     }
 
     #[cfg(target_os = "linux")]
@@ -429,10 +435,7 @@ fn reveal_path_in_file_manager(path: &str) -> Result<(), String> {
             .parent()
             .map(|p| p.to_string_lossy().to_string())
             .unwrap_or_else(|| path.to_string());
-        std::process::Command::new("xdg-open")
-            .arg(&parent)
-            .spawn()
-            .map_err(|e| e.to_string())?;
+        std::process::Command::new("xdg-open").arg(&parent).spawn().map_err(|e| e.to_string())?;
     }
 
     #[cfg(target_os = "windows")]
@@ -451,10 +454,7 @@ fn resolve_editor(config_value: &str) -> Option<String> {
     if config_value != "auto" {
         return Some(config_value.to_string());
     }
-    std::env::var("VISUAL")
-        .ok()
-        .or_else(|| std::env::var("EDITOR").ok())
-        .filter(|s| !s.is_empty())
+    std::env::var("VISUAL").ok().or_else(|| std::env::var("EDITOR").ok()).filter(|s| !s.is_empty())
 }
 
 // ---------------------------------------------------------------------------

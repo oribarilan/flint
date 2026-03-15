@@ -8,10 +8,12 @@
 //! See `specs/kits.md` and `.todo/kit-v2.md` for the full specification.
 
 mod calculator;
+mod clipboard;
 mod registry;
 mod window_management;
 
 pub use calculator::CalculatorKit;
+pub use clipboard::ClipboardKit;
 pub use registry::{
     CommandHotkeyEntry, CommandInfo, KitInfo, KitRegistry, KitRegistryState, KitState,
 };
@@ -45,6 +47,23 @@ pub trait Kit: Send + Sync {
         Ok(())
     }
 
+    /// Whether this kit is enabled by default when no config is present.
+    ///
+    /// Most kits default to enabled. Kits that access sensitive data (e.g.,
+    /// clipboard) should return `false` — requiring the user to opt in.
+    fn default_enabled(&self) -> bool {
+        true
+    }
+
+    /// Whether this kit requires immediate initialization at startup.
+    ///
+    /// Kits that run background tasks (e.g., clipboard watcher) must return
+    /// `true` so their `init()` is called during app setup rather than lazily
+    /// on first user interaction.
+    fn eager_init(&self) -> bool {
+        false
+    }
+
     /// Lifecycle: called on app shutdown for cleanup.
     async fn shutdown(&self) -> Result<(), KitError> {
         Ok(())
@@ -66,6 +85,14 @@ pub trait Kit: Send + Sync {
     /// Execute a command immediately. Used for `Execute` mode commands.
     async fn execute(&self, command_id: &str) -> Result<CommandOutput, KitError> {
         Err(KitError::CommandNotFound(command_id.to_string()))
+    }
+
+    /// Handle a custom action dispatched from the frontend.
+    ///
+    /// The `action_id` is the `id` field from `KitAction::Custom`.
+    /// Returns a message to show the user, or `None` for silent completion.
+    async fn handle_custom_action(&self, action_id: &str) -> Result<Option<String>, KitError> {
+        Err(KitError::Internal(format!("custom action not handled: {action_id}")))
     }
 
     // ── App Window (unchanged) ──────────────────────────────────
