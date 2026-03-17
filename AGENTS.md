@@ -8,9 +8,13 @@ Flint is an AI-native application launcher built with Tauri v2. It provides a gl
 
 - **`spec.md`** — UX specification (modes, settings, interactions). This is the source of truth for product behavior. Always follow it. If an implementation decision conflicts with the spec, raise it rather than silently diverging.
 - **`specs/design.md`** — Visual identity, design tokens, and UI principles. This is the source of truth for how Flint looks and feels. All frontend CSS and component structure must follow it. Covers: identity (Spark × Strike), typography, color system, spacing, icons, interaction states, motion, accessibility, and empty states.
+- **`specs/kits.md`** — Kit system specification: trait interface, commands, prefix triggers, registry, lifecycle.
+- **`specs/keybindings.md`** — Keyboard shortcut mapping and layering rules.
+- **`specs/action-panel.md`** — Action panel behavior, layout, and command routing.
 - **`plan.md`** — Implementation roadmap and phasing.
 - **`gaps.md`** — Known cross-platform and feature gaps.
 - **`.todo/`** — Standalone tasks with full context for future sessions. See [Task Management](#task-management) below.
+- **`CONTRIBUTE.md`** — Setup instructions, prerequisites, and development workflow for new contributors.
 
 When proposing changes that would alter the spec or design spec (new modes, different interaction patterns, visual identity changes, etc.), flag them for review rather than updating the specs directly.
 
@@ -20,11 +24,11 @@ Work items live in `.todo/` as self-contained Markdown files. Each file carries 
 
 ### Directory Structure
 
-| Directory | Purpose | Contents |
-|-----------|---------|----------|
-| `.todo/` | **Ready to implement** — clear tasks with defined scope | Requirements, implementation steps, file changes |
-| `.todo/explore/` | **Needs research** — ideas that need investigation before committing | Options, trade-offs, platform considerations, phased breakdown |
-| `.todo/done/` | **Historical record** — completed tasks preserved for future reference | Decisions made, rationale, architecture chosen |
+| Directory        | Purpose                                                                | Contents                                                       |
+| ---------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `.todo/`         | **Ready to implement** — clear tasks with defined scope                | Requirements, implementation steps, file changes               |
+| `.todo/explore/` | **Needs research** — ideas that need investigation before committing   | Options, trade-offs, platform considerations, phased breakdown |
+| `.todo/done/`    | **Historical record** — completed tasks preserved for future reference | Decisions made, rationale, architecture chosen                 |
 
 ### Lifecycle
 
@@ -64,7 +68,7 @@ These are non-negotiable. When any of these are at risk, raise a red flag.
 1. **Single Responsibility.** Every class, struct, function, file, and module has one job. Files should stay under 500 LOC. When something grows beyond its scope, split it.
 2. **DRY.** One source of truth. Don't duplicate logic, constants, types, or configuration. Extract shared code early.
 3. **KISS.** Both implementation and UX must be simple and elegant. Prefer the straightforward solution. Complexity must justify itself.
-4. **Clean Code.** Readable, intention-revealing names. No dead code, no commented-out code. Small functions. Code should explain itself; comments explain *why*, not *what*.
+4. **Clean Code.** Readable, intention-revealing names. No dead code, no commented-out code. Small functions. Code should explain itself; comments explain _why_, not _what_.
 5. **Performance.** This is an app launcher — it must feel instant. Never block the main thread. Be allocation-aware in hot paths. Defer non-critical work. Virtualize long lists. Debounce expensive operations. Every feature should be evaluated for its performance impact.
 6. **Security.** Minimize attack surface. Apply least-privilege to Tauri capabilities, CSP, OAuth scopes, and IPC data boundaries. Sanitize and validate all inputs — especially file paths and IPC parameters. Never log secrets or PII. Treat dependencies as attack surface: audit, minimize, prefer well-maintained libraries.
 7. **Accessibility.** This is a keyboard-driven app. Focus management, ARIA roles, and semantic HTML are required. Screen reader support is a goal, not an afterthought.
@@ -86,9 +90,12 @@ Two code paths are **sacred** and must remain as close to zero-overhead as possi
 
 ## Architecture
 
-- **Rust backend** (`src-tauri/`): Spotlight search (macOS), fuzzy matching (nucleo), OpenCode backend, window management, hotkey registration.
+- **Rust backend** (`src-tauri/`): Spotlight search (macOS), fuzzy matching (nucleo), OpenCode provider, window management, hotkey registration, kit system.
+  - **OpenCode provider** (`providers/opencode/`): Spawns a local `opencode serve` process pointed at the user's second brain repo, communicates via HTTP API + SSE event stream, and bridges responses to the frontend via Tauri events. Three submodules: `process` (lifecycle), `client` (HTTP API), `events` (SSE to Tauri event bridge).
+  - **Reference**: [CodeNomad](https://github.com/NeuralNomadsAI/CodeNomad) — a mature UI wrapper around OpenCode server. Useful for patterns around workspace management, OpenCode server lifecycle, and SSE event handling. Note: CodeNomad handles provider auth by delegating to OpenCode's CLI/web UI, not through its own UI.
 - **React frontend** (`src/`): Search bar, results list, AI agent panel. State via Zustand. Bundled with Vite.
 - **IPC bridge**: All I/O and business logic lives in Rust. Frontend calls Rust via `tauri::command` invoke. Never use Node.js APIs for I/O.
+- **Kit system** (`src-tauri/src/kits/`, `src/kits/`): Self-contained capability modules that extend Flint beyond file search. Each kit exposes commands — discoverable via search, optionally triggered by a prefix (e.g., `=` for calculator). The `Kit` trait defines `manifest()`, `init()`, `search()`, `execute()`, `default_enabled()`, `eager_init()`. `KitRegistry` manages all kits, tracks enabled/disabled state, and routes search queries. Built-in kits: Calculator, Clipboard, Window Management. See `specs/kits.md`.
 
 ### Config & State Consistency
 
@@ -99,17 +106,16 @@ The app has two layers of state: the **config file** (TOML on disk, source of tr
 
 ## Tech Stack
 
-| Layer | Choice |
-|-------|--------|
-| Shell | Tauri v2 (Rust) |
-| Frontend | React 18 + TypeScript (strict) + Vite |
-| State | Zustand |
-| AI | OpenCode (local server, multi-provider) |
-| Fuzzy search | `nucleo` crate |
-| File search | macOS Spotlight (`mdfind`) |
-| HTTP | `reqwest` + `tokio` |
-| Secrets | `keyring` crate (OS keychain) |
-| Serialization | `serde` + `serde_json` |
+| Layer         | Choice                                  |
+| ------------- | --------------------------------------- |
+| Shell         | Tauri v2 (Rust)                         |
+| Frontend      | React 19 + TypeScript (strict) + Vite   |
+| State         | Zustand                                 |
+| AI            | OpenCode (local server, multi-provider) |
+| Fuzzy search  | `nucleo` crate                          |
+| File search   | macOS Spotlight (`mdfind`)              |
+| HTTP          | `reqwest` + `tokio`                     |
+| Serialization | `serde` + `serde_json`                  |
 
 ## Commands
 
@@ -136,7 +142,7 @@ Individual targets are also available (`just test-rust`, `just lint-frontend`, e
 - **Immutability**: Prefer `let` over `let mut`. Clone only when borrowing is not feasible.
 - **Iteration**: Prefer iterators and combinators over manual loops. Don't `.collect()` too early.
 - **Documentation**: `///` doc comments on all public items. `//!` for module-level docs.
-- **Linting**: Code must pass `cargo clippy -- -D warnings` and `cargo fmt --check`.
+- **Linting**: Clippy is configured with `pedantic` + `nursery` lint groups at warn level (see `Cargo.toml` `[lints.clippy]`). Code must pass `cargo clippy -- -D warnings` and `cargo fmt --check`.
 - **Unsafe**: Never use `unsafe` unless there is a clear, documented justification.
 - **Dependencies**: Pin major versions in `Cargo.toml`. Audit new crates before adding.
 
@@ -148,7 +154,7 @@ Individual targets are also available (`just test-rust`, `just lint-frontend`, e
 - **State**: Local state by default. Zustand for cross-cutting concerns only.
 - **Naming**: `camelCase` functions/variables, `PascalCase` components/types, `UPPER_SNAKE` constants.
 - **Styling**: CSS Modules. No global styles in component files.
-- **Imports**: Use Vite path aliases. No `require()`. Environment via `import.meta.env`.
+- **Imports**: Relative imports (e.g., `../stores/searchStore`). No `require()`. Environment via `import.meta.env`.
 
 ## Design System
 
@@ -174,7 +180,7 @@ All visual properties must use **semantic design tokens** defined in `src/styles
 - Validate all IPC parameters on the Rust side before processing.
 - Use Tauri's plugin system (`tauri-plugin-global-shortcut`, `tauri-plugin-shell`, etc.) instead of reimplementing OS integrations.
 - Window configuration (borderless, always-on-top, transparent) is defined in `tauri.conf.json`, not programmatically unless dynamic behavior is needed.
-- Tokens and secrets go in the OS keychain via `keyring`. Never in localStorage, files, or frontend state.
+- Secrets and auth tokens are managed by the OpenCode backend (stored in `~/.local/share/opencode/auth.json`). Never store secrets in localStorage, frontend state, or Flint's own config files.
 - **Dynamic windows must avoid flash-of-white.** When creating windows programmatically via `WebviewWindowBuilder`, always: (1) set `.visible(false)` so the window starts hidden, (2) set `.background_color()` matching the app's dark theme so the native surface is never white, and (3) call `getCurrentWindow().show()` from a React `useEffect` that fires only after async data (config, theme) has loaded **and** the component has rendered. Never show from `main.tsx` — the webview may not have painted yet.
 - **Hiding the window must produce a clean slate.** Any action that hides the overlay (Copy, Open, etc.) must reset transient UI state — deactivate command chips, clear action panels, hide selection highlights. When the user re-invokes Flint, they must see a fresh search bar, not a stale mid-workflow state.
 - **Lazy init vs. eager init.** Kits are initialized lazily on first use (e.g., when a prefix matches). Kits that run background tasks (clipboard watcher, stock ticker) must declare `eager_init() → true` so their `init()` runs at startup — a prefix-less kit will otherwise never be initialized because no user action triggers it.
@@ -188,16 +194,19 @@ This app targets macOS, Windows, and Linux. All platform-specific code must use 
 Three layers, each serving a different purpose:
 
 ### Unit Tests
+
 - **Rust**: `#[cfg(test)] mod tests` in each source file. Cover all public functions with positive + negative + edge cases. Run via `just test-rust`.
 - **Frontend**: Vitest + React Testing Library. At least one test per component/hook. `describe`/`it` structure. Run via `just test-frontend`.
 - **Naming**: Descriptive — `should_return_empty_when_query_is_blank`, not `test1`.
 - **Mocking**: Mock Tauri IPC calls in frontend tests. Mock filesystem/network in Rust tests.
 
 ### Integration Tests
-- **Rust**: `src-tauri/tests/` directory. Test multi-module flows: indexer → search pipeline, config file round-trip, SSE stream parsing end-to-end.
+
+- **Rust**: `src-tauri/tests/` directory. Test multi-module flows: indexer → search pipeline, config file round-trip, SSE stream parsing end-to-end. Currently covers search pipeline (file discovery, ranking, filtering, Spotlight integration).
 - **Frontend**: Test component interactions: mode switching, Escape layering, store lifecycle. Mock the IPC boundary but test the full React tree.
 
 ### E2E Smoke Tests via Simulator
+
 - **Tool**: Playwright + a web simulator that runs the full Flint UI in a browser with Tauri APIs mocked.
 - **Simulator**: `simulator/` directory — patches `window.__TAURI_INTERNALS__` to intercept all IPC calls. Run via `just sim` (port 3000).
 - **Mock layer**: `simulator/mock-tauri.ts` provides mock search results, streaming agent responses, model data, provider auth, and tool call simulation.
@@ -216,7 +225,7 @@ See also: **Security** principle in Engineering Principles above.
 - No secrets in source code. Use environment variables for dev-only config.
 - Dependencies audited via `cargo audit` and `npm audit` in CI.
 - Tauri capabilities (`src-tauri/capabilities/`) follow least-privilege — only grant permissions each window actually needs.
-- CSP defined in `tauri.conf.json` — no `unsafe-inline`, no `unsafe-eval`, restrict `connect-src` to known domains.
+- CSP in `tauri.conf.json` is currently disabled (`null`). Before shipping, define a strict CSP: no `unsafe-inline`, no `unsafe-eval`, restrict `connect-src` to known domains.
 
 ## Git
 

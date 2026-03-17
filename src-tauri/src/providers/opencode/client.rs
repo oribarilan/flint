@@ -114,34 +114,40 @@ pub struct ProviderAuthInfo {
     pub connected: bool,
 }
 
+/// Response from the OAuth authorize endpoint.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AuthorizeResponse {
+    /// URL to open in the browser.
+    pub url: String,
+    /// Auth method: `"auto"` (device flow, server polls) or `"code"` (user pastes code back).
+    pub method: String,
+    /// Instructions to display (e.g. "Enter code: XXXX-YYYY").
+    pub instructions: String,
+}
+
+/// Curated list of providers that support OAuth through the `OpenCode` server.
+///
+/// Only providers with working OAuth are listed — API-key-only providers
+/// (groq, deepseek, etc.) must be configured via `opencode providers login`.
+const KNOWN_PROVIDERS: &[(&str, &str)] = &[
+    ("github-copilot", "GitHub Copilot"),
+    ("anthropic", "Anthropic"),
+    ("openai", "OpenAI"),
+];
+
 /// Map provider IDs to human-readable display names.
 fn provider_display_name(id: &str) -> String {
-    let name = match id {
-        "github-copilot" => "GitHub Copilot",
-        "anthropic" => "Anthropic",
-        "openai" => "OpenAI",
-        "google" => "Google",
-        "opencode" => "OpenCode Zen",
-        "opencode-go" => "OpenCode Go",
-        "azure" => "Azure",
-        "amazon-bedrock" => "Amazon Bedrock",
-        "groq" => "Groq",
-        "deepseek" => "DeepSeek",
-        "mistral" => "Mistral",
-        "xai" => "xAI",
-        "cohere" => "Cohere",
-        _ => {
-            return id
-                .split('-')
-                .map(|w| {
-                    let mut c = w.chars();
-                    c.next().map_or_else(String::new, |f| f.to_uppercase().to_string() + c.as_str())
-                })
-                .collect::<Vec<_>>()
-                .join(" ");
-        }
-    };
-    name.to_owned()
+    if let Some(&(_, name)) = KNOWN_PROVIDERS.iter().find(|&&(kid, _)| kid == id) {
+        return name.to_owned();
+    }
+    // Fallback: title-case the ID.
+    id.split('-')
+        .map(|w| {
+            let mut c = w.chars();
+            c.next().map_or_else(String::new, |f| f.to_uppercase().to_string() + c.as_str())
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 // ---------------------------------------------------------------------------
@@ -262,16 +268,7 @@ impl OpenCodeClient {
 
     /// Get available models from all connected providers.
     pub async fn get_models(&self) -> Result<(Vec<ModelInfo>, Option<String>), ClientError> {
-        let resp = self.http.get(format!("{}/config/providers", self.base_url)).send().await?;
-
-        if !resp.status().is_success() {
-            let status = resp.status().as_u16();
-            let body = resp.text().await.unwrap_or_default();
-            return Err(ClientError::Server { status, body });
-        }
-
-        let data: ProvidersResponse =
-            resp.json().await.map_err(|e| ClientError::Parse(e.to_string()))?;
+        let data = self.get_providers_response().await?;
 
         let mut models = Vec::new();
         for provider in &data.providers {
@@ -289,6 +286,25 @@ impl OpenCodeClient {
         let default_model = data.default.values().next().cloned();
 
         Ok((models, default_model))
+    }
+
+    /// Get the IDs of providers that the server considers connected (have credentials).
+    pub async fn get_connected_provider_ids(&self) -> Result<Vec<String>, ClientError> {
+        let data = self.get_providers_response().await?;
+        Ok(data.providers.into_iter().map(|p| p.id).collect())
+    }
+
+    /// Fetch the `/config/providers` response from the server.
+    async fn get_providers_response(&self) -> Result<ProvidersResponse, ClientError> {
+        let resp = self.http.get(format!("{}/config/providers", self.base_url)).send().await?;
+
+        if !resp.status().is_success() {
+            let status = resp.status().as_u16();
+            let body = resp.text().await.unwrap_or_default();
+            return Err(ClientError::Server { status, body });
+        }
+
+        resp.json().await.map_err(|e| ClientError::Parse(e.to_string()))
     }
 
     /// Abort the active response in a session.
@@ -315,41 +331,17 @@ impl OpenCodeClient {
         &self.http
     }
 
-    /// Get provider auth status by reading `OpenCode`'s credential store directly.
+    /// Start OAuth authorization for a provider.
     ///
-    /// This reads `~/.local/share/opencode/auth.json` which contains only
-    /// providers the user has actually authenticated with — no noise from
-    /// the 90+ available providers.
-    pub fn get_provider_info(&self) -> Result<Vec<ProviderAuthInfo>, ClientError> {
-        let auth_path = dirs::data_local_dir()
-            .unwrap_or_else(|| std::path::PathBuf::from(".local/share"))
-            .join("opencode")
-            .join("auth.json");
-
-        let contents = std::fs::read_to_string(&auth_path).unwrap_or_else(|_| "{}".to_owned());
-        let credentials: std::collections::HashMap<String, serde_json::Value> =
-            serde_json::from_str(&contents).unwrap_or_default();
-
-        let providers = credentials
-            .keys()
-            .map(|id| ProviderAuthInfo {
-                id: id.clone(),
-                name: provider_display_name(id),
-                connected: true,
-            })
-            .collect();
-
-        Ok(providers)
-    }
-
-    /// Start OAuth authorization for a provider. Returns the authorization URL.
+    /// Returns the authorize URL, flow method, and user-facing instructions.
     pub async fn authorize_provider(
         &self,
         provider_id: &str,
-    ) -> Result<Option<String>, ClientError> {
+    ) -> Result<AuthorizeResponse, ClientError> {
         let resp = self
             .http
             .post(format!("{}/provider/{provider_id}/oauth/authorize", self.base_url))
+            .json(&serde_json::json!({ "method": 0 }))
             .send()
             .await?;
 
@@ -359,11 +351,71 @@ impl OpenCodeClient {
             return Err(ClientError::Server { status, body });
         }
 
-        let data: serde_json::Value =
-            resp.json().await.map_err(|e| ClientError::Parse(e.to_string()))?;
-        let url = data.get("url").and_then(|v| v.as_str()).map(String::from);
-        Ok(url)
+        resp.json::<AuthorizeResponse>().await.map_err(|e| ClientError::Parse(e.to_string()))
     }
+
+    /// Complete an OAuth authorization-code flow by submitting the user's code.
+    pub async fn complete_provider_auth(
+        &self,
+        provider_id: &str,
+        code: &str,
+    ) -> Result<(), ClientError> {
+        let resp = self
+            .http
+            .post(format!("{}/provider/{provider_id}/oauth/callback", self.base_url))
+            .json(&serde_json::json!({ "method": 0, "code": code }))
+            .send()
+            .await?;
+
+        if !resp.status().is_success() {
+            let status = resp.status().as_u16();
+            let body = resp.text().await.unwrap_or_default();
+            return Err(ClientError::Server { status, body });
+        }
+
+        Ok(())
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Standalone provider auth (no server required)
+// ---------------------------------------------------------------------------
+
+/// Read provider auth status from `OpenCode`'s credential store.
+///
+/// Returns all [`KNOWN_PROVIDERS`] merged with `~/.local/share/opencode/auth.json`.
+/// Connected providers that aren't in the known list are included too.
+pub fn read_provider_auth() -> Vec<ProviderAuthInfo> {
+    let auth_path = dirs::data_local_dir()
+        .unwrap_or_else(|| std::path::PathBuf::from(".local/share"))
+        .join("opencode")
+        .join("auth.json");
+
+    let contents = std::fs::read_to_string(&auth_path).unwrap_or_else(|_| "{}".to_owned());
+    let credentials: std::collections::HashMap<String, serde_json::Value> =
+        serde_json::from_str(&contents).unwrap_or_default();
+
+    let mut providers: Vec<ProviderAuthInfo> = KNOWN_PROVIDERS
+        .iter()
+        .map(|&(id, name)| ProviderAuthInfo {
+            id: id.to_owned(),
+            name: name.to_owned(),
+            connected: credentials.contains_key(id),
+        })
+        .collect();
+
+    // Include any connected providers not in the curated list.
+    for id in credentials.keys() {
+        if !KNOWN_PROVIDERS.iter().any(|&(kid, _)| kid == id) {
+            providers.push(ProviderAuthInfo {
+                id: id.clone(),
+                name: provider_display_name(id),
+                connected: true,
+            });
+        }
+    }
+
+    providers
 }
 
 // ---------------------------------------------------------------------------

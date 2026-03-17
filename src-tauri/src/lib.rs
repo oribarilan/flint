@@ -82,6 +82,8 @@ pub fn run() {
             commands::init_opencode,
             commands::get_provider_auth,
             commands::start_provider_auth,
+            commands::complete_provider_auth,
+            commands::check_provider_connected,
             commands::get_config,
             commands::get_default_config,
             commands::update_config,

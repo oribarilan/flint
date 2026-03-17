@@ -140,28 +140,90 @@ pub struct ProviderAuthInfoResponse {
 }
 
 /// Get provider auth status — which providers are connected.
+///
+/// Reads directly from disk; does not require the `OpenCode` server.
 #[tauri::command]
-pub async fn get_provider_auth(
-    provider: State<'_, OpenCodeProviderState>,
-) -> Result<Vec<ProviderAuthInfoResponse>, String> {
-    let result = {
-        let p = provider.0.read().await;
-        p.get_provider_auth().map_err(|e| e.to_string())?
-    };
-    Ok(result
+pub async fn get_provider_auth() -> Result<Vec<ProviderAuthInfoResponse>, String> {
+    let providers = crate::providers::opencode::client::read_provider_auth();
+    Ok(providers
         .into_iter()
         .map(|p| ProviderAuthInfoResponse { id: p.id, name: p.name, connected: p.connected })
         .collect())
 }
 
-/// Start OAuth authorization for a provider. Returns the auth URL.
+/// OAuth authorize response for the frontend.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct AuthorizeResponsePayload {
+    /// URL to open in the browser.
+    pub url: String,
+    /// `"auto"` (device flow — poll for completion) or `"code"` (user pastes code back).
+    pub method: String,
+    /// User-facing instructions (e.g. "Enter code: XXXX-YYYY").
+    pub instructions: String,
+}
+
+/// Start OAuth authorization for a provider.
+///
+/// Returns the auth URL, flow method, and user instructions.
 #[tauri::command]
 pub async fn start_provider_auth(
     provider: State<'_, OpenCodeProviderState>,
     provider_id: String,
-) -> Result<Option<String>, String> {
+) -> Result<AuthorizeResponsePayload, String> {
+    let resp = {
+        let p = provider.0.read().await;
+        p.authorize_provider(&provider_id).await.map_err(|e| e.to_string())?
+    };
+    Ok(AuthorizeResponsePayload { url: resp.url, method: resp.method, instructions: resp.instructions })
+}
+
+/// Complete an OAuth authorization-code flow by submitting the user's code.
+#[tauri::command]
+pub async fn complete_provider_auth(
+    provider: State<'_, OpenCodeProviderState>,
+    provider_id: String,
+    code: String,
+) -> Result<(), String> {
     let p = provider.0.read().await;
-    p.authorize_provider(&provider_id).await.map_err(|e| e.to_string())
+    p.complete_provider_auth(&provider_id, &code).await.map_err(|e| e.to_string())
+}
+
+/// Check whether a provider is connected via the live server state.
+///
+/// Checks the server's `/config/providers` first, then falls back to reading
+/// `auth.json` directly. Either source returning true means the provider is
+/// connected.
+#[tauri::command]
+pub async fn check_provider_connected(
+    provider: State<'_, OpenCodeProviderState>,
+    provider_id: String,
+) -> Result<bool, String> {
+    // Try the live server first.
+    let server_result = {
+        let p = provider.0.read().await;
+        p.is_provider_connected(&provider_id).await
+    };
+
+    match server_result {
+        Ok(true) => {
+            tracing::info!(provider_id, "provider connected (server)");
+            return Ok(true);
+        }
+        Ok(false) => {
+            tracing::debug!(provider_id, "provider not in server /config/providers");
+        }
+        Err(e) => {
+            tracing::warn!(provider_id, error = %e, "server check failed, falling back to auth.json");
+        }
+    }
+
+    // Fall back to auth.json.
+    let providers = crate::providers::opencode::client::read_provider_auth();
+    let connected = providers.iter().any(|p| p.id == provider_id && p.connected);
+    if connected {
+        tracing::info!(provider_id, "provider connected (auth.json)");
+    }
+    Ok(connected)
 }
 
 // ---------------------------------------------------------------------------

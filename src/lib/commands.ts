@@ -89,8 +89,25 @@ export async function getProviderAuth(): Promise<ProviderAuthInfo[]> {
   return invoke("get_provider_auth");
 }
 
-export async function startProviderAuth(providerId: string): Promise<string | null> {
+export interface AuthorizeResponse {
+  /** URL to open in the browser. */
+  url: string;
+  /** `"auto"` (device flow — poll for completion) or `"code"` (user pastes code back). */
+  method: string;
+  /** User-facing instructions (e.g. "Enter code: XXXX-YYYY"). */
+  instructions: string;
+}
+
+export async function startProviderAuth(providerId: string): Promise<AuthorizeResponse> {
   return invoke("start_provider_auth", { providerId });
+}
+
+export async function completeProviderAuth(providerId: string, code: string): Promise<void> {
+  return invoke("complete_provider_auth", { providerId, code });
+}
+
+export async function checkProviderConnected(providerId: string): Promise<boolean> {
+  return invoke("check_provider_connected", { providerId });
 }
 
 // ── Config commands ────────────────────────────────────────────

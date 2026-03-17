@@ -157,18 +157,46 @@ impl OpenCodeProvider {
     }
 
     /// Get provider auth status.
-    pub fn get_provider_auth(&self) -> Result<Vec<client::ProviderAuthInfo>, OpenCodeError> {
-        let client = self.client.as_ref().ok_or(OpenCodeError::ServerNotRunning)?;
-        client.get_provider_info().map_err(|e| OpenCodeError::Api(e.to_string()))
+    ///
+    /// Reads directly from disk — does not require the server to be running.
+    pub fn get_provider_auth(&self) -> Vec<client::ProviderAuthInfo> {
+        client::read_provider_auth()
     }
 
     /// Start OAuth authorization for a provider.
     pub async fn authorize_provider(
         &self,
         provider_id: &str,
-    ) -> Result<Option<String>, OpenCodeError> {
+    ) -> Result<client::AuthorizeResponse, OpenCodeError> {
         let client = self.client.as_ref().ok_or(OpenCodeError::ServerNotRunning)?;
         client.authorize_provider(provider_id).await.map_err(|e| OpenCodeError::Api(e.to_string()))
+    }
+
+    /// Complete an OAuth authorization-code flow.
+    pub async fn complete_provider_auth(
+        &self,
+        provider_id: &str,
+        code: &str,
+    ) -> Result<(), OpenCodeError> {
+        let client = self.client.as_ref().ok_or(OpenCodeError::ServerNotRunning)?;
+        client
+            .complete_provider_auth(provider_id, code)
+            .await
+            .map_err(|e| OpenCodeError::Api(e.to_string()))
+    }
+
+    /// Check whether a provider is connected via the live server state.
+    ///
+    /// Unlike [`get_provider_auth`] (which reads auth.json), this queries the
+    /// running server's `/config/providers` endpoint — the definitive source
+    /// of truth after an OAuth flow completes.
+    pub async fn is_provider_connected(&self, provider_id: &str) -> Result<bool, OpenCodeError> {
+        let client = self.client.as_ref().ok_or(OpenCodeError::ServerNotRunning)?;
+        let ids = client
+            .get_connected_provider_ids()
+            .await
+            .map_err(|e| OpenCodeError::Api(e.to_string()))?;
+        Ok(ids.iter().any(|id| id == provider_id))
     }
 
     /// Abort the current in-progress response.
