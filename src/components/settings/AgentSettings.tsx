@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import {
+  getChatStatus,
+  initOpencode,
   getProviderAuth,
   startProviderAuth,
   getAvailableModels,
@@ -20,9 +22,10 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
   const [providers, setProviders] = useState<ProviderAuthInfo[]>([]);
   const [models, setModels] = useState<AvailableModel[]>([]);
   const [isAuthing, setIsAuthing] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const refreshAll = useCallback(() => {
+  const refreshData = useCallback(() => {
     getProviderAuth()
       .then(setProviders)
       .catch(() => {});
@@ -31,14 +34,32 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
       .catch(() => {});
   }, []);
 
+  // On mount: ensure the OpenCode server is running, then fetch data
   useEffect(() => {
-    refreshAll();
-  }, [refreshAll]);
+    const init = async () => {
+      const status = await getChatStatus();
 
-  // Derive the single active provider: first connected, or first available
+      if (!status.connected && config.second_brain.repo_path) {
+        setIsInitializing(true);
+        try {
+          await initOpencode();
+        } catch {
+          // Server failed to start
+        } finally {
+          setIsInitializing(false);
+        }
+      }
+
+      // Fetch providers and models regardless (they return empty if server isn't up)
+      refreshData();
+    };
+    void init();
+  }, [config.second_brain.repo_path, refreshData]);
+
+  // Derive the single active provider
   const activeProvider =
     providers.find((p) => p.connected) ?? (providers.length > 0 ? providers[0] : null);
-  const isConnected = activeProvider?.connected ?? false;
+  const isProviderConnected = activeProvider?.connected ?? false;
 
   const handleAuth = async () => {
     if (!activeProvider) return;
@@ -57,11 +78,11 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
           return;
         }
         setTimeout(() => {
-          refreshAll();
+          refreshData();
           poll(remaining - 1);
         }, 3000);
       };
-      poll(3);
+      poll(5);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       setError(message);
@@ -80,6 +101,8 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
     await onResetSection("chat");
   };
 
+  const needsBrain = !config.second_brain.repo_path;
+
   return (
     <div className={styles.page}>
       <h2 className={styles.pageTitle}>Agent</h2>
@@ -91,18 +114,34 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
             <div>
               <span className={styles.providerName}>Model Provider</span>
               <span className={styles.providerDesc}>
-                {activeProvider ? activeProvider.name : "No provider available"}
+                {activeProvider
+                  ? activeProvider.name
+                  : isInitializing
+                    ? "Starting…"
+                    : "Authenticate to use AI models"}
               </span>
             </div>
           </div>
-          {isConnected ? (
+          {isProviderConnected ? (
             <span className={styles.statusBadge}>Connected</span>
           ) : (
             <span className={styles.statusDisconnected}>Not connected</span>
           )}
         </div>
 
-        {activeProvider && !isConnected && (
+        {needsBrain && (
+          <div className={styles.row}>
+            <span className={styles.hint}>Select a second brain repo in the Brain tab first</span>
+          </div>
+        )}
+
+        {!needsBrain && isInitializing && (
+          <div className={styles.row}>
+            <span className={styles.hint}>Starting agent backend…</span>
+          </div>
+        )}
+
+        {!needsBrain && !isInitializing && activeProvider && !isProviderConnected && (
           <div className={styles.row}>
             <span />
             <button
@@ -115,7 +154,7 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
           </div>
         )}
 
-        {activeProvider && isConnected && (
+        {!needsBrain && !isInitializing && activeProvider && isProviderConnected && (
           <div className={styles.row}>
             <span />
             <button
@@ -125,14 +164,6 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
             >
               Reconnect
             </button>
-          </div>
-        )}
-
-        {!activeProvider && (
-          <div className={styles.row}>
-            <span className={styles.hint}>
-              No providers available yet. Make sure OpenCode is running.
-            </span>
           </div>
         )}
 
