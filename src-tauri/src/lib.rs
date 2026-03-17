@@ -110,10 +110,17 @@ pub fn run() {
                 OpenCodeProviderState(Arc::new(tokio::sync::RwLock::new(opencode)));
             app.manage(opencode_state.clone());
 
-            // If second brain repo is configured, start the OpenCode server.
-            let second_brain_path = cfg.second_brain.repo_path.clone();
-            if let Some(ref repo_path) = second_brain_path {
-                let path = std::path::PathBuf::from(repo_path);
+            // Start the OpenCode server — uses brain repo if configured,
+            // otherwise a temp directory so provider auth works immediately.
+            {
+                let path = cfg.second_brain.repo_path.as_deref().map_or_else(
+                    || {
+                        let tmp = std::env::temp_dir().join("flint-opencode");
+                        let _ = std::fs::create_dir_all(&tmp);
+                        tmp
+                    },
+                    std::path::PathBuf::from,
+                );
                 let app_handle = app.handle().clone();
                 let state = opencode_state;
                 tauri::async_runtime::spawn(async move {

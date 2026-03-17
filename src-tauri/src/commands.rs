@@ -108,22 +108,25 @@ pub async fn clear_chat(provider: State<'_, OpenCodeProviderState>) -> Result<()
 
 /// Initialize or reinitialize the `OpenCode` provider.
 ///
-/// Called when the second brain repo path changes in settings.
+/// Uses the configured second brain repo path, or falls back to a temp
+/// directory so that provider auth and model listing work even before
+/// a brain repo is selected.
 #[tauri::command]
 pub async fn init_opencode(
     app: AppHandle,
     provider: State<'_, OpenCodeProviderState>,
     config: State<'_, AppConfig>,
 ) -> Result<(), String> {
-    let repo_path =
-        config.get().second_brain.repo_path.ok_or("second brain repo path not configured")?;
+    let path = config.get().second_brain.repo_path.map_or_else(
+        || std::env::temp_dir().join("flint-opencode"),
+        PathBuf::from,
+    );
 
-    let path = PathBuf::from(&repo_path);
+    // Ensure the directory exists (temp fallback may not).
+    std::fs::create_dir_all(&path).map_err(|e| format!("failed to create dir: {e}"))?;
+
     let mut p = provider.0.write().await;
-
-    // Shut down existing instance first.
     p.shutdown().await;
-
     p.init(&path, &app).await.map_err(|e| e.to_string())
 }
 

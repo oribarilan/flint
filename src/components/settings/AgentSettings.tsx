@@ -39,7 +39,7 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
     const init = async () => {
       const status = await getChatStatus();
 
-      if (!status.connected && config.second_brain.repo_path) {
+      if (!status.connected) {
         setIsInitializing(true);
         try {
           await initOpencode();
@@ -50,11 +50,10 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
         }
       }
 
-      // Fetch providers and models regardless (they return empty if server isn't up)
       refreshData();
     };
     void init();
-  }, [config.second_brain.repo_path, refreshData]);
+  }, [refreshData]);
 
   // Derive the single active provider
   const activeProvider =
@@ -71,7 +70,6 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
         const { open: shellOpen } = await import("@tauri-apps/plugin-shell");
         await shellOpen(url);
       }
-      // Poll for completion
       const poll = (remaining: number) => {
         if (remaining <= 0) {
           setIsAuthing(false);
@@ -101,8 +99,6 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
     await onResetSection("chat");
   };
 
-  const needsBrain = !config.second_brain.repo_path;
-
   return (
     <div className={styles.page}>
       <h2 className={styles.pageTitle}>Agent</h2>
@@ -129,19 +125,13 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
           )}
         </div>
 
-        {needsBrain && (
-          <div className={styles.row}>
-            <span className={styles.hint}>Select a second brain repo in the Brain tab first</span>
-          </div>
-        )}
-
-        {!needsBrain && isInitializing && (
+        {isInitializing && (
           <div className={styles.row}>
             <span className={styles.hint}>Starting agent backend…</span>
           </div>
         )}
 
-        {!needsBrain && !isInitializing && activeProvider && !isProviderConnected && (
+        {!isInitializing && activeProvider && !isProviderConnected && (
           <div className={styles.row}>
             <span />
             <button
@@ -154,7 +144,7 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
           </div>
         )}
 
-        {!needsBrain && !isInitializing && activeProvider && isProviderConnected && (
+        {!isInitializing && activeProvider && isProviderConnected && (
           <div className={styles.row}>
             <span />
             <button
