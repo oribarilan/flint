@@ -58,3 +58,11 @@ build-app:
 # Dev mode with hot reload
 dev:
     npm run tauri dev
+
+# Run UI simulator in browser (no Tauri needed)
+sim:
+    npm run sim
+
+# Run E2E tests against the simulator
+test-e2e:
+    npm run test:e2e
