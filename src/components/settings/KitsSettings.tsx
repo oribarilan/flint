@@ -121,7 +121,8 @@ export default function KitsSettings({ config, onUpdate }: KitsSettingsProps) {
 
       {kits.length === 0 && (
         <p className={styles.emptyList}>
-          Kits extend Flint with new commands and integrations. Built-in kits will appear here after first launch.
+          Kits extend Flint with new commands and integrations. Built-in kits will appear here after
+          first launch.
         </p>
       )}
 

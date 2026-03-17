@@ -5,10 +5,9 @@ beforeEach(() => {
   useChatStore.setState({
     messages: [],
     isStreaming: false,
-    isAuthenticating: false,
     currentResponse: "",
     activeToolCalls: [],
-    authStatus: { authenticated: false, username: null },
+    chatStatus: { connected: false, sessionId: null, repoPath: null },
   });
 });
 
@@ -99,20 +98,17 @@ describe("chatStore", () => {
     expect(state.currentResponse).toBe("");
   });
 
-  it("setAuthenticating toggles authenticating flag", () => {
-    useChatStore.getState().setAuthenticating(true);
-    expect(useChatStore.getState().isAuthenticating).toBe(true);
+  it("setChatStatus updates chat connection status", () => {
+    useChatStore.getState().setChatStatus({
+      connected: true,
+      sessionId: "sess-123",
+      repoPath: "/path/to/brain",
+    });
 
-    useChatStore.getState().setAuthenticating(false);
-    expect(useChatStore.getState().isAuthenticating).toBe(false);
-  });
-
-  it("setAuthStatus updates auth status", () => {
-    useChatStore.getState().setAuthStatus({ authenticated: true, username: "alice" });
-
-    const { authStatus } = useChatStore.getState();
-    expect(authStatus.authenticated).toBe(true);
-    expect(authStatus.username).toBe("alice");
+    const { chatStatus } = useChatStore.getState();
+    expect(chatStatus.connected).toBe(true);
+    expect(chatStatus.sessionId).toBe("sess-123");
+    expect(chatStatus.repoPath).toBe("/path/to/brain");
   });
 
   it("multiple messages accumulate correctly", () => {

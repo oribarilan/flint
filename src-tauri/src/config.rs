@@ -21,6 +21,7 @@ pub struct FlintConfig {
     pub appearance: AppearanceConfig,
     pub search: SearchConfig,
     pub chat: ChatConfig,
+    pub second_brain: SecondBrainConfig,
     /// Per-kit configuration sections. Key = kit id.
     pub kits: HashMap<String, KitConfig>,
 }
@@ -69,6 +70,15 @@ pub struct SearchConfig {
 #[serde(default)]
 pub struct ChatConfig {
     pub default_model: String,
+}
+
+/// Second brain configuration.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+#[derive(Default)]
+pub struct SecondBrainConfig {
+    /// Absolute path to the local second brain git repo.
+    pub repo_path: Option<String>,
 }
 
 /// Per-kit configuration.

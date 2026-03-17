@@ -1,5 +1,5 @@
 //! Tauri IPC commands for window management, file search, file opening,
-//! and Copilot chat.
+//! and `OpenCode` chat.
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -9,18 +9,84 @@ use tauri::{AppHandle, State};
 use crate::config::{AppConfig, FlintConfig};
 use crate::indexer::AppIndex;
 use crate::kits::{KitContextBase, KitInfo, KitRegistryState, KitSearchResult, KitState};
-use crate::providers;
-use crate::providers::copilot::auth::DeviceCodeResponse;
-use crate::providers::{AuthStatus, ChatMessage, ChatRole};
+use crate::providers::opencode::OpenCodeProviderState;
 use crate::search::SearchResult;
 use crate::window;
 
 // ---------------------------------------------------------------------------
-// Copilot state
+// OpenCode chat commands
 // ---------------------------------------------------------------------------
 
-/// Managed Tauri state wrapping the Copilot provider.
-pub struct CopilotProviderState(pub providers::copilot::CopilotProvider);
+/// Chat connection status.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct ChatStatus {
+    /// Whether the `OpenCode` server is running and connected.
+    pub connected: bool,
+    /// Current session ID, if any.
+    pub session_id: Option<String>,
+    /// Configured second brain repo path.
+    pub repo_path: Option<String>,
+}
+
+/// Get the current chat connection status.
+#[tauri::command]
+pub async fn get_chat_status(
+    provider: State<'_, OpenCodeProviderState>,
+) -> Result<ChatStatus, String> {
+    let p = provider.0.read().await;
+    Ok(ChatStatus {
+        connected: p.is_connected(),
+        session_id: p.session_id().map(String::from),
+        repo_path: p.repo_path().map(|p| p.to_string_lossy().to_string()),
+    })
+}
+
+/// Send a chat message to the `OpenCode` backend.
+///
+/// The response streams via SSE events (`chat:token`, `chat:done`, `chat:error`).
+#[tauri::command]
+pub async fn send_chat_message(
+    provider: State<'_, OpenCodeProviderState>,
+    message: String,
+) -> Result<(), String> {
+    let p = provider.0.read().await;
+    p.send_message(&message).await.map_err(|e| e.to_string())
+}
+
+/// Abort the current in-progress chat response.
+#[tauri::command]
+pub async fn abort_chat(provider: State<'_, OpenCodeProviderState>) -> Result<(), String> {
+    let p = provider.0.read().await;
+    p.abort().await.map_err(|e| e.to_string())
+}
+
+/// Clear chat by creating a new `OpenCode` session.
+#[tauri::command]
+pub async fn clear_chat(provider: State<'_, OpenCodeProviderState>) -> Result<(), String> {
+    let mut p = provider.0.write().await;
+    p.new_session().await.map_err(|e| e.to_string())
+}
+
+/// Initialize or reinitialize the `OpenCode` provider.
+///
+/// Called when the second brain repo path changes in settings.
+#[tauri::command]
+pub async fn init_opencode(
+    app: AppHandle,
+    provider: State<'_, OpenCodeProviderState>,
+    config: State<'_, AppConfig>,
+) -> Result<(), String> {
+    let repo_path =
+        config.get().second_brain.repo_path.ok_or("second brain repo path not configured")?;
+
+    let path = PathBuf::from(&repo_path);
+    let mut p = provider.0.write().await;
+
+    // Shut down existing instance first.
+    p.shutdown().await;
+
+    p.init(&path, &app).await.map_err(|e| e.to_string())
+}
 
 // ---------------------------------------------------------------------------
 // Window commands
@@ -297,60 +363,7 @@ pub fn get_app_icon(path: String) -> Option<String> {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Copilot commands
-// ---------------------------------------------------------------------------
-
-/// Start the Copilot device-flow auth.
-///
-/// Returns the user code and verification URL for the caller to present.
-#[tauri::command]
-pub async fn start_copilot_auth(
-    provider: State<'_, CopilotProviderState>,
-) -> Result<DeviceCodeResponse, String> {
-    provider.0.start_auth().await
-}
-
-/// Complete the auth flow by polling for the access token.
-///
-/// Blocks until the user authorises or the code expires.
-#[tauri::command]
-pub async fn complete_copilot_auth(
-    provider: State<'_, CopilotProviderState>,
-    device_code: String,
-    interval: u64,
-) -> Result<(), String> {
-    provider.0.complete_auth(&device_code, interval).await
-}
-
-/// Check whether the user is authenticated with Copilot.
-#[tauri::command]
-pub async fn get_auth_status(
-    provider: State<'_, CopilotProviderState>,
-) -> Result<AuthStatus, String> {
-    Ok(AuthStatus { authenticated: provider.0.is_authenticated().await, username: None })
-}
-
-/// Send chat messages and stream the response via Tauri events.
-///
-/// Emits `chat:token`, `chat:done`, and `chat:error` events.
-#[tauri::command]
-#[allow(clippy::needless_pass_by_value)] // Tauri injects AppHandle by value
-pub async fn send_chat_message(
-    app: AppHandle,
-    provider: State<'_, CopilotProviderState>,
-    message: String,
-) -> Result<(), String> {
-    let messages = vec![ChatMessage::text(ChatRole::User, message)];
-    provider.0.send_message(&messages, &app).await
-}
-
-/// Sign out and clear all stored Copilot tokens.
-#[tauri::command]
-pub async fn sign_out(provider: State<'_, CopilotProviderState>) -> Result<(), String> {
-    provider.0.sign_out().await;
-    Ok(())
-}
+// (OpenCode chat commands are defined above, near the top of the file.)
 
 // ---------------------------------------------------------------------------
 // Config commands

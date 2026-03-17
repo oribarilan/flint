@@ -238,8 +238,7 @@ export default function ResultsList() {
     const isVisible = itemTop >= scrollTop && itemBottom <= scrollBottom;
 
     const shouldAnimate = prevResultsRef.current === results && isVisible;
-    highlight.className =
-      (shouldAnimate ? styles.highlightAnimated : styles.highlight) ?? "";
+    highlight.className = (shouldAnimate ? styles.highlightAnimated : styles.highlight) ?? "";
     highlight.style.top = `${String(selectedEl.offsetTop)}px`;
     highlight.style.height = `${String(selectedEl.offsetHeight)}px`;
 

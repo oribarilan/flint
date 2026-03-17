@@ -13,18 +13,20 @@ export interface ActiveToolCall {
 interface ChatState {
   messages: ChatMessage[];
   isStreaming: boolean;
-  isAuthenticating: boolean;
   currentResponse: string;
   activeToolCalls: ActiveToolCall[];
-  authStatus: { authenticated: boolean; username: string | null };
+  chatStatus: { connected: boolean; sessionId: string | null; repoPath: string | null };
 
   addUserMessage: (content: string) => void;
   appendToken: (token: string) => void;
   finishResponse: () => void;
   setError: (error: string) => void;
   setStreaming: (streaming: boolean) => void;
-  setAuthenticating: (authenticating: boolean) => void;
-  setAuthStatus: (status: { authenticated: boolean; username: string | null }) => void;
+  setChatStatus: (status: {
+    connected: boolean;
+    sessionId: string | null;
+    repoPath: string | null;
+  }) => void;
   addToolCall: (call: ActiveToolCall) => void;
   removeToolCall: (toolName: string) => void;
   clearChat: () => void;
@@ -33,10 +35,9 @@ interface ChatState {
 export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
   isStreaming: false,
-  isAuthenticating: false,
   currentResponse: "",
   activeToolCalls: [],
-  authStatus: { authenticated: false, username: null },
+  chatStatus: { connected: false, sessionId: null, repoPath: null },
 
   addUserMessage: (content) => {
     set((state) => ({
@@ -74,12 +75,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set({ isStreaming: streaming });
   },
 
-  setAuthenticating: (authenticating) => {
-    set({ isAuthenticating: authenticating });
-  },
-
-  setAuthStatus: (status) => {
-    set({ authStatus: status });
+  setChatStatus: (status) => {
+    set({ chatStatus: status });
   },
 
   addToolCall: (call) => {

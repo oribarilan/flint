@@ -112,7 +112,12 @@ describe("executeDefaultAction", () => {
       id: "cmd-discovery:calculator:calculate",
       title: "Calculator",
       icon: { type: "Emoji", value: "🧮" },
-      kind: { type: "Command", kit_id: "calculator", command_id: "calculate", mode: "InputResults" },
+      kind: {
+        type: "Command",
+        kit_id: "calculator",
+        command_id: "calculate",
+        mode: "InputResults",
+      },
       actions: [{ type: "ActivateCommand", kit_id: "calculator", command_id: "calculate" }],
     };
 
@@ -158,7 +163,6 @@ describe("executeDefaultAction", () => {
 });
 
 describe("executeAction — new action types", () => {
-
   it("reveals file in file manager", async () => {
     const action: KitAction = { type: "RevealInFileManager", target: "/tmp/test.txt" };
     executeAction(action);

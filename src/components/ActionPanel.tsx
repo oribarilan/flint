@@ -1,9 +1,5 @@
 import { useEffect, useRef } from "react";
-import {
-  useSearchStore,
-  getActionLabel,
-  actionRequiresConfirmation,
-} from "../stores/searchStore";
+import { useSearchStore, getActionLabel, actionRequiresConfirmation } from "../stores/searchStore";
 import { executeActionFromPanel } from "./ResultsList";
 import type { KitAction } from "../kits/types";
 import styles from "./ActionPanel.module.css";
@@ -87,16 +83,16 @@ export default function ActionPanel() {
 
   return (
     <div ref={listRef} className={styles.actionList} role="listbox" aria-label="Actions">
-      {filteredActions.length === 0 && (
-        <div className={styles.emptyState}>No matching actions</div>
-      )}
+      {filteredActions.length === 0 && <div className={styles.emptyState}>No matching actions</div>}
       {filteredActions.map((action, index) => {
         const isDestructive = actionRequiresConfirmation(action);
         const isSelected = index === selectedActionIndex;
         const isArmed = index === armedActionIndex;
         const prevAction = filteredActions[index - 1];
         const showDivider = !!(
-          isDestructive && prevAction && !actionRequiresConfirmation(prevAction)
+          isDestructive &&
+          prevAction &&
+          !actionRequiresConfirmation(prevAction)
         );
 
         return (
@@ -145,9 +141,10 @@ function ActionItem({
       ? styles.actionItemSelected
       : styles.actionItem;
 
-  const itemClass = isDestructive && !isArmed
-    ? `${className ?? ""} ${styles.destructive ?? ""}`
-    : className ?? "";
+  const itemClass =
+    isDestructive && !isArmed
+      ? `${className ?? ""} ${styles.destructive ?? ""}`
+      : (className ?? "");
 
   return (
     <>

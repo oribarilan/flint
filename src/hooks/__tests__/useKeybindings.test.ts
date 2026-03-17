@@ -59,9 +59,8 @@ beforeEach(() => {
   useChatStore.setState({
     messages: [],
     isStreaming: false,
-    isAuthenticating: false,
     currentResponse: "",
-    authStatus: { authenticated: false, username: null },
+    chatStatus: { connected: false, sessionId: null, repoPath: null },
   });
   vi.clearAllMocks();
 });

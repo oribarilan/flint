@@ -26,6 +26,7 @@ use tracing_subscriber::EnvFilter;
 
 use indexer::AppIndex;
 use kits::{CommandMode, KitContextBase, KitIcon, KitRegistry, KitRegistryState};
+use providers::opencode::{OpenCodeProvider, OpenCodeProviderState};
 
 /// Payload emitted to the frontend when a global command hotkey is pressed
 /// for an `InputResults`-mode command, instructing it to activate the chip.
@@ -72,11 +73,11 @@ pub fn run() {
             commands::open_in_editor,
             commands::open_in_terminal,
             commands::get_app_icon,
-            commands::start_copilot_auth,
-            commands::complete_copilot_auth,
-            commands::get_auth_status,
+            commands::get_chat_status,
             commands::send_chat_message,
-            commands::sign_out,
+            commands::abort_chat,
+            commands::clear_chat,
+            commands::init_opencode,
             commands::get_config,
             commands::get_default_config,
             commands::update_config,
@@ -99,9 +100,29 @@ pub fn run() {
             // Build system tray icon + menu.
             tray::setup(app)?;
 
-            // Initialise Copilot provider as managed state.
-            let copilot = providers::copilot::CopilotProvider::new();
-            app.manage(commands::CopilotProviderState(copilot));
+            // Initialise OpenCode provider as managed state.
+            let opencode = OpenCodeProvider::new();
+            let opencode_state =
+                OpenCodeProviderState(Arc::new(tokio::sync::RwLock::new(opencode)));
+            app.manage(opencode_state.clone());
+
+            // If second brain repo is configured, start the OpenCode server.
+            let second_brain_path = cfg.second_brain.repo_path.clone();
+            if let Some(ref repo_path) = second_brain_path {
+                let path = std::path::PathBuf::from(repo_path);
+                let app_handle = app.handle().clone();
+                let state = opencode_state;
+                tauri::async_runtime::spawn(async move {
+                    let mut provider: tokio::sync::RwLockWriteGuard<'_, OpenCodeProvider> =
+                        state.0.write().await;
+                    if let Err(e) = provider.init(&path, &app_handle).await {
+                        tracing::warn!(
+                            error = %e,
+                            "failed to start OpenCode server on launch"
+                        );
+                    }
+                });
+            }
 
             // Manage application config.
             let app_config = config::AppConfig::new(cfg);

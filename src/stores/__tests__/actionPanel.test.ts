@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { useSearchStore, getActionLabel, actionRequiresConfirmation } from "../../stores/searchStore";
+import {
+  useSearchStore,
+  getActionLabel,
+  actionRequiresConfirmation,
+} from "../../stores/searchStore";
 import type { KitSearchResult } from "../../kits/types";
 
 const FILE_RESULT: KitSearchResult = {
@@ -149,7 +153,9 @@ describe("getActionLabel", () => {
     expect(getActionLabel({ type: "Open", target: "" })).toBe("Open");
     expect(getActionLabel({ type: "OpenInEditor", target: "" })).toBe("Open in Editor");
     // jsdom is neither Mac nor Windows, so falls through to Linux label
-    expect(getActionLabel({ type: "RevealInFileManager", target: "" })).toBe("Show in File Manager");
+    expect(getActionLabel({ type: "RevealInFileManager", target: "" })).toBe(
+      "Show in File Manager",
+    );
     expect(getActionLabel({ type: "CopyPath", path: "" })).toBe("Copy Path");
     expect(getActionLabel({ type: "CopyName", name: "" })).toBe("Copy Name");
     expect(getActionLabel({ type: "Delete", target: "" })).toBe("Delete");
@@ -164,7 +170,12 @@ describe("actionRequiresConfirmation", () => {
 
   it("returns true for Custom with requires_confirmation", () => {
     expect(
-      actionRequiresConfirmation({ type: "Custom", id: "x", label: "X", requires_confirmation: true }),
+      actionRequiresConfirmation({
+        type: "Custom",
+        id: "x",
+        label: "X",
+        requires_confirmation: true,
+      }),
     ).toBe(true);
   });
 

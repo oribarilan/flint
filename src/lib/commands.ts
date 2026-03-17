@@ -34,40 +34,32 @@ export async function openSettings(): Promise<void> {
   return invoke("open_settings");
 }
 
-// ── Auth commands ──────────────────────────────────────────────
-
-export interface DeviceCodeResponse {
-  device_code: string;
-  user_code: string;
-  verification_uri: string;
-  interval: number;
-}
-
-export interface AuthStatus {
-  authenticated: boolean;
-  username: string | null;
-}
-
-export async function startCopilotAuth(): Promise<DeviceCodeResponse> {
-  return invoke("start_copilot_auth");
-}
-
-export async function completeCopilotAuth(deviceCode: string, interval: number): Promise<void> {
-  return invoke("complete_copilot_auth", { deviceCode, interval });
-}
-
-export async function getAuthStatus(): Promise<AuthStatus> {
-  return invoke("get_auth_status");
-}
-
 // ── Chat commands ──────────────────────────────────────────────
+
+export interface ChatStatus {
+  connected: boolean;
+  session_id: string | null;
+  repo_path: string | null;
+}
+
+export async function getChatStatus(): Promise<ChatStatus> {
+  return invoke("get_chat_status");
+}
 
 export async function sendChatMessage(message: string): Promise<void> {
   return invoke("send_chat_message", { message });
 }
 
-export async function signOut(): Promise<void> {
-  return invoke("sign_out");
+export async function abortChat(): Promise<void> {
+  return invoke("abort_chat");
+}
+
+export async function clearChat(): Promise<void> {
+  return invoke("clear_chat");
+}
+
+export async function initOpencode(): Promise<void> {
+  return invoke("init_opencode");
 }
 
 // ── Config commands ────────────────────────────────────────────
@@ -93,6 +85,10 @@ export interface ChatConfig {
   default_model: string;
 }
 
+export interface SecondBrainConfig {
+  repo_path: string | null;
+}
+
 export interface CommandConfigEntry {
   enabled?: boolean;
   prefix?: string;
@@ -110,6 +106,7 @@ export interface FlintConfig {
   appearance: AppearanceConfig;
   search: SearchConfig;
   chat: ChatConfig;
+  second_brain: SecondBrainConfig;
   kits: Record<string, KitConfig>;
 }
 

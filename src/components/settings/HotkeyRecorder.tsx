@@ -111,7 +111,9 @@ export default function HotkeyRecorder({ value, onChange, ariaLabel }: HotkeyRec
   const showClear = recording || value;
 
   return (
-    <span className={`${kitStyles.hotkeyCapsule} ${recording ? kitStyles.hotkeyCapsuleRecording : ""}`}>
+    <span
+      className={`${kitStyles.hotkeyCapsule} ${recording ? kitStyles.hotkeyCapsuleRecording : ""}`}
+    >
       {recording ? (
         <button
           ref={inputRef}

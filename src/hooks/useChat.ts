@@ -5,6 +5,12 @@ import { useChatStore } from "../stores/chatStore";
 /**
  * Subscribes to Tauri chat events and forwards them to the chat store.
  *
+ * Listens for OpenCode SSE events bridged by the Rust backend:
+ * - `chat:token` — text content delta
+ * - `chat:done` — response complete
+ * - `chat:error` — error occurred
+ * - `chat:tool_start` / `chat:tool_end` — tool call lifecycle
+ *
  * Uses `useChatStore.getState()` inside callbacks so the effect needs no
  * dependencies and registers listeners exactly once. A local `cancelled`
  * flag handles React StrictMode's double-mount by immediately unlistening
@@ -25,13 +31,21 @@ export function useChat(): void {
       const errorUn = await listen<string>("chat:error", (event) => {
         useChatStore.getState().setError(event.payload);
       });
+      const toolStartUn = await listen<string>("chat:tool_start", (event) => {
+        useChatStore.getState().addToolCall({ kitId: null, toolName: event.payload });
+      });
+      const toolEndUn = await listen<string>("chat:tool_end", (event) => {
+        useChatStore.getState().removeToolCall(event.payload);
+      });
 
       if (cancelled) {
         tokenUn();
         doneUn();
         errorUn();
+        toolStartUn();
+        toolEndUn();
       } else {
-        unlisteners.push(tokenUn, doneUn, errorUn);
+        unlisteners.push(tokenUn, doneUn, errorUn, toolStartUn, toolEndUn);
       }
     };
 

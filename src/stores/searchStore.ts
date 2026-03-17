@@ -187,9 +187,7 @@ export const useSearchStore = create<SearchState>((set, get) => ({
     if (!actionPanelResult) return [];
     if (!actionFilterQuery) return actionPanelResult.actions;
     const lower = actionFilterQuery.toLowerCase();
-    return actionPanelResult.actions.filter((a) =>
-      getActionLabel(a).toLowerCase().includes(lower),
-    );
+    return actionPanelResult.actions.filter((a) => getActionLabel(a).toLowerCase().includes(lower));
   },
 
   refreshSearch: () => {

@@ -5,7 +5,11 @@ export function applyFontSize(size: string) {
 
 /** Resolve a theme value to its effective data-theme attribute. */
 function resolveTheme(theme: string): string {
-  if (theme === "system" && typeof window !== "undefined" && typeof window.matchMedia === "function") {
+  if (
+    theme === "system" &&
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function"
+  ) {
     return window.matchMedia("(prefers-color-scheme: dark)").matches ? "flint" : "flint-light";
   }
   if (theme === "system") {

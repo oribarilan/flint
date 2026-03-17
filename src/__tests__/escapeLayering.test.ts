@@ -11,7 +11,9 @@ vi.mock("../lib/commands", () => ({
   openSettings: vi.fn(() => Promise.resolve()),
   searchFiles: vi.fn(() => Promise.resolve([])),
   searchAll: vi.fn(() => Promise.resolve([])),
-  getAuthStatus: vi.fn(() => Promise.resolve({ authenticated: false, username: null })),
+  getChatStatus: vi.fn(() =>
+    Promise.resolve({ connected: false, session_id: null, repo_path: null }),
+  ),
   sendChatMessage: vi.fn(() => Promise.resolve()),
 }));
 
@@ -45,9 +47,8 @@ beforeEach(() => {
   useChatStore.setState({
     messages: [],
     isStreaming: false,
-    isAuthenticating: false,
     currentResponse: "",
-    authStatus: { authenticated: false, username: null },
+    chatStatus: { connected: false, sessionId: null, repoPath: null },
   });
   vi.clearAllMocks();
 });

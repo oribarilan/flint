@@ -99,9 +99,7 @@ export default function GeneralSettings({
           <div className={styles.segmentedControl}>
             <button
               className={
-                currentTheme === "system"
-                  ? styles.segmentedButtonActive
-                  : styles.segmentedButton
+                currentTheme === "system" ? styles.segmentedButtonActive : styles.segmentedButton
               }
               onClick={() => {
                 handleThemeChange("system");
@@ -166,10 +164,7 @@ export default function GeneralSettings({
         </div>
       </section>
 
-      <ResetSection
-        label="Reset general settings to defaults?"
-        onReset={handleResetDefaults}
-      />
+      <ResetSection label="Reset general settings to defaults?" onReset={handleResetDefaults} />
     </div>
   );
 }

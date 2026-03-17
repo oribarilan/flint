@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import SearchBar from "./components/SearchBar";
-import ResultsList, { executeDefaultAction, executeActionFromPanel } from "./components/ResultsList";
+import ResultsList, {
+  executeDefaultAction,
+  executeActionFromPanel,
+} from "./components/ResultsList";
 import ActionPanel from "./components/ActionPanel";
 import ChatPanel from "./components/ChatPanel";
 import AuthPrompt from "./components/AuthPrompt";
 import HintBar from "./components/HintBar";
 import { useSearchStore, actionRequiresConfirmation } from "./stores/searchStore";
 import { useChatStore } from "./stores/chatStore";
-import { hideWindow, getAuthStatus, sendChatMessage, getConfig } from "./lib/commands";
+import { hideWindow, getChatStatus, sendChatMessage, getConfig } from "./lib/commands";
 import { focusSearchBar, shouldHideOnBlur } from "./lib/focus";
 import { applyFontSize, applyTheme, applyBackdropBlur } from "./lib/applyTheme";
 import { useSearch } from "./hooks/useSearch";
@@ -30,24 +33,30 @@ export default function App() {
   const mode = useSearchStore((s) => s.mode);
   const toggleMode = useSearchStore((s) => s.toggleMode);
 
-  const authStatus = useChatStore((s) => s.authStatus);
-  const setAuthStatus = useChatStore((s) => s.setAuthStatus);
+  const chatStatus = useChatStore((s) => s.chatStatus);
+  const setChatStatus = useChatStore((s) => s.setChatStatus);
   const isStreaming = useChatStore((s) => s.isStreaming);
   const addUserMessage = useChatStore((s) => s.addUserMessage);
   const isChatMode = mode === "chat";
 
-  // Check auth status on mount and on focus
-  const refreshAuth = useCallback(() => {
-    getAuthStatus()
-      .then(setAuthStatus)
+  // Check chat connection status on mount and on focus
+  const refreshChatStatus = useCallback(() => {
+    getChatStatus()
+      .then((status) => {
+        setChatStatus({
+          connected: status.connected,
+          sessionId: status.session_id,
+          repoPath: status.repo_path,
+        });
+      })
       .catch(() => {
-        // Auth check is best-effort
+        // Status check is best-effort
       });
-  }, [setAuthStatus]);
+  }, [setChatStatus]);
 
   useEffect(() => {
-    refreshAuth();
-  }, [refreshAuth]);
+    refreshChatStatus();
+  }, [refreshChatStatus]);
 
   // Send a chat message
   const handleSendChat = useCallback(() => {
@@ -104,7 +113,7 @@ export default function App() {
             useSearchStore.getState().clearSearch();
           }
         } else {
-          refreshAuth();
+          refreshChatStatus();
           focusSearchBar();
           // Re-apply appearance in case settings changed in another window
           getConfig()
@@ -125,10 +134,10 @@ export default function App() {
       console.error("Failed to setup window focus listener:", err);
     });
     return () => unlistenFocus?.();
-  }, [focusSearchBar, refreshAuth]);
+  }, [focusSearchBar, refreshChatStatus]);
 
-  const showAuthPrompt = isChatMode && !authStatus.authenticated;
-  const showChat = isChatMode && authStatus.authenticated;
+  const showSetupPrompt = isChatMode && !chatStatus.connected;
+  const showChat = isChatMode && chatStatus.connected;
   const actionPanelOpen = useSearchStore((s) => s.actionPanelOpen);
   const showResults = !isChatMode && !actionPanelOpen;
   const showActionPanel = !isChatMode && actionPanelOpen;
@@ -172,7 +181,7 @@ export default function App() {
           if (result) executeDefaultAction(result);
         }}
       />
-      {showAuthPrompt && <AuthPrompt />}
+      {showSetupPrompt && <AuthPrompt />}
       {showChat && <ChatPanel />}
       {showActionPanel && <ActionPanel />}
       {showResults && <ResultsList />}

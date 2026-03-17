@@ -19,6 +19,7 @@ const DEFAULT_CONFIG: FlintConfig = {
   appearance: { font_size: "medium", theme: "flint", backdrop_blur: false },
   search: { directories: ["/Users/test"] },
   chat: { default_model: "gpt-4o" },
+  second_brain: { repo_path: null },
   kits: {},
 };
 
@@ -94,10 +95,16 @@ describe("useConfig", () => {
 
   it("should reset a section to defaults", async () => {
     const DEFAULTS: FlintConfig = {
-      general: { hotkey: "CmdOrCtrl+Shift+Space", launch_at_login: false, terminal: "auto", editor: "auto" },
+      general: {
+        hotkey: "CmdOrCtrl+Shift+Space",
+        launch_at_login: false,
+        terminal: "auto",
+        editor: "auto",
+      },
       appearance: { font_size: "small", theme: "flint", backdrop_blur: false },
       search: { directories: ["~/Desktop"] },
       chat: { default_model: "gpt-4.1" },
+      second_brain: { repo_path: null },
       kits: {},
     };
     mockGetDefaultConfig.mockResolvedValue(DEFAULTS);
