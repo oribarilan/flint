@@ -284,3 +284,32 @@ src-tauri/src/
 - `nucleo` search remains O(n) per query. At 200k entries this is still <10ms — well within the sub-keystroke target. If we ever need to go beyond 500k entries, consider nucleo's `Nucleo` parallel matcher (thread pool) instead of the single-threaded `Pattern::score` loop.
 - Content search (searching inside files) is explicitly out of scope for this task. It's a separate feature that would require a different indexing strategy (trigram index, ripgrep integration, etc.).
 - The `FileEntry` struct doesn't change shape — just the container around it. This minimizes downstream breakage.
+
+## Post-Implementation Concerns
+
+### 1. `validate_path_in_indexed_dirs` blast radius
+With `~/` as the default scope, `validate_path_in_indexed_dirs` now allows deletion of ANY file under the user's home directory. Previously it was limited to `~/Desktop`, `~/Documents`, `~/Downloads`. This significantly broadens the blast radius for `delete_to_trash`. Consider:
+- Adding a separate "allowed delete directories" list independent of indexed directories.
+- Or adding a confirmation-required flag for paths outside known safe directories.
+
+### 2. `spec.md` is stale
+The Search Settings section of `spec.md` still references old defaults:
+- `directories = ["~/Desktop", "~/Documents", "~/Downloads", "/Applications"]`
+- `max_depth = 6`
+- `exclude = ["node_modules", ".git", "target", "__pycache__"]`
+These should be updated to reflect the new defaults (`~/`, max_depth 10, empty user exclude with built-in list). Flagging rather than changing per project rules.
+
+### 3. Additive exclude semantics — breaking change for existing users
+Users with a config file that has `search.exclude = ["node_modules", ".git"]` previously got ONLY those exclusions. Now they get those PLUS the full built-in list. This is generally beneficial but technically a breaking change. If anyone relied on a minimal exclude list to intentionally index `node_modules` or similar, they'd need `search.exclude_override` (not yet implemented).
+
+### 4. No `search.exclude_override` yet
+The plan mentions `search.exclude_override` for users who want to fully replace the built-in list. This was deferred — only the additive `search.exclude` is implemented. Add if someone actually needs it.
+
+### 5. Tray menu "Re-index files" item not wired
+The `rebuild_index` command is implemented but the tray menu item to trigger it was not added. The Settings UI has a "Re-index now" button which serves the same purpose. Wire into tray if needed.
+
+### 6. Watcher OS limits on Linux
+On Linux, `inotify` has a `max_user_watches` limit (default ~65536 on many distros). Watching all of `~/` recursively could exceed this. The watcher will log an error but won't crash. Document this for Linux users — they may need to increase the limit via `sysctl fs.inotify.max_user_watches`.
+
+### 7. Cache reconciliation is a full replace
+The current startup flow loads cache → spawns full walk → replaces entire index. A true delta reconciliation (diff cached vs fresh, apply only changes) would be more efficient but adds complexity. The full replace approach is simple and correct; optimize if startup becomes noticeably slow with large indexes.
