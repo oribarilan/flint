@@ -2,29 +2,25 @@
 
 Tracking cross-platform and feature gaps to address before release.
 
+## Search
+
+Flint's search is built on **macOS Spotlight** — it does not build or maintain its own file index. On macOS, Spotlight handles all file indexing, watching, exclusions, and package detection. Flint queries it at runtime.
+
+**Windows and Linux search is not yet implemented.** These platforms will need a different backend (Windows Search, `plocate`, or a custom walker). See `.todo/search-v3.md` for the plan.
+
 ## Cross-Platform
 
 ### App Icon Extraction
 - **macOS**: ✅ Extracts icons from `.icns` via `Info.plist`
-- **Windows**: ❌ No icon extraction. Would need to read `.exe` embedded icons (PE resource section) or `.lnk` shortcut icons
-- **Linux**: ❌ No icon extraction. Would need to read `.desktop` files and resolve icon themes (`hicolor`, `Adwaita`, etc.) from `/usr/share/icons/`
+- **Windows**: ❌ Not yet implemented
+- **Linux**: ❌ Not yet implemented
 
-### Indexed Directories
-- **macOS**: ✅ `~/Desktop`, `~/Documents`, `~/Downloads`, `/Applications`
-- **Windows**: ❌ No platform roots yet. Should add `C:\Program Files`, `C:\Program Files (x86)`, Start Menu shortcuts
-- **Linux**: ❌ No platform roots yet. Should add `/usr/share/applications` (`.desktop` files), `/usr/local/bin`, `~/.local/share/applications`
-
-### Package Directory Blocklist
-- **macOS**: ✅ `.app`, `.framework`, `.bundle`, `.plugin`, `.prefPane`, `.kext`, `.photoslibrary`, `.musiclibrary`, `.xcodeproj`, `.xcworkspace`, `.playground`
-- **Windows**: ❌ No package-style dirs identified yet. Consider skipping `WindowsApps`, `WinSxS`
-- **Linux**: ❌ No package-style dirs identified yet
+### File & App Search
+- **macOS**: ✅ Spotlight-backed (apps + files)
+- **Windows**: ❌ Not yet implemented — needs Windows Search API or similar
+- **Linux**: ❌ Not yet implemented — needs `plocate`, Tracker, or custom walker
 
 ## Features (Not Yet Implemented)
-
-### Phase 3b — Full System Search
-- Expand indexed scope to full `~` directory
-- Filesystem event watching via `notify` crate for incremental updates
-- Persisted index cache for fast cold start
 
 ### Phase 4 — Copilot Authentication
 - OAuth Device Flow with shared Copilot client ID

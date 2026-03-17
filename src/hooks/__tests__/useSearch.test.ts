@@ -64,7 +64,7 @@ describe("useSearch", () => {
     renderUseSearch();
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(100);
+      await vi.advanceTimersByTimeAsync(200);
     });
 
     expect(mockedSearchAll).not.toHaveBeenCalled();
@@ -92,7 +92,7 @@ describe("useSearch", () => {
     renderUseSearch();
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(50);
+      await vi.advanceTimersByTimeAsync(200);
     });
 
     expect(mockedSearchAll).toHaveBeenCalledWith("te");
@@ -118,7 +118,7 @@ describe("useSearch", () => {
       await vi.advanceTimersByTimeAsync(20);
     });
 
-    // Original "te" should not have fired since we changed query within 50ms
+    // Original "te" should not have fired since we changed query within 150ms
     expect(mockedSearchAll).not.toHaveBeenCalledWith("te");
 
     // Change again
@@ -128,7 +128,7 @@ describe("useSearch", () => {
     rerender();
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(50);
+      await vi.advanceTimersByTimeAsync(200);
     });
 
     // Only the final query should fire
@@ -143,7 +143,7 @@ describe("useSearch", () => {
     renderUseSearch();
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(50);
+      await vi.advanceTimersByTimeAsync(200);
     });
 
     expect(useSearchStore.getState().results).toEqual(mockResults);
@@ -159,7 +159,7 @@ describe("useSearch", () => {
     renderUseSearch();
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(50);
+      await vi.advanceTimersByTimeAsync(200);
     });
 
     expect(useSearchStore.getState().isLoading).toBe(false);
@@ -206,7 +206,7 @@ describe("useSearch", () => {
 
     // Fire debounce for "old"
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(50);
+      await vi.advanceTimersByTimeAsync(200);
     });
 
     // Change query while "old" search is in flight
@@ -243,7 +243,7 @@ describe("useSearch", () => {
     renderUseSearch();
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(50);
+      await vi.advanceTimersByTimeAsync(200);
     });
 
     expect(mockedSearchCommand).toHaveBeenCalledWith("calculator", "calculate", "2+3");
@@ -261,7 +261,7 @@ describe("useSearch", () => {
     renderUseSearch();
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(50);
+      await vi.advanceTimersByTimeAsync(200);
     });
 
     // With active command, empty query is allowed (shows history)

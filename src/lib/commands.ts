@@ -87,8 +87,6 @@ export interface AppearanceConfig {
 
 export interface SearchConfig {
   directories: string[];
-  exclude: string[];
-  max_depth: number;
 }
 
 export interface ChatConfig {
@@ -186,9 +184,6 @@ export async function executeCommand(
   return invoke("execute_command", { kitId, commandId });
 }
 
-export async function handleCustomAction(
-  kitId: string,
-  actionId: string,
-): Promise<string | null> {
+export async function handleCustomAction(kitId: string, actionId: string): Promise<string | null> {
   return invoke("handle_custom_action", { kitId, actionId });
 }

@@ -17,7 +17,7 @@ import { useConfig } from "../useConfig";
 const DEFAULT_CONFIG: FlintConfig = {
   general: { hotkey: "CmdOrCtrl+Space", launch_at_login: false, terminal: "auto", editor: "auto" },
   appearance: { font_size: "medium", theme: "flint", backdrop_blur: false },
-  search: { directories: ["/Users/test"], exclude: ["node_modules"], max_depth: 5 },
+  search: { directories: ["/Users/test"] },
   chat: { default_model: "gpt-4o" },
   kits: {},
 };
@@ -96,7 +96,7 @@ describe("useConfig", () => {
     const DEFAULTS: FlintConfig = {
       general: { hotkey: "CmdOrCtrl+Shift+Space", launch_at_login: false, terminal: "auto", editor: "auto" },
       appearance: { font_size: "small", theme: "flint", backdrop_blur: false },
-      search: { directories: ["~/Desktop"], exclude: ["node_modules"], max_depth: 6 },
+      search: { directories: ["~/Desktop"] },
       chat: { default_model: "gpt-4.1" },
       kits: {},
     };

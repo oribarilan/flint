@@ -86,7 +86,7 @@ Two code paths are **sacred** and must remain as close to zero-overhead as possi
 
 ## Architecture
 
-- **Rust backend** (`src-tauri/`): File indexing, fuzzy search (nucleo), Copilot auth + chat API, window management, hotkey registration.
+- **Rust backend** (`src-tauri/`): Spotlight search (macOS), fuzzy matching (nucleo), Copilot auth + chat API, window management, hotkey registration.
 - **React frontend** (`src/`): Search bar, results list, AI chat panel. State via Zustand. Bundled with Vite.
 - **IPC bridge**: All I/O and business logic lives in Rust. Frontend calls Rust via `tauri::command` invoke. Never use Node.js APIs for I/O.
 
@@ -106,10 +106,10 @@ The app has two layers of state: the **config file** (TOML on disk, source of tr
 | State | Zustand |
 | AI | GitHub Copilot (OAuth Device Flow, shared client ID) |
 | Fuzzy search | `nucleo` crate |
+| File search | macOS Spotlight (`mdfind`) |
 | HTTP | `reqwest` + `tokio` |
 | Secrets | `keyring` crate (OS keychain) |
 | Serialization | `serde` + `serde_json` |
-| FS events | `notify` crate (cross-platform) |
 
 ## Commands
 

@@ -53,8 +53,14 @@ pub struct AppearanceConfig {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct SearchConfig {
+    /// Directories to scope file search to. Default: home directory.
     pub directories: Vec<String>,
+    /// Deprecated: exclusions are handled by the OS search backend (Spotlight).
+    /// Kept for config file backward compatibility — existing TOML files with
+    /// this field will still parse without error.
     pub exclude: Vec<String>,
+    /// Deprecated: depth is handled by the OS search backend (Spotlight).
+    /// Kept for config file backward compatibility.
     pub max_depth: usize,
 }
 
@@ -128,29 +134,7 @@ impl Default for AppearanceConfig {
 
 impl Default for SearchConfig {
     fn default() -> Self {
-        let mut directories =
-            vec!["~/Desktop".to_owned(), "~/Documents".to_owned(), "~/Downloads".to_owned()];
-
-        #[cfg(target_os = "macos")]
-        {
-            directories.push("/Applications".to_owned());
-            directories.push("/System/Applications".to_owned());
-        }
-
-        Self {
-            directories,
-            exclude: vec![
-                "node_modules".to_owned(),
-                ".git".to_owned(),
-                "target".to_owned(),
-                "__pycache__".to_owned(),
-                ".Trash".to_owned(),
-                "venv".to_owned(),
-                "env".to_owned(),
-                "bower_components".to_owned(),
-            ],
-            max_depth: 6,
-        }
+        Self { directories: vec!["~".to_owned()], exclude: Vec::new(), max_depth: 10 }
     }
 }
 

@@ -73,7 +73,7 @@ Sidebar on the left lists setting categories. Content area on the right shows th
 | **General** | App behavior & system integration | Launch at login, global hotkey configuration |
 | **Appearance** | Visual customization | Color theme (7 dark + 2 light themes), font size preset |
 | **Chat** | AI provider connections & model preferences | Provider auth (GitHub Copilot), default model, future: additional providers |
-| **Search** | File indexing scope & filtering | Indexed directories, exclude patterns, max depth |
+| **Search** | File search scope | Search directories |
 | **Kits** | First-party and third-party kit management | Per-kit enable/disable toggle |
 
 #### Design Principles
@@ -97,15 +97,13 @@ font_size = "small"       # extra-small | small | medium | large
 theme = "flint"           # flint (dark) | flint-light
 
 [search]
-directories = ["~/Desktop", "~/Documents", "~/Downloads", "/Applications"]
-exclude = ["node_modules", ".git", "target", "__pycache__"]
-max_depth = 6
+directories = ["~"]
 
 [chat]
 default_model = "gpt-4.1"
 ```
 
-- **Rust owns the file**: reads on startup, watches for external changes (via `notify` crate), and exposes `get_config` / `update_config` IPC commands.
+- **Rust owns the file**: reads on startup and exposes `get_config` / `update_config` IPC commands.
 - **Defaults are implicit**: missing keys fall back to compile-time defaults. The file only needs to contain overrides.
 - **Settings UI writes via IPC**: the frontend never touches the filesystem directly.
 
@@ -145,10 +143,7 @@ default_model = "gpt-4.1"
 
 #### Search Settings Detail
 
-- **Indexed directories**: List with add/remove. Default: `~/Desktop`, `~/Documents`, `~/Downloads`, `/Applications`.
-- **Exclude patterns**: Editable list. Default: `node_modules`, `.git`, `target`, etc.
-- **Max depth**: Number input (1–10). Default: 6.
-- Future: re-index button, index stats.
+- **Search directories**: List with add/remove. Scopes Spotlight file search to specific directories. Default: `~` (home directory). Apps are always discovered system-wide regardless of this setting.
 
 #### Restore Defaults
 

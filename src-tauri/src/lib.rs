@@ -15,7 +15,7 @@ pub mod search;
 mod tray;
 mod window;
 
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 use serde::Serialize;
 use tauri::{Emitter, Manager};
@@ -24,7 +24,7 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 use error::StringResult;
 use tracing_subscriber::EnvFilter;
 
-use indexer::FileIndex;
+use indexer::AppIndex;
 use kits::{CommandMode, KitContextBase, KitIcon, KitRegistry, KitRegistryState};
 
 /// Payload emitted to the frontend when a global command hotkey is pressed
@@ -103,10 +103,7 @@ pub fn run() {
             let copilot = providers::copilot::CopilotProvider::new();
             app.manage(commands::CopilotProviderState(copilot));
 
-            // Manage application config and extract search params for background indexing.
-            let search_dirs = cfg.search.directories.clone();
-            let search_exclude = cfg.search.exclude.clone();
-            let search_depth = cfg.search.max_depth;
+            // Manage application config.
             let app_config = config::AppConfig::new(cfg);
             let kit_config = app_config.get();
             app.manage(app_config.clone());
@@ -147,26 +144,17 @@ pub fn run() {
                 });
             }
 
-            // Initialise file index as managed state and populate in background.
-            let index = Arc::new(RwLock::new(Vec::new()));
-            app.manage(FileIndex(index.clone()));
-
-            tauri::async_runtime::spawn(async move {
-                let entries = tokio::task::spawn_blocking(move || {
-                    indexer::build_index_with_config(&search_dirs, &search_exclude, search_depth)
-                })
-                .await;
-                match entries {
-                    Ok(entries) => {
-                        if let Ok(mut lock) = index.write() {
-                            *lock = entries;
-                        }
-                    }
-                    Err(err) => {
-                        tracing::error!("File indexing task failed: {err}");
-                    }
-                }
+            // Discover applications via Spotlight (macOS) for instant search.
+            #[cfg(target_os = "macos")]
+            let apps = indexer::spotlight::discover_apps().unwrap_or_else(|e| {
+                tracing::warn!("failed to discover apps via Spotlight: {e}");
+                Vec::new()
             });
+            #[cfg(not(target_os = "macos"))]
+            let apps = Vec::new();
+
+            tracing::info!("preloaded {} apps", apps.len());
+            app.manage(AppIndex(apps));
 
             Ok(())
         })

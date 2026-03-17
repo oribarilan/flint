@@ -36,7 +36,7 @@ export function useSearch(): void {
         .finally(() => {
           useSearchStore.setState({ isLoading: false });
         });
-    }, 50);
+    }, 150);
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);

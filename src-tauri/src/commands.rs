@@ -7,7 +7,7 @@ use std::sync::Arc;
 use tauri::{AppHandle, State};
 
 use crate::config::{AppConfig, FlintConfig};
-use crate::indexer::FileIndex;
+use crate::indexer::AppIndex;
 use crate::kits::{KitContextBase, KitInfo, KitRegistryState, KitSearchResult, KitState};
 use crate::providers;
 use crate::providers::copilot::auth::DeviceCodeResponse;
@@ -63,15 +63,25 @@ pub fn open_settings(app: AppHandle) -> Result<(), String> {
 // Search commands
 // ---------------------------------------------------------------------------
 
-/// Fuzzy-search the file index and return up to 20 matching results.
+/// Search for files by name via the OS search backend (Spotlight on macOS).
 #[tauri::command]
-#[allow(clippy::needless_pass_by_value)]
-pub fn search_files(
+pub async fn search_files(
     query: String,
-    index: State<'_, FileIndex>,
+    config: State<'_, AppConfig>,
 ) -> Result<Vec<SearchResult>, String> {
-    let entries = index.0.read().map_err(|e| e.to_string())?;
-    Ok(crate::search::search(&query, &entries, 20))
+    #[cfg(target_os = "macos")]
+    {
+        let dirs = config.get().search.directories;
+        let entries = crate::indexer::spotlight::search_files(&query, &dirs)
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok(entries.iter().map(SearchResult::from_entry).collect())
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = (&query, &config);
+        Ok(Vec::new())
+    }
 }
 
 /// Unified search: checks command prefixes first, falls back to core file search.
@@ -83,7 +93,8 @@ pub async fn search_all(
     query: String,
     registry_state: State<'_, KitRegistryState>,
     ctx_base: State<'_, KitContextBase>,
-    index: State<'_, FileIndex>,
+    app_index: State<'_, AppIndex>,
+    config: State<'_, AppConfig>,
 ) -> Result<Vec<KitSearchResult>, String> {
     const MAX_RESULTS: usize = 20;
 
@@ -119,25 +130,47 @@ pub async fn search_all(
         return Ok(kit_results);
     }
 
-    // No prefix matched — fall through to core file search + command discovery.
+    // No prefix matched — fall through to app search + file search + kits.
     let registry = registry_state.0.read().await;
     let kit_discovery = registry.discovery_results(&query);
     drop(registry);
 
-    let core_scored = {
-        let entries = index.0.read().map_err(|e| e.to_string())?;
-        crate::search::scored_search(&query, &entries, MAX_RESULTS)
-    };
+    // Score preloaded apps with nucleo (fuzzy, <1ms).
+    let core_scored = crate::search::scored_search(&query, &app_index.0, MAX_RESULTS);
 
-    // Merge core results and command discovery results by score descending.
-    let mut merged: Vec<(u32, KitSearchResult)> = core_scored
+    // Merge scored apps and kit discovery results by score descending.
+    let mut scored: Vec<(u32, KitSearchResult)> = core_scored
         .into_iter()
         .map(|(score, r)| (score, KitSearchResult::from_core_result(r, score)))
         .chain(kit_discovery)
         .collect();
-    merged.sort_by(|a, b| b.0.cmp(&a.0));
+    scored.sort_by(|a, b| b.0.cmp(&a.0));
 
-    Ok(merged.into_iter().take(MAX_RESULTS).map(|(_, r)| r).collect())
+    let mut results: Vec<KitSearchResult> =
+        scored.into_iter().take(MAX_RESULTS).map(|(_, r)| r).collect();
+
+    // For 3+ char queries, also search files via Spotlight (async, ~100ms).
+    #[cfg(target_os = "macos")]
+    if query.len() >= 3 && results.len() < MAX_RESULTS {
+        let dirs = config.get().search.directories;
+        match crate::indexer::spotlight::search_files(&query, &dirs).await {
+            Ok(file_entries) => {
+                let remaining = MAX_RESULTS - results.len();
+                results.extend(file_entries.into_iter().take(remaining).map(|entry| {
+                    let sr = SearchResult::from_entry(&entry);
+                    KitSearchResult::from_core_result(sr, 0)
+                }));
+            }
+            Err(e) => {
+                tracing::warn!("Spotlight file search failed: {e}");
+            }
+        }
+    }
+
+    // Suppress unused variable warning on non-macOS.
+    let _ = &config;
+
+    Ok(results)
 }
 
 /// Search within an active command (chip is shown in the search bar).
@@ -379,15 +412,16 @@ fn validate_path_in_indexed_dirs(
         .search
         .directories
         .iter()
-        .map(|d| {
-            if d.starts_with('~') {
-                home.as_ref()
-                    .map_or_else(|| PathBuf::from(d), |h| h.join(d.strip_prefix("~/").unwrap_or(d)))
+        .filter_map(|d| {
+            let path = if let Some(rest) = d.strip_prefix("~/") {
+                home.as_ref()?.join(rest)
+            } else if d == "~" {
+                home.clone()?
             } else {
                 PathBuf::from(d)
-            }
+            };
+            std::fs::canonicalize(&path).ok()
         })
-        .filter_map(|p| std::fs::canonicalize(&p).ok())
         .collect();
 
     if allowed.iter().any(|dir| canonical.starts_with(dir)) {

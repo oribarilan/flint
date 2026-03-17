@@ -16,13 +16,14 @@ A fast, keyboard-driven app launcher with built-in AI chat.
 
 ### Platform support
 
-Flint targets macOS, Windows, and Linux. The table below tracks per-feature status.
+Flint is **macOS-only** for now. Search is built on top of macOS Spotlight — Flint does not build or maintain its own file index but queries the OS-level index that macOS already maintains. This means zero indexing overhead, instant results, and automatic updates as files change.
+
+Windows and Linux support is planned but not yet implemented. See `gaps.md` for details.
 
 | Feature | macOS | Windows | Linux |
 |---|:---:|:---:|:---:|
 | Overlay (hotkey, borderless, transparent) | ✅ | ✅ | ✅ |
-| Fuzzy file search | ✅ | ✅ | ✅ |
-| Default search directories | ✅ | ❌ | ❌ |
+| File & app search (via Spotlight) | ✅ | ❌ | ❌ |
 | App icon extraction | ✅ | ❌ | ❌ |
 | Focus restoration | ✅ | ❌ | ⚠️ |
 | System tray | ✅ | ✅ | ✅ |

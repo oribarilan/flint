@@ -1,4 +1,4 @@
-//! Fuzzy search over the file index using the `nucleo` crate.
+//! Fuzzy search over preloaded entries using the `nucleo` crate.
 
 use nucleo::pattern::{AtomKind, CaseMatching, Normalization, Pattern};
 use nucleo::{Matcher, Utf32Str};
@@ -24,6 +24,18 @@ pub struct SearchResult {
     pub path: String,
     /// Entry kind.
     pub kind: EntryKind,
+}
+
+impl SearchResult {
+    /// Create a `SearchResult` from a [`FileEntry`].
+    pub fn from_entry(entry: &FileEntry) -> Self {
+        Self {
+            id: entry.path.clone(),
+            name: entry.name.clone(),
+            path: entry.path.clone(),
+            kind: entry.kind,
+        }
+    }
 }
 
 /// Bonus added to application match scores so apps rank above files and
@@ -82,17 +94,7 @@ pub fn scored_search(
     scored
         .into_iter()
         .take(limit)
-        .map(|(score, entry)| {
-            (
-                score,
-                SearchResult {
-                    id: entry.path.clone(),
-                    name: entry.name.clone(),
-                    path: entry.path.clone(),
-                    kind: entry.kind,
-                },
-            )
-        })
+        .map(|(score, entry)| (score, SearchResult::from_entry(entry)))
         .collect()
 }
 
@@ -164,14 +166,11 @@ mod tests {
         ];
         let results = search("slack", &entries, 10);
         assert!(!results.is_empty());
-        // The exact match "Slack" should rank first.
         assert_eq!(results[0].name, "Slack");
     }
 
     #[test]
     fn should_handle_case_insensitive_query() {
-        // Entries with mixed-case names are found via a lowercase query because
-        // the search operates on `lowercase_name` with `CaseMatching::Smart`.
         let entries = vec![make_entry("SLaCK", "/app/SLaCK", EntryKind::Application)];
         let results = search("slack", &entries, 10);
         assert_eq!(results.len(), 1);
@@ -192,7 +191,6 @@ mod tests {
 
     #[test]
     fn should_boost_applications_above_files() {
-        // Both match "slack" similarly, but the app should rank higher.
         let entries = vec![
             make_entry("slack_config", "/home/slack_config", EntryKind::File),
             make_entry("Slack", "/app/Slack", EntryKind::Application),
@@ -205,7 +203,6 @@ mod tests {
 
     #[test]
     fn should_not_boost_app_above_much_stronger_file_match() {
-        // An exact file match should still beat a weak app match.
         let entries = vec![
             make_entry("readme", "/home/readme", EntryKind::File),
             make_entry("SomeApp", "/app/SomeApp", EntryKind::Application),
