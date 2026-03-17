@@ -161,15 +161,18 @@ function simulateChatResponse(message: string): void {
 function generateMockResponse(message: string): string {
   const lower = message.toLowerCase();
   if (lower.includes("hello") || lower.includes("hi")) {
-    return "Hello! I'm the Flint simulator. I can help you test the UI. Try asking me something about your second brain.";
+    return "Hello! I'm the Flint simulator. I can help you test the UI.\n\nTry asking me about **code**, `files`, or your second brain.";
   }
   if (lower.includes("search") || lower.includes("find")) {
-    return "I found several relevant notes in your second brain. Here are the top matches based on your query.";
+    return "I found several relevant notes in your second brain:\n\n- **Project ideas** — brainstorm notes from last week\n- **Rust learning** — notes on ownership and borrowing\n- **Meeting notes** — Q2 planning session\n\nWould you like me to open any of these?";
+  }
+  if (lower.includes("code") || lower.includes("rust")) {
+    return 'Here\'s an example from your notes:\n\n```rust\nfn main() {\n    let greeting = "Hello, second brain!";\n    println!("{greeting}");\n}\n```\n\nThis is from your `rust-learning/basics.md` file.';
   }
   if (lower.includes("help")) {
-    return "I can help you capture and retrieve information from your second brain. Try typing a search query or asking me a question about your notes.";
+    return "I can help you **capture** and **retrieve** information from your second brain.\n\n- Type a question to search your notes\n- Use `Tab` to switch between search and chat\n- Select a model from the dropdown above";
   }
-  return `You said: "${message}". This is a simulated response from the Flint UI simulator. In production, this would come from OpenCode.`;
+  return `You said: *"${message}"*. This is a simulated response. In production, this would come from **OpenCode** connected to your second brain.`;
 }
 
 // ---------------------------------------------------------------------------

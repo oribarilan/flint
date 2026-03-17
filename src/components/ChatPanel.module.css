@@ -181,9 +181,51 @@
   padding: var(--space-sm) 0;
   font-size: var(--font-md);
   line-height: 1.6;
-  white-space: pre-wrap;
   word-break: break-word;
   animation: bloom 150ms var(--ease-out);
+}
+
+/* ── Markdown styles inside assistant messages ─────────────── */
+
+.assistantMessage :global(.md-root) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.assistantMessage :global(.md-paragraph) {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.assistantMessage :global(.md-inline-code) {
+  background: var(--bg-hover);
+  padding: 1px var(--space-xs);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+.assistantMessage :global(.md-code-block) {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md);
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: var(--font-base);
+  line-height: 1.5;
+  margin: var(--space-xs) 0;
+  white-space: pre;
+}
+
+.assistantMessage :global(.md-link) {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.assistantMessage :global(.md-link:hover) {
+  text-decoration: underline;
 }
 
 .error {

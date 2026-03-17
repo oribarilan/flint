@@ -30,6 +30,8 @@ function getToolMeta(toolName: string): { name: string; icon: string } {
   return TOOL_META[toolName] ?? { name: toolName, icon: "⚙" };
 }
 
+import { renderMarkdown } from "../lib/markdown";
+
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
@@ -40,9 +42,11 @@ function Message({ message }: { message: ChatMessage }) {
   }
 
   const isUser = message.role === "user";
-  return (
-    <div className={isUser ? styles.userMessage : styles.assistantMessage}>{message.content}</div>
-  );
+  if (isUser) {
+    return <div className={styles.userMessage}>{message.content}</div>;
+  }
+
+  return <div className={styles.assistantMessage}>{renderMarkdown(message.content)}</div>;
 }
 
 function ToolCallCard({ toolName, state }: { toolName: string; state: "running" | "done" }) {
