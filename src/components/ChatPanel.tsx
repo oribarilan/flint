@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useChatStore, type ChatMessage, type SelectedModel } from "../stores/chatStore";
 import { getAvailableModels, type AvailableModel } from "../lib/commands";
 import styles from "./ChatPanel.module.css";
@@ -73,7 +74,9 @@ function ModelSelector({
   const [models, setModels] = useState<AvailableModel[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [defaultModel, setDefaultModel] = useState<string | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [dropdownPos, setDropdownPos] = useState<{ left: number; bottom: number } | null>(null);
 
   // Fetch models on mount
   useEffect(() => {
@@ -81,33 +84,39 @@ function ModelSelector({
       .then(([list, dflt]) => {
         setModels(list);
         setDefaultModel(dflt);
-        // Auto-select default if none selected
         if (!selectedModel && dflt) {
-          const parts = dflt.split("/");
-          if (parts.length >= 2) {
-            const found = list.find((m) => m.id === dflt);
-            if (found) {
-              onSelectModel({
-                providerId: found.provider_id,
-                modelId: found.id.split("/").slice(1).join("/"),
-                displayName: found.name,
-              });
-            }
+          const found = list.find((m) => m.id === dflt);
+          if (found) {
+            onSelectModel({
+              providerId: found.provider_id,
+              modelId: found.id.split("/").slice(1).join("/"),
+              displayName: found.name,
+            });
           }
         }
       })
-      .catch(() => {
-        // Models unavailable — will show "default"
-      });
+      .catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Position dropdown above the button when opened
+  useEffect(() => {
+    if (!isOpen || !buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    setDropdownPos({
+      left: rect.left,
+      bottom: window.innerHeight - rect.top + 4,
+    });
+  }, [isOpen]);
 
   // Close dropdown on outside click
   useEffect(() => {
     if (!isOpen) return;
     const handleClick = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
+      const target = e.target as Node;
+      if (buttonRef.current?.contains(target) || dropdownRef.current?.contains(target)) {
+        return;
       }
+      setIsOpen(false);
     };
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
@@ -123,9 +132,55 @@ function ModelSelector({
     return acc;
   }, {});
 
+  const dropdownContent =
+    isOpen && models.length > 0 && dropdownPos ? (
+      <div
+        ref={dropdownRef}
+        className={styles.modelDropdown}
+        role="listbox"
+        style={{
+          position: "fixed",
+          left: dropdownPos.left,
+          bottom: dropdownPos.bottom,
+        }}
+      >
+        {Object.entries(grouped).map(([providerName, providerModels]) => (
+          <div key={providerName}>
+            <div className={styles.modelGroupLabel}>{providerName}</div>
+            {providerModels.map((m) => {
+              const isSelected =
+                selectedModel?.providerId === m.provider_id &&
+                `${m.provider_id}/${selectedModel?.modelId}` === m.id;
+              const isDefault = m.id === defaultModel;
+              return (
+                <button
+                  key={m.id}
+                  className={isSelected ? styles.modelOptionSelected : styles.modelOption}
+                  role="option"
+                  aria-selected={isSelected}
+                  onClick={() => {
+                    onSelectModel({
+                      providerId: m.provider_id,
+                      modelId: m.id.split("/").slice(1).join("/"),
+                      displayName: m.name,
+                    });
+                    setIsOpen(false);
+                  }}
+                >
+                  <span>{m.name}</span>
+                  {isDefault && <span className={styles.modelDefault}>default</span>}
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    ) : null;
+
   return (
-    <div className={styles.modelSelector} ref={dropdownRef}>
+    <div className={styles.modelSelector}>
       <button
+        ref={buttonRef}
         className={styles.modelButton}
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
@@ -142,41 +197,7 @@ function ModelSelector({
           <path d="M4.427 7.427l3.396 3.396a.25.25 0 00.354 0l3.396-3.396A.25.25 0 0011.396 7H4.604a.25.25 0 00-.177.427z" />
         </svg>
       </button>
-
-      {isOpen && models.length > 0 && (
-        <div className={styles.modelDropdown} role="listbox">
-          {Object.entries(grouped).map(([providerName, providerModels]) => (
-            <div key={providerName}>
-              <div className={styles.modelGroupLabel}>{providerName}</div>
-              {providerModels.map((m) => {
-                const isSelected =
-                  selectedModel?.providerId === m.provider_id &&
-                  `${m.provider_id}/${selectedModel?.modelId}` === m.id;
-                const isDefault = m.id === defaultModel;
-                return (
-                  <button
-                    key={m.id}
-                    className={isSelected ? styles.modelOptionSelected : styles.modelOption}
-                    role="option"
-                    aria-selected={isSelected}
-                    onClick={() => {
-                      onSelectModel({
-                        providerId: m.provider_id,
-                        modelId: m.id.split("/").slice(1).join("/"),
-                        displayName: m.name,
-                      });
-                      setIsOpen(false);
-                    }}
-                  >
-                    <span>{m.name}</span>
-                    {isDefault && <span className={styles.modelDefault}>default</span>}
-                  </button>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      )}
+      {dropdownContent && createPortal(dropdownContent, document.body)}
     </div>
   );
 }
