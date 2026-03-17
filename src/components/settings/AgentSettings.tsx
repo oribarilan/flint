@@ -21,7 +21,7 @@ interface AgentSettingsProps {
 export default function AgentSettings({ config, onUpdate, onResetSection }: AgentSettingsProps) {
   const [providers, setProviders] = useState<ProviderAuthInfo[]>([]);
   const [models, setModels] = useState<AvailableModel[]>([]);
-  const [isAuthing, setIsAuthing] = useState(false);
+  const [authingProvider, setAuthingProvider] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,24 +52,18 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
     void init();
   }, [refreshData]);
 
-  // Derive the single active provider: prefer connected, fallback to first
-  const activeProvider =
-    providers.find((p) => p.connected) ?? (providers.length > 0 ? providers[0] : null);
-  const isProviderConnected = activeProvider?.connected ?? false;
-
-  const handleAuth = async () => {
-    if (!activeProvider) return;
-    setIsAuthing(true);
+  const handleAuth = async (providerId: string) => {
+    setAuthingProvider(providerId);
     setError(null);
     try {
-      const url = await startProviderAuth(activeProvider.id);
+      const url = await startProviderAuth(providerId);
       if (url) {
         const { open: shellOpen } = await import("@tauri-apps/plugin-shell");
         await shellOpen(url);
       }
       const poll = (remaining: number) => {
         if (remaining <= 0) {
-          setIsAuthing(false);
+          setAuthingProvider(null);
           return;
         }
         setTimeout(() => {
@@ -81,7 +75,7 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       setError(message);
-      setIsAuthing(false);
+      setAuthingProvider(null);
     }
   };
 
@@ -96,7 +90,8 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
     await onResetSection("chat");
   };
 
-  // Find display name for current default model
+  const connectedProviders = providers.filter((p) => p.connected);
+  const disconnectedProviders = providers.filter((p) => !p.connected);
   const currentModelName =
     models.find((m) => m.id === config.chat.default_model)?.name ?? config.chat.default_model;
 
@@ -104,26 +99,21 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
     <div className={styles.page}>
       <h2 className={styles.pageTitle}>Agent</h2>
 
-      {/* ── Model Provider ──────────────────────────────── */}
+      {/* ── Connected Providers ──────────────────────────── */}
       <section className={styles.section}>
         <div className={styles.providerHeader}>
           <div className={styles.providerInfo}>
             <div>
-              <span className={styles.providerName}>Model Provider</span>
+              <span className={styles.providerName}>Model Providers</span>
               <span className={styles.providerDesc}>
-                {activeProvider
-                  ? activeProvider.name
-                  : isInitializing
-                    ? "Starting…"
-                    : "Authenticate to use AI models"}
+                {isInitializing
+                  ? "Starting…"
+                  : connectedProviders.length > 0
+                    ? `${connectedProviders.length} connected`
+                    : "Connect a provider to use AI models"}
               </span>
             </div>
           </div>
-          {isProviderConnected ? (
-            <span className={styles.statusBadge}>Connected</span>
-          ) : (
-            <span className={styles.statusDisconnected}>Not connected</span>
-          )}
         </div>
 
         {isInitializing && (
@@ -132,29 +122,31 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
           </div>
         )}
 
-        {!isInitializing && activeProvider && !isProviderConnected && (
-          <div className={styles.row}>
-            <span />
-            <button
-              className={styles.button}
-              onClick={() => void handleAuth()}
-              disabled={isAuthing}
-            >
-              {isAuthing ? "Connecting…" : `Connect ${activeProvider.name}`}
-            </button>
-          </div>
-        )}
+        {!isInitializing &&
+          connectedProviders.map((p) => (
+            <div key={p.id} className={styles.row}>
+              <span className={styles.label}>{p.name}</span>
+              <span className={styles.statusBadge}>Connected</span>
+            </div>
+          ))}
 
-        {!isInitializing && activeProvider && isProviderConnected && (
+        {!isInitializing &&
+          disconnectedProviders.map((p) => (
+            <div key={p.id} className={styles.row}>
+              <span className={styles.label}>{p.name}</span>
+              <button
+                className={styles.buttonSmall}
+                onClick={() => void handleAuth(p.id)}
+                disabled={authingProvider === p.id}
+              >
+                {authingProvider === p.id ? "Connecting…" : "Connect"}
+              </button>
+            </div>
+          ))}
+
+        {!isInitializing && providers.length === 0 && (
           <div className={styles.row}>
-            <span />
-            <button
-              className={styles.buttonGhost}
-              onClick={() => void handleAuth()}
-              disabled={isAuthing}
-            >
-              Reconnect
-            </button>
+            <span className={styles.hint}>No providers available</span>
           </div>
         )}
 

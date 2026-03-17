@@ -300,6 +300,8 @@ impl OpenCodeClient {
     }
 
     /// Get provider auth status — which providers are connected.
+    ///
+    /// Returns only connected providers and well-known ones, not the full list.
     pub async fn get_provider_info(&self) -> Result<Vec<ProviderAuthInfo>, ClientError> {
         let resp = self.http.get(format!("{}/provider", self.base_url)).send().await?;
 
@@ -315,15 +317,34 @@ impl OpenCodeClient {
         let connected_set: std::collections::HashSet<&str> =
             data.connected.iter().map(String::as_str).collect();
 
-        let providers = data
+        // Only return connected providers (skip the 90+ unconnected ones).
+        // If nothing is connected, return a few well-known ones so the user
+        // has something to click "Connect" on.
+        let mut providers: Vec<ProviderAuthInfo> = data
             .all
-            .into_iter()
+            .iter()
+            .filter(|p| connected_set.contains(p.id.as_str()))
             .map(|p| ProviderAuthInfo {
                 id: p.id.clone(),
-                name: p.name,
-                connected: connected_set.contains(p.id.as_str()),
+                name: p.name.clone(),
+                connected: true,
             })
             .collect();
+
+        if providers.is_empty() {
+            // Offer well-known providers for initial auth
+            let well_known = ["anthropic", "openai", "github-copilot", "google"];
+            for wk in &well_known {
+                if let Some(p) = data.all.iter().find(|p| p.id == *wk) {
+                    providers.push(ProviderAuthInfo {
+                        id: p.id.clone(),
+                        name: p.name.clone(),
+                        connected: false,
+                    });
+                    break; // Single provider model — just offer the first match
+                }
+            }
+        }
 
         Ok(providers)
     }

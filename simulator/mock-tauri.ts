@@ -316,7 +316,10 @@ async function invoke(command: string, args?: Record<string, unknown>): Promise<
       };
       return;
     case "get_provider_auth":
-      return [{ id: "copilot", name: "GitHub Copilot", connected: state.providerConnected }];
+      return [
+        { id: "github-copilot", name: "GitHub Copilot", connected: state.providerConnected },
+        { id: "opencode", name: "OpenCode Zen", connected: true },
+      ];
     case "start_provider_auth": {
       const pid = (args?.providerId as string) ?? "unknown";
       console.log(`[sim] start_provider_auth: ${pid}`);
