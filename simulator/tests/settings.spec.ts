@@ -33,18 +33,22 @@ test.describe("Settings - Agent", () => {
     await page.getByRole("button", { name: "Agent" }).click();
   });
 
-  test("shows Model Provider section with connect button when not connected", async ({ page }) => {
+  test("shows Model Provider section with connected provider", async ({ page }) => {
     await expect(page.getByText("Model Provider")).toBeVisible();
-    await expect(page.getByText("Anthropic", { exact: true })).toBeVisible();
-    await expect(page.getByText("Not connected")).toBeVisible();
-    await expect(page.getByRole("button", { name: /Connect/ })).toBeVisible();
+    await expect(page.getByText("GitHub Copilot")).toBeVisible();
+    await expect(page.getByText("Connected", { exact: false })).toBeVisible();
+  });
+
+  test("shows Reconnect button when provider is connected", async ({ page }) => {
+    await expect(page.getByRole("button", { name: "Reconnect" })).toBeVisible();
   });
 
   test("shows default model picker", async ({ page }) => {
-    await expect(page.getByRole("heading", { name: "Default Model" })).toBeVisible();
+    await expect(page.getByText("Default Model")).toBeVisible();
     const select = page.getByRole("combobox");
     await expect(select).toBeVisible();
-    await expect(select).toContainText("Claude Opus 4.6");
+    // Default model from mock is anthropic/claude-sonnet-4
+    await expect(select).toContainText("Claude Sonnet 4");
   });
 });
 
@@ -55,14 +59,14 @@ test.describe("Settings - Brain", () => {
     await page.getByRole("button", { name: "Brain" }).click();
   });
 
-  test("shows Second Brain section", async ({ page }) => {
+  test("shows Second Brain section with no-repo state", async ({ page }) => {
     await expect(page.getByText("Second Brain")).toBeVisible();
-    await expect(page.getByText("Connected")).toBeVisible();
+    // Select button visible when no repo
+    await expect(page.getByRole("button", { name: "Select" })).toBeVisible();
   });
 
-  test("shows repo path with change button", async ({ page }) => {
+  test("shows select button when no repo", async ({ page }) => {
     await expect(page.getByText("Repository")).toBeVisible();
-    await expect(page.getByText("/Users/demo/second-brain")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Change" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Select" })).toBeVisible();
   });
 });

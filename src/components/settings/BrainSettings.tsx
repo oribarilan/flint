@@ -91,10 +91,12 @@ export default function BrainSettings({ config, onUpdate, onResetSection }: Brai
               <span className={styles.providerDesc}>A local git repo of plain markdown files</span>
             </div>
           </div>
-          {chatStatus.connected ? (
+          {chatStatus.connected && hasRepoPath ? (
             <span className={styles.statusBadge}>Connected</span>
-          ) : (
+          ) : hasRepoPath ? (
             <span className={styles.statusDisconnected}>Not connected</span>
+          ) : (
+            <span className={styles.statusDisconnected}>No repo selected</span>
           )}
         </div>
 

@@ -34,11 +34,9 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
       .catch(() => {});
   }, []);
 
-  // On mount: ensure the OpenCode server is running, then fetch data
   useEffect(() => {
     const init = async () => {
       const status = await getChatStatus();
-
       if (!status.connected) {
         setIsInitializing(true);
         try {
@@ -49,13 +47,12 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
           setIsInitializing(false);
         }
       }
-
       refreshData();
     };
     void init();
   }, [refreshData]);
 
-  // Derive the single active provider
+  // Derive the single active provider: prefer connected, fallback to first
   const activeProvider =
     providers.find((p) => p.connected) ?? (providers.length > 0 ? providers[0] : null);
   const isProviderConnected = activeProvider?.connected ?? false;
@@ -98,6 +95,10 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
   const handleResetDefaults = async () => {
     await onResetSection("chat");
   };
+
+  // Find display name for current default model
+  const currentModelName =
+    models.find((m) => m.id === config.chat.default_model)?.name ?? config.chat.default_model;
 
   return (
     <div className={styles.page}>
@@ -168,7 +169,14 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
       {/* ── Default model ───────────────────────────────── */}
       {models.length > 0 && (
         <section className={styles.section}>
-          <h3 className={styles.sectionTitle}>Default Model</h3>
+          <div className={styles.providerHeader}>
+            <div className={styles.providerInfo}>
+              <div>
+                <span className={styles.providerName}>Default Model</span>
+                <span className={styles.providerDesc}>{currentModelName}</span>
+              </div>
+            </div>
+          </div>
           <div className={styles.row}>
             <span className={styles.label}>Model</span>
             <div className={styles.selectWrap}>

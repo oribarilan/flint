@@ -60,8 +60,8 @@ const DEFAULT_CONFIG: FlintConfig = {
     backdrop_blur: false,
   },
   search: { directories: ["~"] },
-  chat: { default_model: "gpt-4.1" },
-  second_brain: { repo_path: "/Users/demo/second-brain" },
+  chat: { default_model: "anthropic/claude-sonnet-4" },
+  second_brain: { repo_path: null },
   kits: {},
 };
 
@@ -70,10 +70,10 @@ const state: SimState = {
   chatStatus: {
     connected: true,
     session_id: "sim-session-001",
-    repo_path: "/Users/demo/second-brain",
+    repo_path: null,
   },
   isStreaming: false,
-  providerConnected: false,
+  providerConnected: true,
 };
 
 // ---------------------------------------------------------------------------
@@ -316,7 +316,7 @@ async function invoke(command: string, args?: Record<string, unknown>): Promise<
       };
       return;
     case "get_provider_auth":
-      return [{ id: "anthropic", name: "Anthropic", connected: state.providerConnected }];
+      return [{ id: "copilot", name: "GitHub Copilot", connected: state.providerConnected }];
     case "start_provider_auth": {
       const pid = (args?.providerId as string) ?? "unknown";
       console.log(`[sim] start_provider_auth: ${pid}`);
