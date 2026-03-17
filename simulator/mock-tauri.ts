@@ -267,9 +267,24 @@ export function installSimulator(): void {
     invoke,
     transformCallback,
     convertFileSrc: (path: string) => path,
+    unregisterCallback: (id: number) => {
+      callbacks.delete(id);
+    },
     metadata: {
       currentWindow: { label: "main" },
       currentWebview: { label: "main" },
+    },
+  };
+
+  // Patch the event plugin internals (used by _unlisten in @tauri-apps/api/event)
+  (window as Record<string, unknown>).__TAURI_EVENT_PLUGIN_INTERNALS__ = {
+    unregisterListener: (event: string, eventId: number) => {
+      const listeners = eventListeners.get(event);
+      if (listeners) {
+        // The eventId from our mock invoke is the ID we returned, but
+        // the handler ID in the set is the callback ID from transformCallback.
+        // For simplicity, just let invoke('plugin:event|unlisten') handle it.
+      }
     },
   };
 
