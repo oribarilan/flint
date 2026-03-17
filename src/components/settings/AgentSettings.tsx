@@ -29,29 +29,21 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
   const [authingProvider, setAuthingProvider] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const refreshStatus = useCallback(() => {
+  const refreshAll = useCallback(() => {
     getChatStatus()
       .then(setChatStatus)
       .catch(() => {});
-  }, []);
-
-  const refreshProviders = useCallback(() => {
     getProviderAuth()
       .then(setProviders)
       .catch(() => {});
-  }, []);
-
-  const refreshModels = useCallback(() => {
     getAvailableModels()
       .then(([list]) => setModels(list))
       .catch(() => {});
   }, []);
 
   useEffect(() => {
-    refreshStatus();
-    refreshProviders();
-    refreshModels();
-  }, [refreshStatus, refreshProviders, refreshModels]);
+    refreshAll();
+  }, [refreshAll]);
 
   const handleProviderAuth = async (providerId: string) => {
     setAuthingProvider(providerId);
@@ -62,11 +54,23 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
         const { open: shellOpen } = await import("@tauri-apps/plugin-shell");
         await shellOpen(url);
       }
-      setTimeout(() => {
-        refreshProviders();
-        refreshModels();
-        setAuthingProvider(null);
-      }, 5000);
+      // Poll for completion a few times
+      const poll = (remaining: number) => {
+        if (remaining <= 0) {
+          setAuthingProvider(null);
+          return;
+        }
+        setTimeout(() => {
+          refreshAll();
+          setAuthingProvider((current) => {
+            if (current === providerId) {
+              poll(remaining - 1);
+            }
+            return current;
+          });
+        }, 3000);
+      };
+      poll(3);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       setError(message);
@@ -85,29 +89,69 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
     await onResetSection("chat");
   };
 
+  const connectedCount = providers.filter((p) => p.connected).length;
+
   return (
     <div className={styles.page}>
       <h2 className={styles.pageTitle}>Agent</h2>
 
-      {/* OpenCode status */}
+      {/* ── Model Providers ─────────────────────────────── */}
       <section className={styles.section}>
         <div className={styles.providerHeader}>
           <div className={styles.providerInfo}>
             <div>
-              <span className={styles.providerName}>OpenCode</span>
-              <span className={styles.providerDesc}>AI backend powering the agent</span>
+              <span className={styles.providerName}>Model Providers</span>
+              <span className={styles.providerDesc}>LLM providers powering the agent</span>
             </div>
           </div>
-          {chatStatus.connected ? (
-            <span className={styles.statusBadge}>Connected</span>
+          {connectedCount > 0 ? (
+            <span className={styles.statusBadge}>{connectedCount} connected</span>
           ) : (
-            <span className={styles.statusDisconnected}>Not connected</span>
+            <span className={styles.statusDisconnected}>None connected</span>
           )}
         </div>
 
-        {models.length > 0 && (
+        {providers.map((p) => (
+          <div key={p.id} className={styles.row}>
+            <span className={styles.label}>{p.name}</span>
+            <div className={styles.providerStatus}>
+              {p.connected ? (
+                <span className={styles.statusBadge}>Connected</span>
+              ) : (
+                <button
+                  className={styles.buttonSmall}
+                  onClick={() => void handleProviderAuth(p.id)}
+                  disabled={authingProvider === p.id}
+                >
+                  {authingProvider === p.id ? "Authorizing…" : "Connect"}
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+
+        {providers.length === 0 && (
           <div className={styles.row}>
-            <span className={styles.label}>Default model</span>
+            <span className={styles.hint}>
+              Connect your second brain repo first to see available providers
+            </span>
+          </div>
+        )}
+
+        {error && (
+          <div className={styles.row}>
+            <span />
+            <p className={styles.error}>{error}</p>
+          </div>
+        )}
+      </section>
+
+      {/* ── Default model ───────────────────────────────── */}
+      {models.length > 0 && (
+        <section className={styles.section}>
+          <h3 className={styles.sectionTitle}>Default Model</h3>
+          <div className={styles.row}>
+            <span className={styles.label}>Model</span>
             <div className={styles.selectWrap}>
               <select
                 className={styles.select}
@@ -122,38 +166,6 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
               </select>
             </div>
           </div>
-        )}
-      </section>
-
-      {/* Provider auth */}
-      {providers.length > 0 && (
-        <section className={styles.section}>
-          <h3 className={styles.sectionTitle}>Providers</h3>
-          {providers.map((p) => (
-            <div key={p.id} className={styles.row}>
-              <span className={styles.label}>{p.name}</span>
-              <div className={styles.providerStatus}>
-                {p.connected ? (
-                  <span className={styles.statusBadge}>Connected</span>
-                ) : (
-                  <button
-                    className={styles.buttonSmall}
-                    onClick={() => void handleProviderAuth(p.id)}
-                    disabled={authingProvider === p.id}
-                  >
-                    {authingProvider === p.id ? "Authorizing…" : "Connect"}
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-
-          {error && (
-            <div className={styles.row}>
-              <span />
-              <p className={styles.error}>{error}</p>
-            </div>
-          )}
         </section>
       )}
 

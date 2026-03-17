@@ -33,24 +33,28 @@ test.describe("Settings - Agent", () => {
     await page.getByRole("button", { name: "Agent" }).click();
   });
 
-  test("shows OpenCode connection status", async ({ page }) => {
-    await expect(page.getByText("OpenCode", { exact: true })).toBeVisible();
-    await expect(page.getByText("AI backend powering the agent")).toBeVisible();
+  test("shows Model Providers section with connection count", async ({ page }) => {
+    await expect(page.getByText("Model Providers")).toBeVisible();
+    await expect(page.getByText("LLM providers powering the agent")).toBeVisible();
+    await expect(page.getByText("2 connected")).toBeVisible();
+  });
+
+  test("shows per-provider auth status with connect buttons", async ({ page }) => {
+    // Connected providers show badge
+    await expect(page.getByText("Anthropic", { exact: true })).toBeVisible();
+    await expect(page.getByText("OpenAI", { exact: true })).toBeVisible();
+    // Unconnected providers show Connect button
+    await expect(page.getByText("Google", { exact: true })).toBeVisible();
+    await expect(page.getByText("OpenCode Zen", { exact: true })).toBeVisible();
+    const connectButtons = page.getByRole("button", { name: "Connect" });
+    await expect(connectButtons).toHaveCount(2);
   });
 
   test("shows default model picker", async ({ page }) => {
-    await expect(page.getByText("Default model")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Default Model" })).toBeVisible();
     const select = page.getByRole("combobox");
     await expect(select).toBeVisible();
     await expect(select).toContainText("Claude Opus 4.6");
-  });
-
-  test("shows provider auth status", async ({ page }) => {
-    await expect(page.getByRole("heading", { name: "Providers" })).toBeVisible();
-    await expect(page.getByText("Anthropic", { exact: true })).toBeVisible();
-    await expect(page.getByText("OpenAI", { exact: true })).toBeVisible();
-    await expect(page.getByText("Google", { exact: true })).toBeVisible();
-    await expect(page.getByText("OpenCode Zen", { exact: true })).toBeVisible();
   });
 });
 
