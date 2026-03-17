@@ -76,7 +76,11 @@ function ModelSelector({
   const [defaultModel, setDefaultModel] = useState<string | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const [dropdownPos, setDropdownPos] = useState<{ left: number; bottom: number } | null>(null);
+  const [dropdownPos, setDropdownPos] = useState<{
+    left: number;
+    bottom: number;
+    maxHeight: number;
+  } | null>(null);
 
   // Fetch models on mount
   useEffect(() => {
@@ -98,13 +102,16 @@ function ModelSelector({
       .catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Position dropdown above the button when opened
+  // Position dropdown above the button, anchored to bottom edge
   useEffect(() => {
     if (!isOpen || !buttonRef.current) return;
     const rect = buttonRef.current.getBoundingClientRect();
+    const gap = 4;
+    const maxAvailable = rect.top - gap - 8; // 8px viewport margin
     setDropdownPos({
       left: rect.left,
-      bottom: window.innerHeight - rect.top + 4,
+      bottom: window.innerHeight - rect.top + gap,
+      maxHeight: Math.min(400, maxAvailable),
     });
   }, [isOpen]);
 
@@ -142,6 +149,7 @@ function ModelSelector({
           position: "fixed",
           left: dropdownPos.left,
           bottom: dropdownPos.bottom,
+          maxHeight: dropdownPos.maxHeight,
         }}
       >
         {Object.entries(grouped).map(([providerName, providerModels]) => (

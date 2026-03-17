@@ -242,8 +242,14 @@ async function invoke(command: string, args?: Record<string, unknown>): Promise<
     case "get_available_models": {
       const models = [
         {
-          id: "anthropic/claude-sonnet-4",
-          name: "Claude Sonnet 4",
+          id: "anthropic/claude-opus-4.6",
+          name: "Claude Opus 4.6",
+          provider_id: "anthropic",
+          provider_name: "Anthropic",
+        },
+        {
+          id: "anthropic/claude-opus-4.5",
+          name: "Claude Opus 4.5",
           provider_id: "anthropic",
           provider_name: "Anthropic",
         },
@@ -254,11 +260,20 @@ async function invoke(command: string, args?: Record<string, unknown>): Promise<
           provider_name: "Anthropic",
         },
         {
+          id: "anthropic/claude-sonnet-4",
+          name: "Claude Sonnet 4",
+          provider_id: "anthropic",
+          provider_name: "Anthropic",
+        },
+        {
           id: "anthropic/claude-haiku-4.5",
           name: "Claude Haiku 4.5",
           provider_id: "anthropic",
           provider_name: "Anthropic",
         },
+        { id: "openai/o3", name: "o3", provider_id: "openai", provider_name: "OpenAI" },
+        { id: "openai/gpt-5.4", name: "GPT-5.4", provider_id: "openai", provider_name: "OpenAI" },
+        { id: "openai/gpt-5.2", name: "GPT-5.2", provider_id: "openai", provider_name: "OpenAI" },
         { id: "openai/gpt-4.1", name: "GPT-4.1", provider_id: "openai", provider_name: "OpenAI" },
         {
           id: "openai/gpt-5-mini",
@@ -266,10 +281,15 @@ async function invoke(command: string, args?: Record<string, unknown>): Promise<
           provider_id: "openai",
           provider_name: "OpenAI",
         },
-        { id: "openai/o3", name: "o3", provider_id: "openai", provider_name: "OpenAI" },
         {
           id: "google/gemini-2.5-pro",
           name: "Gemini 2.5 Pro",
+          provider_id: "google",
+          provider_name: "Google",
+        },
+        {
+          id: "google/gemini-2.5-flash",
+          name: "Gemini 2.5 Flash",
           provider_id: "google",
           provider_name: "Google",
         },
