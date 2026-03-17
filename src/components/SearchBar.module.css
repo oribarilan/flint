@@ -7,7 +7,7 @@
   flex-shrink: 0;
 }
 
-.wrapperChat {
+.wrapperAgent {
   composes: wrapper;
   background: var(--bg-accent-subtle);
 }

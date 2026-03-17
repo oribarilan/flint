@@ -14,7 +14,7 @@ const SEARCH_HINTS: Hint[] = [
   { label: "Navigate", keys: "⌃J/K", raw: true },
   { label: "Open", keys: "Enter" },
   { label: "Actions", keys: "Shift+Enter" },
-  { label: "Chat", keys: "Tab" },
+  { label: "Agent", keys: "Tab" },
   { label: "Dismiss", keys: "Escape" },
 ];
 
@@ -29,7 +29,7 @@ const ACTION_ARMED_HINTS: Hint[] = [
   { label: "Cancel", keys: "Escape" },
 ];
 
-const CHAT_HINTS: Hint[] = [
+const AGENT_HINTS: Hint[] = [
   { label: "Send", keys: "Enter" },
   { label: "Newline", keys: "Shift+Enter" },
   { label: "Search", keys: "Tab" },
@@ -44,7 +44,7 @@ function useHints(): Hint[] {
   if (actionPanelOpen) {
     return armedActionIndex !== null ? ACTION_ARMED_HINTS : ACTION_PANEL_HINTS;
   }
-  return mode === "search" ? SEARCH_HINTS : CHAT_HINTS;
+  return mode === "search" ? SEARCH_HINTS : AGENT_HINTS;
 }
 
 export default function HintBar() {

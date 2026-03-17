@@ -49,7 +49,7 @@ export default function SearchBar({
   const modelPickerQuery = useChatStore((s) => s.modelPickerQuery);
   const selectedModel = useChatStore((s) => s.selectedModel);
 
-  const chatMode = mode === "chat";
+  const agentMode = mode === "agent";
 
   // Auto-focus on mount
   useEffect(() => {
@@ -111,28 +111,28 @@ export default function SearchBar({
       return;
     }
 
-    if (e.key === "Enter" && e.shiftKey && !chatMode) {
+    if (e.key === "Enter" && e.shiftKey && !agentMode) {
       e.preventDefault();
       useSearchStore.getState().openActionPanel();
       return;
     }
-    if (e.key === "Enter" && chatMode && onSendChat) {
+    if (e.key === "Enter" && agentMode && onSendChat) {
       e.preventDefault();
       onSendChat();
-    } else if (e.key === "Enter" && !chatMode && onSubmitSearch) {
+    } else if (e.key === "Enter" && !agentMode && onSubmitSearch) {
       e.preventDefault();
       onSubmitSearch();
-    } else if (e.key === "ArrowDown" && !chatMode) {
+    } else if (e.key === "ArrowDown" && !agentMode) {
       e.preventDefault();
       onArrowDown();
-    } else if (e.key === "ArrowUp" && !chatMode && onArrowUp) {
+    } else if (e.key === "ArrowUp" && !agentMode && onArrowUp) {
       e.preventDefault();
       onArrowUp();
     }
   };
 
-  // Chat mode: sparkle icon; search mode: magnifying glass
-  const icon = chatMode ? (
+  // Agent mode: sparkle icon; search mode: magnifying glass
+  const icon = agentMode ? (
     <svg
       className={styles.icon}
       xmlns="http://www.w3.org/2000/svg"
@@ -168,7 +168,7 @@ export default function SearchBar({
     ? "Search models..."
     : activeCommand
       ? `Search ${activeCommand.name}...`
-      : chatMode
+      : agentMode
         ? "Ask anything..."
         : "Search files...";
 
@@ -183,7 +183,7 @@ export default function SearchBar({
   };
 
   return (
-    <div className={chatMode ? styles.wrapperChat : styles.wrapper}>
+    <div className={agentMode ? styles.wrapperAgent : styles.wrapper}>
       {showIcon && icon}
 
       {showModelChip && (
@@ -228,7 +228,7 @@ export default function SearchBar({
         aria-label="Search"
       />
 
-      {!isLoading && !(chatMode && isStreaming) && !actionPanelOpen && !modelPickerOpen && (
+      {!isLoading && !(agentMode && isStreaming) && !actionPanelOpen && !modelPickerOpen && (
         <Kbd keys="Tab" />
       )}
     </div>

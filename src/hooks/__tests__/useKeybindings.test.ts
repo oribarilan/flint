@@ -125,8 +125,8 @@ describe("useKeybindings", () => {
     expect(actions.onFocusSearchBar).toHaveBeenCalledTimes(1);
   });
 
-  it("Escape layer 1: preserves chat mode when clearing input", () => {
-    useSearchStore.setState({ query: "what is rust?", mode: "chat" });
+  it("Escape layer 1: preserves agent mode when clearing input", () => {
+    useSearchStore.setState({ query: "what is rust?", mode: "agent" });
     const actions = createActions();
     renderHook(() => {
       useKeybindings(actions);
@@ -135,11 +135,11 @@ describe("useKeybindings", () => {
     fireKey("Escape");
 
     expect(useSearchStore.getState().query).toBe("");
-    expect(useSearchStore.getState().mode).toBe("chat");
+    expect(useSearchStore.getState().mode).toBe("agent");
   });
 
   it("Escape layer 2: clears chat and stays in current mode", () => {
-    useSearchStore.setState({ query: "", mode: "chat" });
+    useSearchStore.setState({ query: "", mode: "agent" });
     useChatStore.setState({
       messages: [{ role: "user", content: "hi" }],
     });
@@ -151,7 +151,7 @@ describe("useKeybindings", () => {
     fireKey("Escape");
 
     expect(useChatStore.getState().messages).toEqual([]);
-    expect(useSearchStore.getState().mode).toBe("chat");
+    expect(useSearchStore.getState().mode).toBe("agent");
     expect(actions.onFocusSearchBar).toHaveBeenCalledTimes(1);
   });
 

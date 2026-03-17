@@ -112,7 +112,7 @@ export default function ChatSettings({ config, onUpdate, onResetSection }: ChatS
 
   return (
     <div className={styles.page}>
-      <h2 className={styles.pageTitle}>Chat</h2>
+      <h2 className={styles.pageTitle}>Agent</h2>
 
       {/* ── Second Brain connection ─────────────────────── */}
       <section className={styles.section}>

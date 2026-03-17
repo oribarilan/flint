@@ -37,7 +37,7 @@ export default function App() {
   const setChatStatus = useChatStore((s) => s.setChatStatus);
   const isStreaming = useChatStore((s) => s.isStreaming);
   const addUserMessage = useChatStore((s) => s.addUserMessage);
-  const isChatMode = mode === "chat";
+  const isAgentMode = mode === "agent";
 
   // Check chat connection status on mount and on focus
   const refreshChatStatus = useCallback(() => {
@@ -137,11 +137,11 @@ export default function App() {
     return () => unlistenFocus?.();
   }, [focusSearchBar, refreshChatStatus]);
 
-  const showSetupPrompt = isChatMode && !chatStatus.connected;
-  const showChat = isChatMode && chatStatus.connected;
+  const showSetupPrompt = isAgentMode && !chatStatus.connected;
+  const showChat = isAgentMode && chatStatus.connected;
   const actionPanelOpen = useSearchStore((s) => s.actionPanelOpen);
-  const showResults = !isChatMode && !actionPanelOpen;
-  const showActionPanel = !isChatMode && actionPanelOpen;
+  const showResults = !isAgentMode && !actionPanelOpen;
+  const showActionPanel = !isAgentMode && actionPanelOpen;
 
   return (
     <div className={styles.launcher}>

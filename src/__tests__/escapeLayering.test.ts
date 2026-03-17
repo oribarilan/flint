@@ -113,8 +113,8 @@ describe("Escape layering", () => {
     expect(useSearchStore.getState().mode).toBe("search");
   });
 
-  it("Layer 2: clears input when query has text in chat mode (preserves mode)", () => {
-    useSearchStore.setState({ query: "what is rust?", mode: "chat" });
+  it("Layer 2: clears input when query has text in agent mode (preserves mode)", () => {
+    useSearchStore.setState({ query: "what is rust?", mode: "agent" });
     renderHook(() => {
       useKeybindings(createActions());
     });
@@ -122,11 +122,11 @@ describe("Escape layering", () => {
     fireEscape();
 
     expect(useSearchStore.getState().query).toBe("");
-    expect(useSearchStore.getState().mode).toBe("chat");
+    expect(useSearchStore.getState().mode).toBe("agent");
   });
 
   it("Layer 3: clears chat session when messages exist and input is empty (stays in mode)", () => {
-    useSearchStore.setState({ query: "", mode: "chat" });
+    useSearchStore.setState({ query: "", mode: "agent" });
     useChatStore.setState({
       messages: [{ role: "user", content: "hi" }],
     });
@@ -137,11 +137,11 @@ describe("Escape layering", () => {
     fireEscape();
 
     expect(useChatStore.getState().messages).toEqual([]);
-    expect(useSearchStore.getState().mode).toBe("chat");
+    expect(useSearchStore.getState().mode).toBe("agent");
   });
 
-  it("Layer 4: dismisses window when in chat mode with empty input and no messages", () => {
-    useSearchStore.setState({ query: "", mode: "chat" });
+  it("Layer 4: dismisses window when in agent mode with empty input and no messages", () => {
+    useSearchStore.setState({ query: "", mode: "agent" });
     useChatStore.setState({ messages: [] });
     renderHook(() => {
       useKeybindings(createActions());
@@ -165,8 +165,8 @@ describe("Escape layering", () => {
   });
 
   it("processes layers sequentially across multiple presses", () => {
-    // Start: chat mode with query text and messages
-    useSearchStore.setState({ query: "test query", mode: "chat" });
+    // Start: agent mode with query text and messages
+    useSearchStore.setState({ query: "test query", mode: "agent" });
     useChatStore.setState({
       messages: [
         { role: "user", content: "hello" },
@@ -180,13 +180,13 @@ describe("Escape layering", () => {
     // First Escape: clears input (Layer 1)
     fireEscape();
     expect(useSearchStore.getState().query).toBe("");
-    expect(useSearchStore.getState().mode).toBe("chat");
+    expect(useSearchStore.getState().mode).toBe("agent");
     expect(useChatStore.getState().messages).toHaveLength(2);
 
-    // Second Escape: clears chat (Layer 2), stays in chat mode
+    // Second Escape: clears chat (Layer 2), stays in agent mode
     fireEscape();
     expect(useChatStore.getState().messages).toEqual([]);
-    expect(useSearchStore.getState().mode).toBe("chat");
+    expect(useSearchStore.getState().mode).toBe("agent");
 
     // Third Escape: dismisses window (Layer 3)
     fireEscape();

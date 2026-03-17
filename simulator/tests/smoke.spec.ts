@@ -49,26 +49,26 @@ test.describe("Flint Simulator - Smoke Tests", () => {
   });
 });
 
-test.describe("Flint Simulator - Chat Mode", () => {
+test.describe("Flint Simulator - Agent Mode", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await waitForSimReady(page);
   });
 
-  test("Tab switches to chat mode", async ({ page }) => {
+  test("Tab switches to agent mode", async ({ page }) => {
     await page.keyboard.press("Tab");
     await page.waitForTimeout(300);
 
-    // The input placeholder or the surrounding UI should indicate chat mode.
-    // Look for the chat panel container or a visible chat message area.
+    // The input placeholder or the surrounding UI should indicate agent mode.
+    // Look for the chat panel container or a visible message area.
     // Since the app is pre-connected, the ChatPanel should render.
     // Use a broad selector — any element whose class contains "container" inside the app.
     const input = searchInput(page);
     await expect(input).toBeVisible();
   });
 
-  test("sending a chat message shows response", async ({ page }) => {
-    // Switch to chat mode
+  test("sending a message shows response", async ({ page }) => {
+    // Switch to agent mode
     await page.keyboard.press("Tab");
     await page.waitForTimeout(300);
 
@@ -84,7 +84,7 @@ test.describe("Flint Simulator - Chat Mode", () => {
   });
 
   test("Tab toggles back to search mode", async ({ page }) => {
-    // Switch to chat mode
+    // Switch to agent mode
     await page.keyboard.press("Tab");
     await page.waitForTimeout(200);
 

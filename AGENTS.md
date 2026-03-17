@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Flint is an AI-native application launcher built with Tauri v2. It provides a global hotkey-activated overlay for file search and AI chat, powered by a GitHub Copilot subscription via OAuth Device Flow.
+Flint is an AI-native application launcher built with Tauri v2. It provides a global hotkey-activated overlay for file search and an AI agent mode, powered by an OpenCode backend connected to the user's "second brain" (a local GitHub repo of plain markdown files).
 
 ## Specs & Planning
 
@@ -197,18 +197,20 @@ Three layers, each serving a different purpose:
 - **Rust**: `src-tauri/tests/` directory. Test multi-module flows: indexer → search pipeline, config file round-trip, SSE stream parsing end-to-end.
 - **Frontend**: Test component interactions: mode switching, Escape layering, store lifecycle. Mock the IPC boundary but test the full React tree.
 
-### E2E Smoke Tests
-- **Tool**: `tauri-driver` (WebDriver-compatible) for automated app launch + interaction.
-- **Scope**: A small set of critical-path tests — app launches, search returns results, settings window opens. Not comprehensive UI testing.
-- **Run**: `just test-e2e`. Intended for CI and pre-release validation.
-- **Location**: `tests/e2e/`.
+### E2E Smoke Tests via Simulator
+- **Tool**: Playwright + a web simulator that runs the full Flint UI in a browser with Tauri APIs mocked.
+- **Simulator**: `simulator/` directory — patches `window.__TAURI_INTERNALS__` to intercept all IPC calls. Run via `just sim` (port 3000).
+- **Mock layer**: `simulator/mock-tauri.ts` provides mock search results, streaming chat responses, model data, provider auth, and tool call simulation.
+- **Tests**: `simulator/tests/` — Playwright specs. Run via `just test-e2e`.
+- **Playwright MCP**: When available, use the Playwright MCP tools (`playwright-browser_navigate`, `playwright-browser_snapshot`, `playwright-browser_click`, etc.) to interactively verify UI changes in the simulator. Always spin up the simulator and visually confirm implementations.
+- **Rule**: Every UI feature or change must include Playwright E2E tests against the simulator. Spin up the simulator to verify both functionality and visual design before considering work complete.
+- **Global control**: `window.__sim` exposes `emit()`, `state`, `setConnected()`, `setRepoPath()` for programmatic test control.
 
 ## Security
 
 See also: **Security** principle in Engineering Principles above.
 
-- Minimal OAuth scope: `read:user` only.
-- Tokens stored exclusively in OS keychain. Never logged, never sent to frontend state.
+- Auth credentials managed by OpenCode (stored in `~/.local/share/opencode/auth.json`).
 - All user input validated at the Rust IPC boundary.
 - File paths from the frontend must be canonicalized and checked against allowed directories before access.
 - No secrets in source code. Use environment variables for dev-only config.

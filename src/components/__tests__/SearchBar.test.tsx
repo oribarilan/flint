@@ -36,8 +36,8 @@ describe("SearchBar", () => {
     expect(path?.getAttribute("d")).toContain("3.5a5.5");
   });
 
-  it("renders sparkle icon in chat mode", () => {
-    useSearchStore.setState({ mode: "chat" });
+  it("renders sparkle icon in agent mode", () => {
+    useSearchStore.setState({ mode: "agent" });
     const { container } = render(<SearchBar onArrowDown={vi.fn()} />);
 
     const svg = container.querySelector("svg");
@@ -49,8 +49,8 @@ describe("SearchBar", () => {
     expect(path?.getAttribute("d")).toContain("M10 1");
   });
 
-  it("Enter in chat mode calls onSendChat", () => {
-    useSearchStore.setState({ mode: "chat" });
+  it("Enter in agent mode calls onSendChat", () => {
+    useSearchStore.setState({ mode: "agent" });
     const onSendChat = vi.fn();
     render(<SearchBar onArrowDown={vi.fn()} onSendChat={onSendChat} />);
 
@@ -100,8 +100,8 @@ describe("SearchBar", () => {
     expect(onArrowUp).toHaveBeenCalledTimes(1);
   });
 
-  it("ArrowUp does not call onArrowUp in chat mode", () => {
-    useSearchStore.setState({ mode: "chat" });
+  it("ArrowUp does not call onArrowUp in agent mode", () => {
+    useSearchStore.setState({ mode: "agent" });
     const onArrowUp = vi.fn();
     render(<SearchBar onArrowDown={vi.fn()} onArrowUp={onArrowUp} />);
 
@@ -117,8 +117,8 @@ describe("SearchBar", () => {
     expect(screen.getByPlaceholderText("Search files...")).toBeTruthy();
   });
 
-  it("shows chat placeholder in chat mode", () => {
-    useSearchStore.setState({ mode: "chat" });
+  it("shows agent placeholder in agent mode", () => {
+    useSearchStore.setState({ mode: "agent" });
     render(<SearchBar onArrowDown={vi.fn()} />);
 
     expect(screen.getByPlaceholderText("Ask anything...")).toBeTruthy();
@@ -140,8 +140,8 @@ describe("SearchBar", () => {
     expect(kbd).toBeNull();
   });
 
-  it("hides Tab hint when streaming in chat mode", () => {
-    useSearchStore.setState({ mode: "chat" });
+  it("hides Tab hint when streaming in agent mode", () => {
+    useSearchStore.setState({ mode: "agent" });
     useChatStore.setState({ isStreaming: true });
     const { container } = render(<SearchBar onArrowDown={vi.fn()} />);
 

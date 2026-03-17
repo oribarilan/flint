@@ -23,7 +23,7 @@ describe("HintBar", () => {
 
     expect(screen.getAllByText("Navigate")).toHaveLength(2);
     expect(screen.getByText("Open")).toBeTruthy();
-    expect(screen.getByText("Chat")).toBeTruthy();
+    expect(screen.getByText("Agent")).toBeTruthy();
     expect(screen.getByText("Dismiss")).toBeTruthy();
   });
 
@@ -34,8 +34,8 @@ describe("HintBar", () => {
     expect(screen.getByText("⌃J/K")).toBeTruthy();
   });
 
-  it("shows chat mode hints when in chat mode", () => {
-    useSearchStore.setState({ mode: "chat" });
+  it("shows agent mode hints when in agent mode", () => {
+    useSearchStore.setState({ mode: "agent" });
     render(<HintBar />);
 
     expect(screen.getByText("Send")).toBeTruthy();
@@ -44,8 +44,8 @@ describe("HintBar", () => {
     expect(screen.getByText("Clear")).toBeTruthy();
   });
 
-  it("does not show search hints in chat mode", () => {
-    useSearchStore.setState({ mode: "chat" });
+  it("does not show search hints in agent mode", () => {
+    useSearchStore.setState({ mode: "agent" });
     render(<HintBar />);
 
     expect(screen.queryByText("Navigate")).toBeNull();
@@ -66,7 +66,7 @@ describe("HintBar", () => {
 
     expect(screen.getByText("Run action")).toBeTruthy();
     expect(screen.getByText("Back")).toBeTruthy();
-    expect(screen.queryByText("Chat")).toBeNull();
+    expect(screen.queryByText("Agent")).toBeNull();
   });
 
   it("shows armed confirmation hints when action is armed", () => {

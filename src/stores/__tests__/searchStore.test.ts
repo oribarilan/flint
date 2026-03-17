@@ -102,7 +102,7 @@ describe("searchStore", () => {
 
   it("clearSearch resets all state including mode", () => {
     useSearchStore.setState({
-      mode: "chat",
+      mode: "agent",
       query: "test",
       results: mockResults,
       selectedIndex: 2,
@@ -126,23 +126,23 @@ describe("searchStore", () => {
     expect(useSearchStore.getState().selectedIndex).toBe(5);
   });
 
-  it("toggleMode switches from search to chat", () => {
+  it("toggleMode switches from search to agent", () => {
     expect(useSearchStore.getState().mode).toBe("search");
     useSearchStore.getState().toggleMode();
 
-    expect(useSearchStore.getState().mode).toBe("chat");
+    expect(useSearchStore.getState().mode).toBe("agent");
   });
 
-  it("toggleMode switches from chat to search", () => {
-    useSearchStore.setState({ mode: "chat" });
+  it("toggleMode switches from agent to search", () => {
+    useSearchStore.setState({ mode: "agent" });
     useSearchStore.getState().toggleMode();
 
     expect(useSearchStore.getState().mode).toBe("search");
   });
 
   it("setMode sets mode directly", () => {
-    useSearchStore.getState().setMode("chat");
-    expect(useSearchStore.getState().mode).toBe("chat");
+    useSearchStore.getState().setMode("agent");
+    expect(useSearchStore.getState().mode).toBe("agent");
 
     useSearchStore.getState().setMode("search");
     expect(useSearchStore.getState().mode).toBe("search");

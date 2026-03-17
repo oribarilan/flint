@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import GeneralSettings from "./settings/GeneralSettings";
 import SearchSettings from "./settings/SearchSettings";
-import ChatSettings from "./settings/ChatSettings";
+import AgentSettings from "./settings/AgentSettings";
 import KitsSettings from "./settings/KitsSettings";
 import { useConfig } from "../hooks/useConfig";
 import styles from "./Settings.module.css";
 
-type SettingsPage = "general" | "search" | "chat" | "kits";
+type SettingsPage = "general" | "search" | "agent" | "kits";
 
 interface PageDef {
   id: SettingsPage;
@@ -43,8 +43,8 @@ const PAGES: PageDef[] = [
     ),
   },
   {
-    id: "chat",
-    label: "Chat",
+    id: "agent",
+    label: "Agent",
     icon: (
       <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
         <path
@@ -107,8 +107,8 @@ export default function Settings() {
         {activePage === "search" && (
           <SearchSettings config={config} onUpdate={update} onResetSection={resetSection} />
         )}
-        {activePage === "chat" && (
-          <ChatSettings config={config} onUpdate={update} onResetSection={resetSection} />
+        {activePage === "agent" && (
+          <AgentSettings config={config} onUpdate={update} onResetSection={resetSection} />
         )}
         {activePage === "kits" && <KitsSettings config={config} onUpdate={update} />}
       </main>

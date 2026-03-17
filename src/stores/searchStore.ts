@@ -2,7 +2,7 @@ import { create } from "zustand";
 import type { ActiveCommand, KitAction, KitSearchResult } from "../kits/types";
 import { isMac, isWindows } from "../lib/platform";
 
-export type AppMode = "search" | "chat";
+export type AppMode = "search" | "agent";
 
 /** @deprecated Use KitSearchResult instead. Kept for backward compatibility. */
 export interface SearchResult {
@@ -67,7 +67,7 @@ export const useSearchStore = create<SearchState>((set, get) => ({
   armedActionIndex: null,
 
   toggleMode: () => {
-    set({ mode: get().mode === "search" ? "chat" : "search" });
+    set({ mode: get().mode === "search" ? "agent" : "search" });
   },
 
   setMode: (mode) => {
