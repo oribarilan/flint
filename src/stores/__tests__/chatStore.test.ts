@@ -156,4 +156,82 @@ describe("chatStore", () => {
 
     expect(useChatStore.getState().activeToolCalls).toEqual([]);
   });
+
+  // ── Model picker state ────────────────────────────────────
+
+  it("openModelPicker sets modelPickerOpen and resets query/index", () => {
+    useChatStore.getState().setModelPickerQuery("test");
+    useChatStore.getState().setModelPickerIndex(5);
+    useChatStore.getState().openModelPicker();
+
+    const state = useChatStore.getState();
+    expect(state.modelPickerOpen).toBe(true);
+    expect(state.modelPickerQuery).toBe("");
+    expect(state.modelPickerIndex).toBe(0);
+  });
+
+  it("closeModelPicker resets all picker state", () => {
+    useChatStore.getState().openModelPicker();
+    useChatStore.getState().setModelPickerQuery("claude");
+    useChatStore.getState().setModelPickerIndex(3);
+    useChatStore.getState().closeModelPicker();
+
+    const state = useChatStore.getState();
+    expect(state.modelPickerOpen).toBe(false);
+    expect(state.modelPickerQuery).toBe("");
+    expect(state.modelPickerIndex).toBe(0);
+  });
+
+  it("setAvailableModels stores the model list", () => {
+    const models = [
+      {
+        id: "anthropic/claude-4",
+        name: "Claude 4",
+        providerId: "anthropic",
+        providerName: "Anthropic",
+      },
+      { id: "openai/gpt-5", name: "GPT-5", providerId: "openai", providerName: "OpenAI" },
+    ];
+    useChatStore.getState().setAvailableModels(models);
+    expect(useChatStore.getState().availableModels).toEqual(models);
+  });
+
+  it("setModelPickerQuery updates query and resets index", () => {
+    useChatStore.getState().setModelPickerIndex(5);
+    useChatStore.getState().setModelPickerQuery("opus");
+
+    expect(useChatStore.getState().modelPickerQuery).toBe("opus");
+    expect(useChatStore.getState().modelPickerIndex).toBe(0);
+  });
+
+  it("setModelPickerIndex updates selected index", () => {
+    useChatStore.getState().setModelPickerIndex(3);
+    expect(useChatStore.getState().modelPickerIndex).toBe(3);
+  });
+
+  it("setSelectedModel updates the selected model", () => {
+    useChatStore.getState().setSelectedModel({
+      providerId: "anthropic",
+      modelId: "claude-sonnet-4",
+      displayName: "Claude Sonnet 4",
+    });
+
+    const model = useChatStore.getState().selectedModel;
+    expect(model?.providerId).toBe("anthropic");
+    expect(model?.modelId).toBe("claude-sonnet-4");
+    expect(model?.displayName).toBe("Claude Sonnet 4");
+  });
+
+  it("setChatStatus updates connection info", () => {
+    useChatStore.getState().setChatStatus({
+      connected: true,
+      sessionId: "sess-123",
+      repoPath: "/path/to/brain",
+    });
+
+    const { chatStatus } = useChatStore.getState();
+    expect(chatStatus.connected).toBe(true);
+    expect(chatStatus.sessionId).toBe("sess-123");
+    expect(chatStatus.repoPath).toBe("/path/to/brain");
+  });
 });

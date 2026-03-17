@@ -22,13 +22,13 @@ Flint's search is built on **macOS Spotlight** — it does not build or maintain
 
 ## Features (Not Yet Implemented)
 
-### Phase 4 — Copilot Authentication
-- OAuth Device Flow with shared Copilot client ID
-- Token storage in OS keychain
-- Automatic Copilot token refresh
+### Phase 4 — OpenCode Integration
+- Local OpenCode server connection and health monitoring
+- Provider auth management (API keys via OpenCode config)
+- Model discovery from connected providers
 
-### Phase 5 — AI Chat
-- Streaming chat completions via Copilot API
+### Phase 5 — AI Agent Mode
+- Streaming completions via OpenCode API
 - Markdown rendering with syntax highlighting
 - Conversation history (in-memory, per-session)
 

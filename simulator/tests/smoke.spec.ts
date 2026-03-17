@@ -132,3 +132,125 @@ test.describe("Flint Simulator - Keyboard Navigation", () => {
     await expect(input).toHaveValue("");
   });
 });
+
+test.describe("Flint Simulator - Model Picker", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+    await waitForSimReady(page);
+    // Switch to agent mode
+    await page.keyboard.press("Tab");
+    await page.waitForTimeout(300);
+  });
+
+  test("clicking model button opens picker with chip and model list", async ({ page }) => {
+    // Click the model button in the chat header
+    await page.getByRole("button", { name: /Claude|Model/ }).click();
+    await page.waitForTimeout(200);
+
+    // Should show a chip in the search bar
+    await expect(page.getByTestId("model-chip")).toBeVisible();
+
+    // Should show the model list
+    await expect(page.getByRole("listbox", { name: "Models" })).toBeVisible();
+
+    // Should have models in the list
+    await expect(page.getByRole("option").first()).toBeVisible();
+  });
+
+  test("typing filters models", async ({ page }) => {
+    await page.getByRole("button", { name: /Claude|Model/ }).click();
+    await page.waitForTimeout(200);
+
+    const input = searchInput(page);
+    await input.fill("opus");
+
+    // Only Opus models should remain
+    const options = page.getByRole("option");
+    const count = await options.count();
+    expect(count).toBe(2); // Claude Opus 4.6 + Claude Opus 4.5
+  });
+
+  test("Enter selects model and closes picker", async ({ page }) => {
+    await page.getByRole("button", { name: /Claude|Model/ }).click();
+    await page.waitForTimeout(200);
+
+    // Navigate down and select
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("Enter");
+
+    // Picker should close — no more model-chip
+    await expect(page.getByTestId("model-chip")).not.toBeVisible();
+
+    // Placeholder should be back to "Ask anything..."
+    await expect(searchInput(page)).toHaveAttribute("placeholder", "Ask anything...");
+  });
+
+  test("Escape closes picker without changing model", async ({ page }) => {
+    await page.getByRole("button", { name: /Claude|Model/ }).click();
+    await page.waitForTimeout(200);
+    await expect(page.getByTestId("model-chip")).toBeVisible();
+
+    await page.keyboard.press("Escape");
+
+    await expect(page.getByTestId("model-chip")).not.toBeVisible();
+  });
+});
+
+test.describe("Flint Simulator - Tool Calls", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+    await waitForSimReady(page);
+    await page.keyboard.press("Tab");
+    await page.waitForTimeout(300);
+  });
+
+  test("file query shows tool call card", async ({ page }) => {
+    const input = searchInput(page);
+    await input.fill("search my files");
+    await page.keyboard.press("Enter");
+
+    // Tool card should appear (Search Files with emoji)
+    await expect(page.getByText("Search Files")).toBeVisible({ timeout: 3000 });
+  });
+
+  test("tool cards disappear after completion", async ({ page }) => {
+    const input = searchInput(page);
+    await input.fill("search my files");
+    await page.keyboard.press("Enter");
+
+    // Wait for tool to appear
+    await expect(page.getByText("Search Files")).toBeVisible({ timeout: 3000 });
+
+    // Wait for response to finish and tool to clear
+    await page.waitForTimeout(6000);
+    await expect(page.getByText("Search Files")).not.toBeVisible();
+  });
+});
+
+test.describe("Flint Simulator - New Chat", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+    await waitForSimReady(page);
+    await page.keyboard.press("Tab");
+    await page.waitForTimeout(300);
+  });
+
+  test("new chat button clears messages", async ({ page }) => {
+    // Send a message first
+    const input = searchInput(page);
+    await input.fill("hello");
+    await page.keyboard.press("Enter");
+
+    // Wait for response
+    await expect(page.getByText("Flint simulator", { exact: false })).toBeVisible({
+      timeout: 5000,
+    });
+
+    // Click new chat
+    await page.getByRole("button", { name: "New chat" }).click();
+    await page.waitForTimeout(300);
+
+    // Messages should be cleared, empty state should show
+    await expect(page.getByText("Ask anything about your second brain")).toBeVisible();
+  });
+});

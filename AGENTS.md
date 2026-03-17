@@ -86,8 +86,8 @@ Two code paths are **sacred** and must remain as close to zero-overhead as possi
 
 ## Architecture
 
-- **Rust backend** (`src-tauri/`): Spotlight search (macOS), fuzzy matching (nucleo), Copilot auth + chat API, window management, hotkey registration.
-- **React frontend** (`src/`): Search bar, results list, AI chat panel. State via Zustand. Bundled with Vite.
+- **Rust backend** (`src-tauri/`): Spotlight search (macOS), fuzzy matching (nucleo), OpenCode backend, window management, hotkey registration.
+- **React frontend** (`src/`): Search bar, results list, AI agent panel. State via Zustand. Bundled with Vite.
 - **IPC bridge**: All I/O and business logic lives in Rust. Frontend calls Rust via `tauri::command` invoke. Never use Node.js APIs for I/O.
 
 ### Config & State Consistency
@@ -104,7 +104,7 @@ The app has two layers of state: the **config file** (TOML on disk, source of tr
 | Shell | Tauri v2 (Rust) |
 | Frontend | React 18 + TypeScript (strict) + Vite |
 | State | Zustand |
-| AI | GitHub Copilot (OAuth Device Flow, shared client ID) |
+| AI | OpenCode (local server, multi-provider) |
 | Fuzzy search | `nucleo` crate |
 | File search | macOS Spotlight (`mdfind`) |
 | HTTP | `reqwest` + `tokio` |
@@ -144,7 +144,7 @@ Individual targets are also available (`just test-rust`, `just lint-frontend`, e
 
 - **Components**: Functional only. PascalCase filenames and component names.
 - **Types**: Strict mode enabled. Explicit interfaces/types for props, state, and API responses. No `any`.
-- **Hooks**: Extract reusable logic into custom hooks (`useSearch`, `useAuth`, `useCopilotChat`). Prefix with `use`.
+- **Hooks**: Extract reusable logic into custom hooks (`useSearch`, `useAuth`, `useChat`). Prefix with `use`.
 - **State**: Local state by default. Zustand for cross-cutting concerns only.
 - **Naming**: `camelCase` functions/variables, `PascalCase` components/types, `UPPER_SNAKE` constants.
 - **Styling**: CSS Modules. No global styles in component files.
@@ -200,7 +200,7 @@ Three layers, each serving a different purpose:
 ### E2E Smoke Tests via Simulator
 - **Tool**: Playwright + a web simulator that runs the full Flint UI in a browser with Tauri APIs mocked.
 - **Simulator**: `simulator/` directory — patches `window.__TAURI_INTERNALS__` to intercept all IPC calls. Run via `just sim` (port 3000).
-- **Mock layer**: `simulator/mock-tauri.ts` provides mock search results, streaming chat responses, model data, provider auth, and tool call simulation.
+- **Mock layer**: `simulator/mock-tauri.ts` provides mock search results, streaming agent responses, model data, provider auth, and tool call simulation.
 - **Tests**: `simulator/tests/` — Playwright specs. Run via `just test-e2e`.
 - **Playwright MCP**: When available, use the Playwright MCP tools (`playwright-browser_navigate`, `playwright-browser_snapshot`, `playwright-browser_click`, etc.) to interactively verify UI changes in the simulator. Always spin up the simulator and visually confirm implementations.
 - **Rule**: Every UI feature or change must include Playwright E2E tests against the simulator. Spin up the simulator to verify both functionality and visual design before considering work complete.
