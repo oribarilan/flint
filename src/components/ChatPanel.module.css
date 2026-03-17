@@ -51,11 +51,8 @@
 
 /* ── Model selector ────────────────────────────────────────── */
 
-.modelSelector {
-  position: relative;
-}
-
-.modelButton {
+.modelButton,
+.modelButtonActive {
   display: flex;
   align-items: center;
   gap: var(--space-xs);
@@ -74,6 +71,11 @@
   background: var(--bg-hover);
 }
 
+.modelButtonActive {
+  color: var(--accent);
+  background: var(--bg-accent-subtle);
+}
+
 .modelLabel {
   max-width: 200px;
   overflow: hidden;
@@ -85,59 +87,60 @@
   opacity: 0.6;
 }
 
-.modelDropdown {
-  min-width: 220px;
-  max-height: 280px;
+/* ── Model picker list (search-style) ──────────────────────── */
+
+.modelList {
+  flex: 1;
   overflow-y: auto;
   overscroll-behavior: contain;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
-  z-index: 10000;
   padding: var(--space-xs);
 }
 
-.modelGroupLabel {
-  font-size: var(--font-xs);
-  color: var(--text-secondary);
-  padding: var(--space-xs) var(--space-sm);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 600;
-}
-
-.modelOption,
-.modelOptionSelected {
+.modelItem,
+.modelItemSelected {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  background: none;
-  border: none;
-  color: var(--text-primary);
-  font-size: var(--font-base);
-  font-family: var(--font-sans);
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  text-align: left;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-lg);
+  cursor: default;
+  border-radius: var(--radius-md);
+  margin: 0 var(--space-xs);
+  user-select: none;
 }
 
-.modelOption:hover {
+.modelItem:hover {
   background: var(--bg-hover);
 }
 
-.modelOptionSelected {
-  background: var(--bg-selected);
+.modelItemSelected {
+  background: var(--bg-accent-subtle);
 }
 
-.modelDefault {
+.modelItemName {
+  font-size: var(--font-md);
+  font-weight: 500;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.modelItemProvider {
+  flex-shrink: 0;
   font-size: var(--font-xs);
   color: var(--text-secondary);
   background: var(--bg-hover);
-  padding: 1px var(--space-xs);
-  border-radius: var(--radius-sm);
+  padding: 1px var(--space-sm);
+  border-radius: var(--radius-full);
+  font-weight: 500;
+}
+
+.modelItemCurrent {
+  flex-shrink: 0;
+  font-size: var(--font-xs);
+  color: var(--accent);
+  background: var(--bg-accent-subtle);
+  padding: 1px var(--space-sm);
+  border-radius: var(--radius-full);
+  font-weight: 500;
 }
 
 /* ── Messages container ────────────────────────────────────── */

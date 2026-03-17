@@ -16,6 +16,13 @@ export interface SelectedModel {
   displayName: string;
 }
 
+export interface AvailableModelEntry {
+  id: string;
+  name: string;
+  providerId: string;
+  providerName: string;
+}
+
 interface ChatState {
   messages: ChatMessage[];
   isStreaming: boolean;
@@ -23,6 +30,10 @@ interface ChatState {
   activeToolCalls: ActiveToolCall[];
   chatStatus: { connected: boolean; sessionId: string | null; repoPath: string | null };
   selectedModel: SelectedModel | null;
+  modelPickerOpen: boolean;
+  availableModels: AvailableModelEntry[];
+  modelPickerQuery: string;
+  modelPickerIndex: number;
 
   addUserMessage: (content: string) => void;
   appendToken: (token: string) => void;
@@ -35,6 +46,11 @@ interface ChatState {
     repoPath: string | null;
   }) => void;
   setSelectedModel: (model: SelectedModel | null) => void;
+  openModelPicker: () => void;
+  closeModelPicker: () => void;
+  setAvailableModels: (models: AvailableModelEntry[]) => void;
+  setModelPickerQuery: (query: string) => void;
+  setModelPickerIndex: (index: number) => void;
   addToolCall: (call: ActiveToolCall) => void;
   removeToolCall: (toolName: string) => void;
   clearChat: () => void;
@@ -47,6 +63,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
   activeToolCalls: [],
   chatStatus: { connected: false, sessionId: null, repoPath: null },
   selectedModel: null,
+  modelPickerOpen: false,
+  availableModels: [],
+  modelPickerQuery: "",
+  modelPickerIndex: 0,
 
   addUserMessage: (content) => {
     set((state) => ({
@@ -90,6 +110,26 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   setSelectedModel: (model) => {
     set({ selectedModel: model });
+  },
+
+  openModelPicker: () => {
+    set({ modelPickerOpen: true, modelPickerQuery: "", modelPickerIndex: 0 });
+  },
+
+  closeModelPicker: () => {
+    set({ modelPickerOpen: false, modelPickerQuery: "", modelPickerIndex: 0 });
+  },
+
+  setAvailableModels: (models) => {
+    set({ availableModels: models });
+  },
+
+  setModelPickerQuery: (query) => {
+    set({ modelPickerQuery: query, modelPickerIndex: 0 });
+  },
+
+  setModelPickerIndex: (index) => {
+    set({ modelPickerIndex: index });
   },
 
   addToolCall: (call) => {

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { useChatStore, type ChatMessage, type SelectedModel } from "../stores/chatStore";
-import { getAvailableModels, type AvailableModel } from "../lib/commands";
+import { useChatStore, type ChatMessage, type AvailableModelEntry } from "../stores/chatStore";
+import { getAvailableModels } from "../lib/commands";
+import { renderMarkdown } from "../lib/markdown";
 import styles from "./ChatPanel.module.css";
 
 // ---------------------------------------------------------------------------
@@ -30,8 +30,6 @@ function getToolMeta(toolName: string): { name: string; icon: string } {
   }
   return TOOL_META[toolName] ?? { name: toolName, icon: "⚙" };
 }
-
-import { renderMarkdown } from "../lib/markdown";
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -64,148 +62,81 @@ function ToolCallCard({ toolName, state }: { toolName: string; state: "running" 
   );
 }
 
-function ModelSelector({
-  selectedModel,
-  onSelectModel,
-}: {
-  selectedModel: SelectedModel | null;
-  onSelectModel: (model: SelectedModel | null) => void;
-}) {
-  const [models, setModels] = useState<AvailableModel[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
-  const [defaultModel, setDefaultModel] = useState<string | null>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const [dropdownPos, setDropdownPos] = useState<{
-    left: number;
-    bottom: number;
-    maxHeight: number;
-  } | null>(null);
+// ---------------------------------------------------------------------------
+// Model picker list — replaces messages area when active
+// ---------------------------------------------------------------------------
 
-  // Fetch models on mount
-  useEffect(() => {
-    getAvailableModels()
-      .then(([list, dflt]) => {
-        setModels(list);
-        setDefaultModel(dflt);
-        if (!selectedModel && dflt) {
-          const found = list.find((m) => m.id === dflt);
-          if (found) {
-            onSelectModel({
-              providerId: found.provider_id,
-              modelId: found.id.split("/").slice(1).join("/"),
-              displayName: found.name,
-            });
-          }
-        }
-      })
-      .catch(() => {});
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+function filterModels(models: AvailableModelEntry[], query: string): AvailableModelEntry[] {
+  if (!query) return models;
+  const lower = query.toLowerCase();
+  return models.filter(
+    (m) =>
+      m.name.toLowerCase().includes(lower) ||
+      m.providerName.toLowerCase().includes(lower) ||
+      m.id.toLowerCase().includes(lower),
+  );
+}
 
-  // Position dropdown above the button, anchored to bottom edge
+function ModelPickerList() {
+  const models = useChatStore((s) => s.availableModels);
+  const query = useChatStore((s) => s.modelPickerQuery);
+  const selectedIndex = useChatStore((s) => s.modelPickerIndex);
+  const selectedModel = useChatStore((s) => s.selectedModel);
+
+  const filtered = filterModels(models, query);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Scroll selected item into view
   useEffect(() => {
-    if (!isOpen || !buttonRef.current) return;
-    const rect = buttonRef.current.getBoundingClientRect();
-    const gap = 4;
-    const maxAvailable = rect.top - gap - 8; // 8px viewport margin
-    setDropdownPos({
-      left: rect.left,
-      bottom: window.innerHeight - rect.top + gap,
-      maxHeight: Math.min(400, maxAvailable),
+    const container = containerRef.current;
+    if (!container) return;
+    const items = container.querySelectorAll("[role='option']");
+    const selected = items[selectedIndex];
+    if (selected) {
+      selected.scrollIntoView({ block: "nearest" });
+    }
+  }, [selectedIndex]);
+
+  const handleSelect = (model: AvailableModelEntry) => {
+    useChatStore.getState().setSelectedModel({
+      providerId: model.providerId,
+      modelId: model.id.split("/").slice(1).join("/"),
+      displayName: model.name,
     });
-  }, [isOpen]);
+    useChatStore.getState().closeModelPicker();
+  };
 
-  // Close dropdown on outside click
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleClick = (e: MouseEvent) => {
-      const target = e.target as Node;
-      if (buttonRef.current?.contains(target) || dropdownRef.current?.contains(target)) {
-        return;
-      }
-      setIsOpen(false);
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [isOpen]);
-
-  const displayName = selectedModel?.displayName ?? "Default model";
-
-  // Group models by provider
-  const grouped = models.reduce<Record<string, AvailableModel[]>>((acc, m) => {
-    const group = acc[m.provider_name] ?? [];
-    group.push(m);
-    acc[m.provider_name] = group;
-    return acc;
-  }, {});
-
-  const dropdownContent =
-    isOpen && models.length > 0 && dropdownPos ? (
-      <div
-        ref={dropdownRef}
-        className={styles.modelDropdown}
-        role="listbox"
-        style={{
-          position: "fixed",
-          left: dropdownPos.left,
-          bottom: dropdownPos.bottom,
-          maxHeight: dropdownPos.maxHeight,
-        }}
-      >
-        {Object.entries(grouped).map(([providerName, providerModels]) => (
-          <div key={providerName}>
-            <div className={styles.modelGroupLabel}>{providerName}</div>
-            {providerModels.map((m) => {
-              const isSelected =
-                selectedModel?.providerId === m.provider_id &&
-                `${m.provider_id}/${selectedModel?.modelId}` === m.id;
-              const isDefault = m.id === defaultModel;
-              return (
-                <button
-                  key={m.id}
-                  className={isSelected ? styles.modelOptionSelected : styles.modelOption}
-                  role="option"
-                  aria-selected={isSelected}
-                  onClick={() => {
-                    onSelectModel({
-                      providerId: m.provider_id,
-                      modelId: m.id.split("/").slice(1).join("/"),
-                      displayName: m.name,
-                    });
-                    setIsOpen(false);
-                  }}
-                >
-                  <span>{m.name}</span>
-                  {isDefault && <span className={styles.modelDefault}>default</span>}
-                </button>
-              );
-            })}
-          </div>
-        ))}
+  if (filtered.length === 0) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.empty}>
+          <div className={styles.emptyText}>No models match "{query}"</div>
+        </div>
       </div>
-    ) : null;
+    );
+  }
 
   return (
-    <div className={styles.modelSelector}>
-      <button
-        ref={buttonRef}
-        className={styles.modelButton}
-        onClick={() => setIsOpen(!isOpen)}
-        aria-expanded={isOpen}
-        aria-haspopup="listbox"
-      >
-        <span className={styles.modelLabel}>{displayName}</span>
-        <svg
-          className={styles.modelChevron}
-          viewBox="0 0 16 16"
-          fill="currentColor"
-          width="12"
-          height="12"
-        >
-          <path d="M4.427 7.427l3.396 3.396a.25.25 0 00.354 0l3.396-3.396A.25.25 0 0011.396 7H4.604a.25.25 0 00-.177.427z" />
-        </svg>
-      </button>
-      {dropdownContent && createPortal(dropdownContent, document.body)}
+    <div ref={containerRef} className={styles.modelList} role="listbox" aria-label="Models">
+      {filtered.map((model, index) => {
+        const isCurrent =
+          selectedModel?.providerId === model.providerId &&
+          model.id === `${selectedModel.providerId}/${selectedModel.modelId}`;
+        return (
+          <div
+            key={model.id}
+            className={index === selectedIndex ? styles.modelItemSelected : styles.modelItem}
+            role="option"
+            aria-selected={index === selectedIndex}
+            onMouseEnter={() => useChatStore.getState().setModelPickerIndex(index)}
+            onClick={() => handleSelect(model)}
+          >
+            <span className={styles.modelItemName}>{model.name}</span>
+            <span className={styles.modelItemProvider}>{model.providerName}</span>
+            {isCurrent && <span className={styles.modelItemCurrent}>current</span>}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -220,10 +151,36 @@ export default function ChatPanel() {
   const currentResponse = useChatStore((s) => s.currentResponse);
   const activeToolCalls = useChatStore((s) => s.activeToolCalls);
   const selectedModel = useChatStore((s) => s.selectedModel);
-  const setSelectedModel = useChatStore((s) => s.setSelectedModel);
   const chatStatus = useChatStore((s) => s.chatStatus);
+  const modelPickerOpen = useChatStore((s) => s.modelPickerOpen);
   const [completedTools, setCompletedTools] = useState<string[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Fetch models on mount
+  useEffect(() => {
+    getAvailableModels()
+      .then(([list, dflt]) => {
+        const entries = list.map((m) => ({
+          id: m.id,
+          name: m.name,
+          providerId: m.provider_id,
+          providerName: m.provider_name,
+        }));
+        useChatStore.getState().setAvailableModels(entries);
+        // Auto-select default if none selected
+        if (!useChatStore.getState().selectedModel && dflt) {
+          const found = list.find((m) => m.id === dflt);
+          if (found) {
+            useChatStore.getState().setSelectedModel({
+              providerId: found.provider_id,
+              modelId: found.id.split("/").slice(1).join("/"),
+              displayName: found.name,
+            });
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Track completed tool calls
   useEffect(() => {
@@ -231,14 +188,12 @@ export default function ChatPanel() {
     setCompletedTools((prev) => prev.filter((name) => !activeNames.has(name)));
   }, [activeToolCalls]);
 
-  // Mark tools as completed when they are removed
   const prevToolsRef = useRef<string[]>([]);
   useEffect(() => {
     const currentNames = activeToolCalls.map((tc) => tc.toolName);
     const removed = prevToolsRef.current.filter((name) => !currentNames.includes(name));
     if (removed.length > 0) {
       setCompletedTools((prev) => [...prev, ...removed]);
-      // Auto-clear completed tools after 3 seconds
       setTimeout(() => {
         setCompletedTools((prev) => prev.filter((name) => !removed.includes(name)));
       }, 3000);
@@ -259,17 +214,39 @@ export default function ChatPanel() {
   const handleNewChat = () => {
     useChatStore.getState().clearChat();
     setCompletedTools([]);
-    // In production this also calls clear_chat to create a new OpenCode session
     import("../lib/commands").then(({ clearChat }) => {
       clearChat().catch(() => {});
     });
   };
 
+  const modelDisplayName = selectedModel?.displayName ?? "Model";
+
   return (
     <div className={styles.panel}>
-      {/* Chat header — model selector + new chat + status */}
+      {/* Chat header — model button + new chat + status */}
       <div className={styles.header}>
-        <ModelSelector selectedModel={selectedModel} onSelectModel={setSelectedModel} />
+        <button
+          className={modelPickerOpen ? styles.modelButtonActive : styles.modelButton}
+          onClick={() => {
+            if (modelPickerOpen) {
+              useChatStore.getState().closeModelPicker();
+            } else {
+              useChatStore.getState().openModelPicker();
+            }
+          }}
+          title="Change model"
+        >
+          <span className={styles.modelLabel}>{modelDisplayName}</span>
+          <svg
+            className={styles.modelChevron}
+            viewBox="0 0 16 16"
+            fill="currentColor"
+            width="12"
+            height="12"
+          >
+            <path d="M4.427 7.427l3.396 3.396a.25.25 0 00.354 0l3.396-3.396A.25.25 0 0011.396 7H4.604a.25.25 0 00-.177.427z" />
+          </svg>
+        </button>
         <div className={styles.headerActions}>
           {hasContent && (
             <button
@@ -287,45 +264,46 @@ export default function ChatPanel() {
         </div>
       </div>
 
-      {/* Messages area */}
-      <div ref={containerRef} className={styles.container}>
-        {!hasContent && (
-          <div className={styles.empty}>
-            <div className={styles.emptyIcon}>✦</div>
-            <div className={styles.emptyText}>Ask anything about your second brain</div>
-          </div>
-        )}
+      {/* Model picker list OR messages area */}
+      {modelPickerOpen ? (
+        <ModelPickerList />
+      ) : (
+        <div ref={containerRef} className={styles.container}>
+          {!hasContent && (
+            <div className={styles.empty}>
+              <div className={styles.emptyIcon}>✦</div>
+              <div className={styles.emptyText}>Ask anything about your second brain</div>
+            </div>
+          )}
 
-        {messages.map((msg, i) => (
-          <Message key={i} message={msg} />
-        ))}
+          {messages.map((msg, i) => (
+            <Message key={i} message={msg} />
+          ))}
 
-        {/* Tool call cards */}
-        {(activeToolCalls.length > 0 || completedTools.length > 0) && (
-          <div className={styles.toolCalls}>
-            {completedTools.map((name) => (
-              <ToolCallCard key={`done-${name}`} toolName={name} state="done" />
-            ))}
-            {activeToolCalls.map((tc) => (
-              <ToolCallCard key={`run-${tc.toolName}`} toolName={tc.toolName} state="running" />
-            ))}
-          </div>
-        )}
+          {(activeToolCalls.length > 0 || completedTools.length > 0) && (
+            <div className={styles.toolCalls}>
+              {completedTools.map((name) => (
+                <ToolCallCard key={`done-${name}`} toolName={name} state="done" />
+              ))}
+              {activeToolCalls.map((tc) => (
+                <ToolCallCard key={`run-${tc.toolName}`} toolName={tc.toolName} state="running" />
+              ))}
+            </div>
+          )}
 
-        {/* Streaming response */}
-        {isStreaming && currentResponse.length > 0 && (
-          <div className={styles.streaming}>{currentResponse}</div>
-        )}
+          {isStreaming && currentResponse.length > 0 && (
+            <div className={styles.streaming}>{currentResponse}</div>
+          )}
 
-        {/* Thinking dots */}
-        {isStreaming && currentResponse.length === 0 && activeToolCalls.length === 0 && (
-          <div className={styles.thinking} aria-label="Thinking">
-            <span className={styles.dot} />
-            <span className={styles.dot} />
-            <span className={styles.dot} />
-          </div>
-        )}
-      </div>
+          {isStreaming && currentResponse.length === 0 && activeToolCalls.length === 0 && (
+            <div className={styles.thinking} aria-label="Thinking">
+              <span className={styles.dot} />
+              <span className={styles.dot} />
+              <span className={styles.dot} />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

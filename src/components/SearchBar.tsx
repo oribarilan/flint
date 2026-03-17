@@ -45,6 +45,9 @@ export default function SearchBar({
   const actionPanelOpen = useSearchStore((s) => s.actionPanelOpen);
   const actionPanelResult = useSearchStore((s) => s.actionPanelResult);
   const isStreaming = useChatStore((s) => s.isStreaming);
+  const modelPickerOpen = useChatStore((s) => s.modelPickerOpen);
+  const modelPickerQuery = useChatStore((s) => s.modelPickerQuery);
+  const selectedModel = useChatStore((s) => s.selectedModel);
 
   const chatMode = mode === "chat";
 
@@ -53,14 +56,62 @@ export default function SearchBar({
     inputRef.current?.focus();
   }, []);
 
-  // Re-focus and clear input when action panel opens/closes
+  // Re-focus when action panel or model picker opens/closes
   useEffect(() => {
     inputRef.current?.focus();
-  }, [actionPanelOpen]);
+  }, [actionPanelOpen, modelPickerOpen]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    // Model picker mode — intercept navigation and selection
+    if (modelPickerOpen) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        const state = useChatStore.getState();
+        const filtered = state.availableModels.filter(
+          (m) =>
+            !state.modelPickerQuery ||
+            m.name.toLowerCase().includes(state.modelPickerQuery.toLowerCase()) ||
+            m.providerName.toLowerCase().includes(state.modelPickerQuery.toLowerCase()),
+        );
+        const next = Math.min(state.modelPickerIndex + 1, filtered.length - 1);
+        useChatStore.getState().setModelPickerIndex(next);
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        const idx = useChatStore.getState().modelPickerIndex;
+        useChatStore.getState().setModelPickerIndex(Math.max(0, idx - 1));
+        return;
+      }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const state = useChatStore.getState();
+        const filtered = state.availableModels.filter(
+          (m) =>
+            !state.modelPickerQuery ||
+            m.name.toLowerCase().includes(state.modelPickerQuery.toLowerCase()) ||
+            m.providerName.toLowerCase().includes(state.modelPickerQuery.toLowerCase()),
+        );
+        const model = filtered[state.modelPickerIndex];
+        if (model) {
+          useChatStore.getState().setSelectedModel({
+            providerId: model.providerId,
+            modelId: model.id.split("/").slice(1).join("/"),
+            displayName: model.name,
+          });
+          useChatStore.getState().closeModelPicker();
+        }
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        useChatStore.getState().closeModelPicker();
+        return;
+      }
+      return;
+    }
+
     if (e.key === "Enter" && e.shiftKey && !chatMode) {
-      // Shift+Enter: open Action Panel
       e.preventDefault();
       useSearchStore.getState().openActionPanel();
       return;
@@ -78,7 +129,6 @@ export default function SearchBar({
       e.preventDefault();
       onArrowUp();
     }
-    // Escape and Tab are handled by useKeybindings
   };
 
   // Chat mode: sparkle icon; search mode: magnifying glass
@@ -108,20 +158,39 @@ export default function SearchBar({
     </svg>
   );
 
-  // Determine what to show in the search bar: icon, command chip, or actions chip
+  // Determine what to show in the search bar
   const showActionsChip = actionPanelOpen;
-  const showCommandChip = !actionPanelOpen && activeCommand;
-  const showIcon = !actionPanelOpen && !activeCommand;
+  const showModelChip = !actionPanelOpen && modelPickerOpen;
+  const showCommandChip = !actionPanelOpen && !modelPickerOpen && activeCommand;
+  const showIcon = !actionPanelOpen && !modelPickerOpen && !activeCommand;
 
-  const placeholder = activeCommand
-    ? `Search ${activeCommand.name}...`
-    : chatMode
-      ? "Ask anything..."
-      : "Search files...";
+  const placeholder = modelPickerOpen
+    ? "Search models..."
+    : activeCommand
+      ? `Search ${activeCommand.name}...`
+      : chatMode
+        ? "Ask anything..."
+        : "Search files...";
+
+  // Determine input value and change handler
+  const inputValue = modelPickerOpen ? modelPickerQuery : actionPanelOpen ? "" : query;
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (modelPickerOpen) {
+      useChatStore.getState().setModelPickerQuery(e.target.value);
+    } else if (!actionPanelOpen) {
+      setQuery(e.target.value);
+    }
+  };
 
   return (
     <div className={chatMode ? styles.wrapperChat : styles.wrapper}>
       {showIcon && icon}
+
+      {showModelChip && (
+        <span className={styles.chip} data-testid="model-chip">
+          {selectedModel?.displayName ?? "Model"}
+        </span>
+      )}
 
       {showCommandChip && (
         <span className={styles.chip} data-testid="command-chip">
@@ -149,10 +218,8 @@ export default function SearchBar({
         ref={inputRef}
         className={actionPanelOpen ? styles.inputHidden : styles.input}
         type="text"
-        value={actionPanelOpen ? "" : query}
-        onChange={(e) => {
-          if (!actionPanelOpen) setQuery(e.target.value);
-        }}
+        value={inputValue}
+        onChange={handleInputChange}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         spellCheck={false}
@@ -161,7 +228,9 @@ export default function SearchBar({
         aria-label="Search"
       />
 
-      {!isLoading && !(chatMode && isStreaming) && !actionPanelOpen && <Kbd keys="Tab" />}
+      {!isLoading && !(chatMode && isStreaming) && !actionPanelOpen && !modelPickerOpen && (
+        <Kbd keys="Tab" />
+      )}
     </div>
   );
 }
