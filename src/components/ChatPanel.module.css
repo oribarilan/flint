@@ -17,10 +17,29 @@
   flex-shrink: 0;
 }
 
-.headerStatus {
+.headerActions {
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
+  gap: var(--space-sm);
+}
+
+.newChatButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  padding: 0;
+}
+
+.newChatButton:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
 }
 
 .statusDot {

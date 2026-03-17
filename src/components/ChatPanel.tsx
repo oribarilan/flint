@@ -227,12 +227,33 @@ export default function ChatPanel() {
 
   const hasContent = messages.length > 0 || isStreaming;
 
+  const handleNewChat = () => {
+    useChatStore.getState().clearChat();
+    setCompletedTools([]);
+    // In production this also calls clear_chat to create a new OpenCode session
+    import("../lib/commands").then(({ clearChat }) => {
+      clearChat().catch(() => {});
+    });
+  };
+
   return (
     <div className={styles.panel}>
-      {/* Chat header — model selector + status */}
+      {/* Chat header — model selector + new chat + status */}
       <div className={styles.header}>
         <ModelSelector selectedModel={selectedModel} onSelectModel={setSelectedModel} />
-        <div className={styles.headerStatus}>
+        <div className={styles.headerActions}>
+          {hasContent && (
+            <button
+              className={styles.newChatButton}
+              onClick={handleNewChat}
+              title="New chat"
+              aria-label="New chat"
+            >
+              <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
+                <path d="M8 2a.75.75 0 01.75.75v4.5h4.5a.75.75 0 010 1.5h-4.5v4.5a.75.75 0 01-1.5 0v-4.5h-4.5a.75.75 0 010-1.5h4.5v-4.5A.75.75 0 018 2z" />
+              </svg>
+            </button>
+          )}
           {chatStatus.connected && <span className={styles.statusDot} title="Connected" />}
         </div>
       </div>
