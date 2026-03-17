@@ -313,6 +313,18 @@ async function invoke(command: string, args?: Record<string, unknown>): Promise<
         repo_path: state.config.second_brain.repo_path,
       };
       return;
+    case "get_provider_auth":
+      return [
+        { id: "anthropic", name: "Anthropic", connected: true },
+        { id: "openai", name: "OpenAI", connected: true },
+        { id: "google", name: "Google", connected: false },
+        { id: "opencode-zen", name: "OpenCode Zen", connected: false },
+      ];
+    case "start_provider_auth": {
+      const pid = (args?.providerId as string) ?? "unknown";
+      console.log(`[sim] start_provider_auth: ${pid}`);
+      return `https://opencode.ai/auth?provider=${pid}`;
+    }
 
     case "get_config":
       return structuredClone(state.config);

@@ -57,6 +57,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             commands::toggle_window,
             commands::show_window,
@@ -79,6 +80,8 @@ pub fn run() {
             commands::abort_chat,
             commands::clear_chat,
             commands::init_opencode,
+            commands::get_provider_auth,
+            commands::start_provider_auth,
             commands::get_config,
             commands::get_default_config,
             commands::update_config,

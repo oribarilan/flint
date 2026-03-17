@@ -106,6 +106,28 @@ struct ProviderModel {
     name: String,
 }
 
+/// Response from `GET /provider`.
+#[derive(Debug, Clone, Deserialize)]
+struct ProviderListResponse {
+    all: Vec<ProviderSummary>,
+    connected: Vec<String>,
+}
+
+/// A provider summary from the provider list.
+#[derive(Debug, Clone, Deserialize)]
+struct ProviderSummary {
+    id: String,
+    name: String,
+}
+
+/// Provider auth info exposed to the frontend.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProviderAuthInfo {
+    pub id: String,
+    pub name: String,
+    pub connected: bool,
+}
+
 // ---------------------------------------------------------------------------
 // Client
 // ---------------------------------------------------------------------------
@@ -275,6 +297,58 @@ impl OpenCodeClient {
     /// Get a raw reqwest client for SSE streaming.
     pub const fn http_client(&self) -> &reqwest::Client {
         &self.http
+    }
+
+    /// Get provider auth status — which providers are connected.
+    pub async fn get_provider_info(&self) -> Result<Vec<ProviderAuthInfo>, ClientError> {
+        let resp = self.http.get(format!("{}/provider", self.base_url)).send().await?;
+
+        if !resp.status().is_success() {
+            let status = resp.status().as_u16();
+            let body = resp.text().await.unwrap_or_default();
+            return Err(ClientError::Server { status, body });
+        }
+
+        let data: ProviderListResponse =
+            resp.json().await.map_err(|e| ClientError::Parse(e.to_string()))?;
+
+        let connected_set: std::collections::HashSet<&str> =
+            data.connected.iter().map(String::as_str).collect();
+
+        let providers = data
+            .all
+            .into_iter()
+            .map(|p| ProviderAuthInfo {
+                id: p.id.clone(),
+                name: p.name,
+                connected: connected_set.contains(p.id.as_str()),
+            })
+            .collect();
+
+        Ok(providers)
+    }
+
+    /// Start OAuth authorization for a provider. Returns the authorization URL.
+    pub async fn authorize_provider(
+        &self,
+        provider_id: &str,
+    ) -> Result<Option<String>, ClientError> {
+        let resp = self
+            .http
+            .post(format!("{}/provider/{provider_id}/oauth/authorize", self.base_url))
+            .send()
+            .await?;
+
+        if !resp.status().is_success() {
+            let status = resp.status().as_u16();
+            let body = resp.text().await.unwrap_or_default();
+            return Err(ClientError::Server { status, body });
+        }
+
+        let data: serde_json::Value =
+            resp.json().await.map_err(|e| ClientError::Parse(e.to_string()))?;
+        let url = data.get("url").and_then(|v| v.as_str()).map(String::from);
+        Ok(url)
     }
 }
 

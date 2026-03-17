@@ -607,3 +607,45 @@
   background: var(--accent);
   opacity: 0.9;
 }
+
+/* ── Path row (input + browse button) ──────────────────────── */
+
+.pathRow {
+  display: flex;
+  gap: var(--space-xs);
+  flex: 1;
+}
+
+.pathRow .input {
+  flex: 1;
+}
+
+.buttonSmall {
+  flex-shrink: 0;
+  padding: var(--space-xs) var(--space-md);
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-base);
+  font-family: var(--font-sans);
+  cursor: pointer;
+}
+
+.buttonSmall:hover {
+  background: var(--bg-selected);
+  border-color: var(--border-hover);
+}
+
+.buttonSmall:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Provider status ───────────────────────────────────────── */
+
+.providerStatus {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}

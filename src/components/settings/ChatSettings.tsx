@@ -1,5 +1,13 @@
 import { useEffect, useState, useCallback } from "react";
-import { getChatStatus, initOpencode, type ChatStatus, type FlintConfig } from "../../lib/commands";
+import {
+  getChatStatus,
+  initOpencode,
+  getProviderAuth,
+  startProviderAuth,
+  type ChatStatus,
+  type FlintConfig,
+  type ProviderAuthInfo,
+} from "../../lib/commands";
 import ResetSection from "./ResetSection";
 import styles from "./settings.module.css";
 
@@ -21,24 +29,44 @@ export default function ChatSettings({ config, onUpdate, onResetSection }: ChatS
   });
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [providers, setProviders] = useState<ProviderAuthInfo[]>([]);
+  const [authingProvider, setAuthingProvider] = useState<string | null>(null);
 
   const refreshStatus = useCallback(() => {
     getChatStatus()
       .then(setChatStatus)
-      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      .catch(() => {});
+  }, []);
+
+  const refreshProviders = useCallback(() => {
+    getProviderAuth()
+      .then(setProviders)
       .catch(() => {});
   }, []);
 
   useEffect(() => {
     refreshStatus();
-  }, [refreshStatus]);
+    refreshProviders();
+  }, [refreshStatus, refreshProviders]);
 
-  const handleRepoPathChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newPath = e.target.value || null;
-    void onUpdate({
-      ...config,
-      second_brain: { ...config.second_brain, repo_path: newPath },
-    });
+  const handleBrowseRepo = async () => {
+    try {
+      // Dynamic import — only loads the dialog plugin when needed
+      const { open } = await import("@tauri-apps/plugin-dialog");
+      const selected = await open({
+        directory: true,
+        multiple: false,
+        title: "Select your second brain repository",
+      });
+      if (selected && typeof selected === "string") {
+        void onUpdate({
+          ...config,
+          second_brain: { ...config.second_brain, repo_path: selected },
+        });
+      }
+    } catch {
+      // Dialog cancelled or unavailable
+    }
   };
 
   const handleConnect = async () => {
@@ -47,11 +75,32 @@ export default function ChatSettings({ config, onUpdate, onResetSection }: ChatS
     try {
       await initOpencode();
       refreshStatus();
+      refreshProviders();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       setError(message);
     } finally {
       setIsConnecting(false);
+    }
+  };
+
+  const handleProviderAuth = async (providerId: string) => {
+    setAuthingProvider(providerId);
+    try {
+      const url = await startProviderAuth(providerId);
+      if (url) {
+        const { open: shellOpen } = await import("@tauri-apps/plugin-shell");
+        await shellOpen(url);
+      }
+      // Poll for auth completion
+      setTimeout(() => {
+        refreshProviders();
+        setAuthingProvider(null);
+      }, 5000);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message);
+      setAuthingProvider(null);
     }
   };
 
@@ -83,13 +132,18 @@ export default function ChatSettings({ config, onUpdate, onResetSection }: ChatS
 
         <div className={styles.row}>
           <span className={styles.label}>Repo path</span>
-          <input
-            className={styles.input}
-            type="text"
-            placeholder="/path/to/your/second-brain"
-            value={config.second_brain.repo_path ?? ""}
-            onChange={handleRepoPathChange}
-          />
+          <div className={styles.pathRow}>
+            <input
+              className={styles.input}
+              type="text"
+              placeholder="Select your second brain repo…"
+              value={config.second_brain.repo_path ?? ""}
+              readOnly
+            />
+            <button className={styles.buttonSmall} onClick={() => void handleBrowseRepo()}>
+              Browse
+            </button>
+          </div>
         </div>
 
         {hasRepoPath && !chatStatus.connected && (
@@ -105,27 +159,38 @@ export default function ChatSettings({ config, onUpdate, onResetSection }: ChatS
           </div>
         )}
 
-        {chatStatus.connected && (
-          <div className={styles.row}>
-            <span className={styles.label}>Session</span>
-            <span className={styles.value}>{chatStatus.session_id?.slice(0, 8) ?? "—"}</span>
-          </div>
-        )}
-
         {error && (
           <div className={styles.row}>
             <span />
             <p className={styles.error}>{error}</p>
           </div>
         )}
-
-        <div className={styles.row}>
-          <span />
-          <span className={styles.hint}>
-            Configure model and auth in <code>opencode.jsonc</code> inside your repo
-          </span>
-        </div>
       </section>
+
+      {/* ── Provider auth status ─────────────────────────── */}
+      {chatStatus.connected && providers.length > 0 && (
+        <section className={styles.section}>
+          <h3 className={styles.sectionTitle}>Providers</h3>
+          {providers.map((p) => (
+            <div key={p.id} className={styles.row}>
+              <span className={styles.label}>{p.name}</span>
+              <div className={styles.providerStatus}>
+                {p.connected ? (
+                  <span className={styles.statusBadge}>Connected</span>
+                ) : (
+                  <button
+                    className={styles.buttonSmall}
+                    onClick={() => void handleProviderAuth(p.id)}
+                    disabled={authingProvider === p.id}
+                  >
+                    {authingProvider === p.id ? "Authorizing…" : "Connect"}
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
 
       <ResetSection label="Reset chat settings to defaults?" onReset={handleResetDefaults} />
     </div>

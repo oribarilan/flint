@@ -127,6 +127,39 @@ pub async fn init_opencode(
     p.init(&path, &app).await.map_err(|e| e.to_string())
 }
 
+/// Provider auth info for the frontend.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct ProviderAuthInfoResponse {
+    pub id: String,
+    pub name: String,
+    pub connected: bool,
+}
+
+/// Get provider auth status — which providers are connected.
+#[tauri::command]
+pub async fn get_provider_auth(
+    provider: State<'_, OpenCodeProviderState>,
+) -> Result<Vec<ProviderAuthInfoResponse>, String> {
+    let result = {
+        let p = provider.0.read().await;
+        p.get_provider_auth().await.map_err(|e| e.to_string())?
+    };
+    Ok(result
+        .into_iter()
+        .map(|p| ProviderAuthInfoResponse { id: p.id, name: p.name, connected: p.connected })
+        .collect())
+}
+
+/// Start OAuth authorization for a provider. Returns the auth URL.
+#[tauri::command]
+pub async fn start_provider_auth(
+    provider: State<'_, OpenCodeProviderState>,
+    provider_id: String,
+) -> Result<Option<String>, String> {
+    let p = provider.0.read().await;
+    p.authorize_provider(&provider_id).await.map_err(|e| e.to_string())
+}
+
 // ---------------------------------------------------------------------------
 // Window commands
 // ---------------------------------------------------------------------------

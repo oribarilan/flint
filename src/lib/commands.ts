@@ -77,6 +77,22 @@ export async function initOpencode(): Promise<void> {
   return invoke("init_opencode");
 }
 
+// ── Provider auth commands ─────────────────────────────────
+
+export interface ProviderAuthInfo {
+  id: string;
+  name: string;
+  connected: boolean;
+}
+
+export async function getProviderAuth(): Promise<ProviderAuthInfo[]> {
+  return invoke("get_provider_auth");
+}
+
+export async function startProviderAuth(providerId: string): Promise<string | null> {
+  return invoke("start_provider_auth", { providerId });
+}
+
 // ── Config commands ────────────────────────────────────────────
 
 export interface GeneralConfig {
