@@ -3,11 +3,12 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import GeneralSettings from "./settings/GeneralSettings";
 import SearchSettings from "./settings/SearchSettings";
 import AgentSettings from "./settings/AgentSettings";
+import BrainSettings from "./settings/BrainSettings";
 import KitsSettings from "./settings/KitsSettings";
 import { useConfig } from "../hooks/useConfig";
 import styles from "./Settings.module.css";
 
-type SettingsPage = "general" | "search" | "agent" | "kits";
+type SettingsPage = "general" | "search" | "agent" | "brain" | "kits";
 
 interface PageDef {
   id: SettingsPage;
@@ -52,6 +53,15 @@ const PAGES: PageDef[] = [
           d="M10 2c-2.236 0-4.43.18-6.57.524C1.993 2.755 1 4.014 1 5.426v5.148c0 1.413.993 2.67 2.43 2.902 1.168.188 2.352.327 3.55.414.28.02.521.18.642.413l1.713 3.293a.75.75 0 001.33 0l1.713-3.293a.783.783 0 01.642-.413 41.102 41.102 0 003.55-.414c1.437-.231 2.43-1.49 2.43-2.902V5.426c0-1.413-.993-2.67-2.43-2.902A41.289 41.289 0 0010 2zM6.75 6a.75.75 0 000 1.5h6.5a.75.75 0 000-1.5h-6.5zm0 2.5a.75.75 0 000 1.5h3.5a.75.75 0 000-1.5h-3.5z"
           clipRule="evenodd"
         />
+      </svg>
+    ),
+  },
+  {
+    id: "brain",
+    label: "Brain",
+    icon: (
+      <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+        <path d="M10 1a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 1zM5.05 3.05a.75.75 0 011.06 0l1.062 1.06A.75.75 0 016.11 5.173L5.05 4.11a.75.75 0 010-1.06zm9.9 0a.75.75 0 010 1.06l-1.06 1.062a.75.75 0 01-1.062-1.061l1.061-1.06a.75.75 0 011.06 0zM3 8a7 7 0 1114 0A7 7 0 013 8zm8 8a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0111 16zM5.05 15.95a.75.75 0 011.06 0l1.06 1.06a.75.75 0 01-1.06 1.06l-1.06-1.06a.75.75 0 010-1.06zm9.9 0a.75.75 0 010 1.06l-1.06 1.06a.75.75 0 01-1.06-1.06l1.06-1.06a.75.75 0 011.06 0z" />
       </svg>
     ),
   },
@@ -109,6 +119,9 @@ export default function Settings() {
         )}
         {activePage === "agent" && (
           <AgentSettings config={config} onUpdate={update} onResetSection={resetSection} />
+        )}
+        {activePage === "brain" && (
+          <BrainSettings config={config} onUpdate={update} onResetSection={resetSection} />
         )}
         {activePage === "kits" && <KitsSettings config={config} onUpdate={update} />}
       </main>
