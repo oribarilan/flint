@@ -106,26 +106,42 @@ struct ProviderModel {
     name: String,
 }
 
-/// Response from `GET /provider`.
-#[derive(Debug, Clone, Deserialize)]
-struct ProviderListResponse {
-    all: Vec<ProviderSummary>,
-    connected: Vec<String>,
-}
-
-/// A provider summary from the provider list.
-#[derive(Debug, Clone, Deserialize)]
-struct ProviderSummary {
-    id: String,
-    name: String,
-}
-
 /// Provider auth info exposed to the frontend.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProviderAuthInfo {
     pub id: String,
     pub name: String,
     pub connected: bool,
+}
+
+/// Map provider IDs to human-readable display names.
+fn provider_display_name(id: &str) -> String {
+    let name = match id {
+        "github-copilot" => "GitHub Copilot",
+        "anthropic" => "Anthropic",
+        "openai" => "OpenAI",
+        "google" => "Google",
+        "opencode" => "OpenCode Zen",
+        "opencode-go" => "OpenCode Go",
+        "azure" => "Azure",
+        "amazon-bedrock" => "Amazon Bedrock",
+        "groq" => "Groq",
+        "deepseek" => "DeepSeek",
+        "mistral" => "Mistral",
+        "xai" => "xAI",
+        "cohere" => "Cohere",
+        _ => {
+            return id
+                .split('-')
+                .map(|w| {
+                    let mut c = w.chars();
+                    c.next().map_or_else(String::new, |f| f.to_uppercase().to_string() + c.as_str())
+                })
+                .collect::<Vec<_>>()
+                .join(" ");
+        }
+    };
+    name.to_owned()
 }
 
 // ---------------------------------------------------------------------------
@@ -299,52 +315,29 @@ impl OpenCodeClient {
         &self.http
     }
 
-    /// Get provider auth status — which providers are connected.
+    /// Get provider auth status by reading `OpenCode`'s credential store directly.
     ///
-    /// Returns only connected providers and well-known ones, not the full list.
-    pub async fn get_provider_info(&self) -> Result<Vec<ProviderAuthInfo>, ClientError> {
-        let resp = self.http.get(format!("{}/provider", self.base_url)).send().await?;
+    /// This reads `~/.local/share/opencode/auth.json` which contains only
+    /// providers the user has actually authenticated with — no noise from
+    /// the 90+ available providers.
+    pub fn get_provider_info(&self) -> Result<Vec<ProviderAuthInfo>, ClientError> {
+        let auth_path = dirs::data_local_dir()
+            .unwrap_or_else(|| std::path::PathBuf::from(".local/share"))
+            .join("opencode")
+            .join("auth.json");
 
-        if !resp.status().is_success() {
-            let status = resp.status().as_u16();
-            let body = resp.text().await.unwrap_or_default();
-            return Err(ClientError::Server { status, body });
-        }
+        let contents = std::fs::read_to_string(&auth_path).unwrap_or_else(|_| "{}".to_owned());
+        let credentials: std::collections::HashMap<String, serde_json::Value> =
+            serde_json::from_str(&contents).unwrap_or_default();
 
-        let data: ProviderListResponse =
-            resp.json().await.map_err(|e| ClientError::Parse(e.to_string()))?;
-
-        let connected_set: std::collections::HashSet<&str> =
-            data.connected.iter().map(String::as_str).collect();
-
-        // Only return connected providers (skip the 90+ unconnected ones).
-        // If nothing is connected, return a few well-known ones so the user
-        // has something to click "Connect" on.
-        let mut providers: Vec<ProviderAuthInfo> = data
-            .all
-            .iter()
-            .filter(|p| connected_set.contains(p.id.as_str()))
-            .map(|p| ProviderAuthInfo {
-                id: p.id.clone(),
-                name: p.name.clone(),
+        let providers = credentials
+            .keys()
+            .map(|id| ProviderAuthInfo {
+                id: id.clone(),
+                name: provider_display_name(id),
                 connected: true,
             })
             .collect();
-
-        if providers.is_empty() {
-            // Offer well-known providers for initial auth
-            let well_known = ["anthropic", "openai", "github-copilot", "google"];
-            for wk in &well_known {
-                if let Some(p) = data.all.iter().find(|p| p.id == *wk) {
-                    providers.push(ProviderAuthInfo {
-                        id: p.id.clone(),
-                        name: p.name.clone(),
-                        connected: false,
-                    });
-                    break; // Single provider model — just offer the first match
-                }
-            }
-        }
 
         Ok(providers)
     }

@@ -157,9 +157,9 @@ impl OpenCodeProvider {
     }
 
     /// Get provider auth status.
-    pub async fn get_provider_auth(&self) -> Result<Vec<client::ProviderAuthInfo>, OpenCodeError> {
+    pub fn get_provider_auth(&self) -> Result<Vec<client::ProviderAuthInfo>, OpenCodeError> {
         let client = self.client.as_ref().ok_or(OpenCodeError::ServerNotRunning)?;
-        client.get_provider_info().await.map_err(|e| OpenCodeError::Api(e.to_string()))
+        client.get_provider_info().map_err(|e| OpenCodeError::Api(e.to_string()))
     }
 
     /// Start OAuth authorization for a provider.

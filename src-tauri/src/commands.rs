@@ -117,10 +117,11 @@ pub async fn init_opencode(
     provider: State<'_, OpenCodeProviderState>,
     config: State<'_, AppConfig>,
 ) -> Result<(), String> {
-    let path = config.get().second_brain.repo_path.map_or_else(
-        || std::env::temp_dir().join("flint-opencode"),
-        PathBuf::from,
-    );
+    let path = config
+        .get()
+        .second_brain
+        .repo_path
+        .map_or_else(|| std::env::temp_dir().join("flint-opencode"), PathBuf::from);
 
     // Ensure the directory exists (temp fallback may not).
     std::fs::create_dir_all(&path).map_err(|e| format!("failed to create dir: {e}"))?;
@@ -145,7 +146,7 @@ pub async fn get_provider_auth(
 ) -> Result<Vec<ProviderAuthInfoResponse>, String> {
     let result = {
         let p = provider.0.read().await;
-        p.get_provider_auth().await.map_err(|e| e.to_string())?
+        p.get_provider_auth().map_err(|e| e.to_string())?
     };
     Ok(result
         .into_iter()
