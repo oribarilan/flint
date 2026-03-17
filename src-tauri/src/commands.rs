@@ -48,9 +48,48 @@ pub async fn get_chat_status(
 pub async fn send_chat_message(
     provider: State<'_, OpenCodeProviderState>,
     message: String,
+    provider_id: Option<String>,
+    model_id: Option<String>,
 ) -> Result<(), String> {
+    let model_ref = match (provider_id, model_id) {
+        (Some(pid), Some(mid)) => {
+            Some(crate::providers::opencode::client::ModelRef { provider_id: pid, model_id: mid })
+        }
+        _ => None,
+    };
     let p = provider.0.read().await;
-    p.send_message(&message).await.map_err(|e| e.to_string())
+    p.send_message(&message, model_ref.as_ref()).await.map_err(|e| e.to_string())
+}
+
+/// Available model info for the frontend.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct AvailableModel {
+    pub id: String,
+    pub name: String,
+    pub provider_id: String,
+    pub provider_name: String,
+}
+
+/// Get available models from connected providers.
+#[tauri::command]
+pub async fn get_available_models(
+    provider: State<'_, OpenCodeProviderState>,
+) -> Result<(Vec<AvailableModel>, Option<String>), String> {
+    let result = {
+        let p = provider.0.read().await;
+        p.get_models().await.map_err(|e| e.to_string())?
+    };
+    let (models, default) = result;
+    let available: Vec<AvailableModel> = models
+        .into_iter()
+        .map(|m| AvailableModel {
+            id: m.id,
+            name: m.name,
+            provider_id: m.provider_id,
+            provider_name: m.provider_name,
+        })
+        .collect();
+    Ok((available, default))
 }
 
 /// Abort the current in-progress chat response.

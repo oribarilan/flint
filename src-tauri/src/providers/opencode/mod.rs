@@ -132,16 +132,28 @@ impl OpenCodeProvider {
         Ok(())
     }
 
-    /// Send a message to the current session.
-    pub async fn send_message(&self, content: &str) -> Result<(), OpenCodeError> {
+    /// Send a message to the current session, optionally with a specific model.
+    pub async fn send_message(
+        &self,
+        content: &str,
+        model: Option<&client::ModelRef>,
+    ) -> Result<(), OpenCodeError> {
         let client = self.client.as_ref().ok_or(OpenCodeError::ServerNotRunning)?;
         let session_id = self.session_id.as_ref().ok_or(OpenCodeError::NoSession)?;
 
         client
-            .send_message(session_id, content)
+            .send_message(session_id, content, model)
             .await
             .map_err(|e| OpenCodeError::Api(e.to_string()))?;
         Ok(())
+    }
+
+    /// Get available models from all connected providers.
+    pub async fn get_models(
+        &self,
+    ) -> Result<(Vec<client::ModelInfo>, Option<String>), OpenCodeError> {
+        let client = self.client.as_ref().ok_or(OpenCodeError::ServerNotRunning)?;
+        client.get_models().await.map_err(|e| OpenCodeError::Api(e.to_string()))
     }
 
     /// Abort the current in-progress response.

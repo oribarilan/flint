@@ -55,6 +55,8 @@ struct CreateSessionRequest {
 #[derive(Debug, Serialize)]
 struct SendMessageRequest {
     parts: Vec<MessagePart>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    model: Option<ModelRef>,
 }
 
 /// A message part (text content).
@@ -62,6 +64,46 @@ struct SendMessageRequest {
 struct MessagePart {
     r#type: String,
     text: String,
+}
+
+/// A model reference for prompts.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ModelRef {
+    #[serde(rename = "providerID")]
+    pub provider_id: String,
+    #[serde(rename = "modelID")]
+    pub model_id: String,
+}
+
+/// A model available from a provider.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ModelInfo {
+    pub id: String,
+    pub name: String,
+    pub provider_id: String,
+    pub provider_name: String,
+}
+
+/// Provider info from `/config/providers`.
+#[derive(Debug, Clone, Deserialize)]
+struct ProvidersResponse {
+    providers: Vec<ProviderEntry>,
+    default: std::collections::HashMap<String, String>,
+}
+
+/// A single provider with its models.
+#[derive(Debug, Clone, Deserialize)]
+struct ProviderEntry {
+    id: String,
+    name: String,
+    models: Vec<ProviderModel>,
+}
+
+/// A model within a provider.
+#[derive(Debug, Clone, Deserialize)]
+struct ProviderModel {
+    id: String,
+    name: String,
 }
 
 // ---------------------------------------------------------------------------
@@ -148,13 +190,19 @@ impl OpenCodeClient {
         resp.json::<Session>().await.map_err(|e| ClientError::Parse(e.to_string()))
     }
 
-    /// Send a text message to a session.
+    /// Send a text message to a session, optionally with a specific model.
     ///
     /// The response streams via SSE events (handled by the event bridge),
     /// not through this HTTP response.
-    pub async fn send_message(&self, session_id: &str, content: &str) -> Result<(), ClientError> {
+    pub async fn send_message(
+        &self,
+        session_id: &str,
+        content: &str,
+        model: Option<&ModelRef>,
+    ) -> Result<(), ClientError> {
         let body = SendMessageRequest {
             parts: vec![MessagePart { r#type: "text".to_owned(), text: content.to_owned() }],
+            model: model.cloned(),
         };
 
         let resp = self
@@ -172,6 +220,37 @@ impl OpenCodeClient {
         }
 
         Ok(())
+    }
+
+    /// Get available models from all connected providers.
+    pub async fn get_models(&self) -> Result<(Vec<ModelInfo>, Option<String>), ClientError> {
+        let resp = self.http.get(format!("{}/config/providers", self.base_url)).send().await?;
+
+        if !resp.status().is_success() {
+            let status = resp.status().as_u16();
+            let body = resp.text().await.unwrap_or_default();
+            return Err(ClientError::Server { status, body });
+        }
+
+        let data: ProvidersResponse =
+            resp.json().await.map_err(|e| ClientError::Parse(e.to_string()))?;
+
+        let mut models = Vec::new();
+        for provider in &data.providers {
+            for model in &provider.models {
+                models.push(ModelInfo {
+                    id: format!("{}/{}", provider.id, model.id),
+                    name: model.name.clone(),
+                    provider_id: provider.id.clone(),
+                    provider_name: provider.name.clone(),
+                });
+            }
+        }
+
+        // Find the default model (first entry in defaults map)
+        let default_model = data.default.values().next().cloned();
+
+        Ok((models, default_model))
     }
 
     /// Abort the active response in a session.

@@ -67,7 +67,8 @@ export default function App() {
 
     addUserMessage(text);
     useSearchStore.getState().setQuery("");
-    sendChatMessage(text).catch((err: unknown) => {
+    const model = useChatStore.getState().selectedModel;
+    sendChatMessage(text, model?.providerId, model?.modelId).catch((err: unknown) => {
       console.error("Failed to send chat message:", err);
     });
   }, [query, isStreaming, addUserMessage]);

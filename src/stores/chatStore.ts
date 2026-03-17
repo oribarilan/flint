@@ -10,12 +10,19 @@ export interface ActiveToolCall {
   toolName: string;
 }
 
+export interface SelectedModel {
+  providerId: string;
+  modelId: string;
+  displayName: string;
+}
+
 interface ChatState {
   messages: ChatMessage[];
   isStreaming: boolean;
   currentResponse: string;
   activeToolCalls: ActiveToolCall[];
   chatStatus: { connected: boolean; sessionId: string | null; repoPath: string | null };
+  selectedModel: SelectedModel | null;
 
   addUserMessage: (content: string) => void;
   appendToken: (token: string) => void;
@@ -27,6 +34,7 @@ interface ChatState {
     sessionId: string | null;
     repoPath: string | null;
   }) => void;
+  setSelectedModel: (model: SelectedModel | null) => void;
   addToolCall: (call: ActiveToolCall) => void;
   removeToolCall: (toolName: string) => void;
   clearChat: () => void;
@@ -38,6 +46,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   currentResponse: "",
   activeToolCalls: [],
   chatStatus: { connected: false, sessionId: null, repoPath: null },
+  selectedModel: null,
 
   addUserMessage: (content) => {
     set((state) => ({
@@ -77,6 +86,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   setChatStatus: (status) => {
     set({ chatStatus: status });
+  },
+
+  setSelectedModel: (model) => {
+    set({ selectedModel: model });
   },
 
   addToolCall: (call) => {

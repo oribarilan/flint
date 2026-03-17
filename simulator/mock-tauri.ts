@@ -84,7 +84,11 @@ function makeMockResults(query: string): KitSearchResult[] {
   const items = [
     { title: "README.md", subtitle: "~/projects/flint/README.md", kind: "File" },
     { title: "package.json", subtitle: "~/projects/flint/package.json", kind: "File" },
-    { title: "Visual Studio Code", subtitle: "/Applications/Visual Studio Code.app", kind: "Application" },
+    {
+      title: "Visual Studio Code",
+      subtitle: "/Applications/Visual Studio Code.app",
+      kind: "Application",
+    },
     { title: "Terminal", subtitle: "/Applications/Utilities/Terminal.app", kind: "Application" },
     { title: "Safari", subtitle: "/Applications/Safari.app", kind: "Application" },
     { title: "Notes", subtitle: "/Applications/Notes.app", kind: "Application" },
@@ -113,22 +117,45 @@ let streamTimer: ReturnType<typeof setInterval> | null = null;
 
 function simulateChatResponse(message: string): void {
   state.isStreaming = true;
+
+  // Simulate tool calls for certain messages
+  const lower = message.toLowerCase();
+  if (lower.includes("file") || lower.includes("code") || lower.includes("edit")) {
+    // Simulate a tool call sequence
+    setTimeout(() => emitToListeners("chat:tool_start", "file_search"), 200);
+    setTimeout(() => emitToListeners("chat:tool_end", "file_search"), 1500);
+    setTimeout(() => {
+      if (lower.includes("edit")) {
+        emitToListeners("chat:tool_start", "file_edit");
+        setTimeout(() => emitToListeners("chat:tool_end", "file_edit"), 1200);
+      }
+    }, 1800);
+  }
+
+  if (lower.includes("mcp") || lower.includes("github")) {
+    setTimeout(() => emitToListeners("chat:tool_start", "mcp_github_search_repos"), 200);
+    setTimeout(() => emitToListeners("chat:tool_end", "mcp_github_search_repos"), 2000);
+  }
+
   const response = generateMockResponse(message);
   const words = response.split(" ");
   let index = 0;
+  const startDelay = lower.includes("file") || lower.includes("mcp") ? 2500 : 300;
 
-  streamTimer = setInterval(() => {
-    if (index < words.length) {
-      const token = (index === 0 ? "" : " ") + words[index];
-      emitToListeners("chat:token", token);
-      index++;
-    } else {
-      if (streamTimer) clearInterval(streamTimer);
-      streamTimer = null;
-      emitToListeners("chat:done", null);
-      state.isStreaming = false;
-    }
-  }, 50);
+  setTimeout(() => {
+    streamTimer = setInterval(() => {
+      if (index < words.length) {
+        const token = (index === 0 ? "" : " ") + words[index];
+        emitToListeners("chat:token", token);
+        index++;
+      } else {
+        if (streamTimer) clearInterval(streamTimer);
+        streamTimer = null;
+        emitToListeners("chat:done", null);
+        state.isStreaming = false;
+      }
+    }, 50);
+  }, startDelay);
 }
 
 function generateMockResponse(message: string): string {
@@ -203,9 +230,49 @@ async function invoke(command: string, args?: Record<string, unknown>): Promise<
       return structuredClone(state.chatStatus);
     case "send_chat_message": {
       const msg = (args?.message as string) ?? "";
-      console.log(`[sim] send_chat_message: ${msg}`);
+      const pid = (args?.providerId as string) ?? null;
+      const mid = (args?.modelId as string) ?? null;
+      console.log(`[sim] send_chat_message: ${msg} (model: ${pid}/${mid})`);
       simulateChatResponse(msg);
       return;
+    }
+    case "get_available_models": {
+      const models = [
+        {
+          id: "anthropic/claude-sonnet-4",
+          name: "Claude Sonnet 4",
+          provider_id: "anthropic",
+          provider_name: "Anthropic",
+        },
+        {
+          id: "anthropic/claude-sonnet-4.5",
+          name: "Claude Sonnet 4.5",
+          provider_id: "anthropic",
+          provider_name: "Anthropic",
+        },
+        {
+          id: "anthropic/claude-haiku-4.5",
+          name: "Claude Haiku 4.5",
+          provider_id: "anthropic",
+          provider_name: "Anthropic",
+        },
+        { id: "openai/gpt-4.1", name: "GPT-4.1", provider_id: "openai", provider_name: "OpenAI" },
+        {
+          id: "openai/gpt-5-mini",
+          name: "GPT-5 Mini",
+          provider_id: "openai",
+          provider_name: "OpenAI",
+        },
+        { id: "openai/o3", name: "o3", provider_id: "openai", provider_name: "OpenAI" },
+        {
+          id: "google/gemini-2.5-pro",
+          name: "Gemini 2.5 Pro",
+          provider_id: "google",
+          provider_name: "Google",
+        },
+      ];
+      const defaultModel = "anthropic/claude-sonnet-4";
+      return [models, defaultModel];
     }
     case "abort_chat":
       if (streamTimer) {
@@ -304,4 +371,3 @@ export function installSimulator(): void {
 
   console.log("[sim] Flint simulator installed. Use window.__sim to control.");
 }
-

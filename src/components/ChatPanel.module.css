@@ -1,11 +1,164 @@
-.container {
-  max-height: 360px;
+/* ── Chat panel layout ──────────────────────────────────────── */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  max-height: 420px;
+}
+
+/* ── Header — model selector + status ──────────────────────── */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-xs) var(--space-xl);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.headerStatus {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.statusDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-success);
+}
+
+/* ── Model selector ────────────────────────────────────────── */
+
+.modelSelector {
+  position: relative;
+}
+
+.modelButton {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: var(--font-sm);
+  font-family: var(--font-sans);
+  cursor: pointer;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+}
+
+.modelButton:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.modelLabel {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modelChevron {
+  opacity: 0.6;
+}
+
+.modelDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: var(--space-xs);
+  min-width: 220px;
+  max-height: 280px;
   overflow-y: auto;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 100;
+  padding: var(--space-xs);
+}
+
+.modelGroupLabel {
+  font-size: var(--font-xs);
+  color: var(--text-secondary);
+  padding: var(--space-xs) var(--space-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.modelOption,
+.modelOptionSelected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: var(--font-base);
+  font-family: var(--font-sans);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+}
+
+.modelOption:hover {
+  background: var(--bg-hover);
+}
+
+.modelOptionSelected {
+  background: var(--bg-selected);
+}
+
+.modelDefault {
+  font-size: var(--font-xs);
+  color: var(--text-secondary);
+  background: var(--bg-hover);
+  padding: 1px var(--space-xs);
+  border-radius: var(--radius-sm);
+}
+
+/* ── Messages container ────────────────────────────────────── */
+
+.container {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: var(--space-md) var(--space-xl);
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
 }
+
+/* ── Empty state ───────────────────────────────────────────── */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-3xl) 0;
+  gap: var(--space-sm);
+}
+
+.emptyIcon {
+  font-size: var(--font-xl);
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+.emptyText {
+  font-size: var(--font-base);
+  color: var(--text-secondary);
+}
+
+/* ── Messages ──────────────────────────────────────────────── */
 
 .userMessage {
   align-self: flex-end;
@@ -45,7 +198,6 @@
   animation: bloom 150ms var(--ease-out);
 }
 
-/* Streaming response — no entrance animation (content streams in progressively) */
 .streaming {
   align-self: flex-start;
   max-width: 85%;
@@ -65,6 +217,68 @@
   to {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+/* ── Tool call cards ───────────────────────────────────────── */
+
+.toolCalls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  padding: var(--space-xs) 0;
+}
+
+.toolCard,
+.toolCardDone {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 3px var(--space-sm);
+  border-radius: var(--radius-full);
+  font-size: var(--font-sm);
+  line-height: 1;
+  animation: bloom 150ms var(--ease-out);
+}
+
+.toolCard {
+  background: var(--bg-accent-subtle);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+.toolCardDone {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+.toolIcon {
+  font-size: var(--font-base);
+  line-height: 1;
+}
+
+.toolName {
+  font-weight: 500;
+}
+
+.toolSpinner {
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid var(--accent);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+.toolCheck {
+  font-size: var(--font-xs);
+  color: var(--color-success);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 
@@ -103,12 +317,4 @@
   30% {
     transform: translateY(-6px);
   }
-}
-
-/* Tool call status text */
-.toolStatus {
-  align-self: flex-start;
-  font-size: var(--font-base);
-  color: var(--text-secondary);
-  padding: var(--space-xs) 0;
 }

@@ -46,8 +46,23 @@ export async function getChatStatus(): Promise<ChatStatus> {
   return invoke("get_chat_status");
 }
 
-export async function sendChatMessage(message: string): Promise<void> {
-  return invoke("send_chat_message", { message });
+export async function sendChatMessage(
+  message: string,
+  providerId?: string,
+  modelId?: string,
+): Promise<void> {
+  return invoke("send_chat_message", { message, providerId, modelId });
+}
+
+export interface AvailableModel {
+  id: string;
+  name: string;
+  provider_id: string;
+  provider_name: string;
+}
+
+export async function getAvailableModels(): Promise<[AvailableModel[], string | null]> {
+  return invoke("get_available_models");
 }
 
 export async function abortChat(): Promise<void> {

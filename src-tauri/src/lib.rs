@@ -75,6 +75,7 @@ pub fn run() {
             commands::get_app_icon,
             commands::get_chat_status,
             commands::send_chat_message,
+            commands::get_available_models,
             commands::abort_chat,
             commands::clear_chat,
             commands::init_opencode,
