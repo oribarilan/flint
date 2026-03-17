@@ -44,6 +44,7 @@ interface SimState {
   config: FlintConfig;
   chatStatus: ChatStatus;
   isStreaming: boolean;
+  providerConnected: boolean;
 }
 
 const DEFAULT_CONFIG: FlintConfig = {
@@ -72,6 +73,7 @@ const state: SimState = {
     repo_path: "/Users/demo/second-brain",
   },
   isStreaming: false,
+  providerConnected: false,
 };
 
 // ---------------------------------------------------------------------------
@@ -314,15 +316,14 @@ async function invoke(command: string, args?: Record<string, unknown>): Promise<
       };
       return;
     case "get_provider_auth":
-      return [
-        { id: "anthropic", name: "Anthropic", connected: true },
-        { id: "openai", name: "OpenAI", connected: true },
-        { id: "google", name: "Google", connected: false },
-        { id: "opencode-zen", name: "OpenCode Zen", connected: false },
-      ];
+      return [{ id: "anthropic", name: "Anthropic", connected: state.providerConnected }];
     case "start_provider_auth": {
       const pid = (args?.providerId as string) ?? "unknown";
       console.log(`[sim] start_provider_auth: ${pid}`);
+      // Simulate successful auth after a delay
+      setTimeout(() => {
+        state.providerConnected = true;
+      }, 1000);
       return `https://opencode.ai/auth?provider=${pid}`;
     }
 

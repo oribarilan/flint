@@ -1,10 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import {
-  getChatStatus,
   getProviderAuth,
   startProviderAuth,
   getAvailableModels,
-  type ChatStatus,
   type FlintConfig,
   type ProviderAuthInfo,
   type AvailableModel,
@@ -19,20 +17,12 @@ interface AgentSettingsProps {
 }
 
 export default function AgentSettings({ config, onUpdate, onResetSection }: AgentSettingsProps) {
-  const [chatStatus, setChatStatus] = useState<ChatStatus>({
-    connected: false,
-    session_id: null,
-    repo_path: null,
-  });
   const [providers, setProviders] = useState<ProviderAuthInfo[]>([]);
   const [models, setModels] = useState<AvailableModel[]>([]);
-  const [authingProvider, setAuthingProvider] = useState<string | null>(null);
+  const [isAuthing, setIsAuthing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const refreshAll = useCallback(() => {
-    getChatStatus()
-      .then(setChatStatus)
-      .catch(() => {});
     getProviderAuth()
       .then(setProviders)
       .catch(() => {});
@@ -45,36 +35,37 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
     refreshAll();
   }, [refreshAll]);
 
-  const handleProviderAuth = async (providerId: string) => {
-    setAuthingProvider(providerId);
+  // Derive the single active provider: first connected, or first available
+  const activeProvider =
+    providers.find((p) => p.connected) ?? (providers.length > 0 ? providers[0] : null);
+  const isConnected = activeProvider?.connected ?? false;
+
+  const handleAuth = async () => {
+    if (!activeProvider) return;
+    setIsAuthing(true);
     setError(null);
     try {
-      const url = await startProviderAuth(providerId);
+      const url = await startProviderAuth(activeProvider.id);
       if (url) {
         const { open: shellOpen } = await import("@tauri-apps/plugin-shell");
         await shellOpen(url);
       }
-      // Poll for completion a few times
+      // Poll for completion
       const poll = (remaining: number) => {
         if (remaining <= 0) {
-          setAuthingProvider(null);
+          setIsAuthing(false);
           return;
         }
         setTimeout(() => {
           refreshAll();
-          setAuthingProvider((current) => {
-            if (current === providerId) {
-              poll(remaining - 1);
-            }
-            return current;
-          });
+          poll(remaining - 1);
         }, 3000);
       };
       poll(3);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       setError(message);
-      setAuthingProvider(null);
+      setIsAuthing(false);
     }
   };
 
@@ -89,51 +80,58 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
     await onResetSection("chat");
   };
 
-  const connectedCount = providers.filter((p) => p.connected).length;
-
   return (
     <div className={styles.page}>
       <h2 className={styles.pageTitle}>Agent</h2>
 
-      {/* ── Model Providers ─────────────────────────────── */}
+      {/* ── Model Provider ──────────────────────────────── */}
       <section className={styles.section}>
         <div className={styles.providerHeader}>
           <div className={styles.providerInfo}>
             <div>
-              <span className={styles.providerName}>Model Providers</span>
-              <span className={styles.providerDesc}>LLM providers powering the agent</span>
+              <span className={styles.providerName}>Model Provider</span>
+              <span className={styles.providerDesc}>
+                {activeProvider ? activeProvider.name : "No provider available"}
+              </span>
             </div>
           </div>
-          {connectedCount > 0 ? (
-            <span className={styles.statusBadge}>{connectedCount} connected</span>
+          {isConnected ? (
+            <span className={styles.statusBadge}>Connected</span>
           ) : (
-            <span className={styles.statusDisconnected}>None connected</span>
+            <span className={styles.statusDisconnected}>Not connected</span>
           )}
         </div>
 
-        {providers.map((p) => (
-          <div key={p.id} className={styles.row}>
-            <span className={styles.label}>{p.name}</span>
-            <div className={styles.providerStatus}>
-              {p.connected ? (
-                <span className={styles.statusBadge}>Connected</span>
-              ) : (
-                <button
-                  className={styles.buttonSmall}
-                  onClick={() => void handleProviderAuth(p.id)}
-                  disabled={authingProvider === p.id}
-                >
-                  {authingProvider === p.id ? "Authorizing…" : "Connect"}
-                </button>
-              )}
-            </div>
+        {activeProvider && !isConnected && (
+          <div className={styles.row}>
+            <span />
+            <button
+              className={styles.button}
+              onClick={() => void handleAuth()}
+              disabled={isAuthing}
+            >
+              {isAuthing ? "Connecting…" : `Connect ${activeProvider.name}`}
+            </button>
           </div>
-        ))}
+        )}
 
-        {providers.length === 0 && (
+        {activeProvider && isConnected && (
+          <div className={styles.row}>
+            <span />
+            <button
+              className={styles.buttonGhost}
+              onClick={() => void handleAuth()}
+              disabled={isAuthing}
+            >
+              Reconnect
+            </button>
+          </div>
+        )}
+
+        {!activeProvider && (
           <div className={styles.row}>
             <span className={styles.hint}>
-              Connect your second brain repo first to see available providers
+              No providers available yet. Make sure OpenCode is running.
             </span>
           </div>
         )}

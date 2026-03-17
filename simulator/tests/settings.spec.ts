@@ -33,21 +33,11 @@ test.describe("Settings - Agent", () => {
     await page.getByRole("button", { name: "Agent" }).click();
   });
 
-  test("shows Model Providers section with connection count", async ({ page }) => {
-    await expect(page.getByText("Model Providers")).toBeVisible();
-    await expect(page.getByText("LLM providers powering the agent")).toBeVisible();
-    await expect(page.getByText("2 connected")).toBeVisible();
-  });
-
-  test("shows per-provider auth status with connect buttons", async ({ page }) => {
-    // Connected providers show badge
+  test("shows Model Provider section with connect button when not connected", async ({ page }) => {
+    await expect(page.getByText("Model Provider")).toBeVisible();
     await expect(page.getByText("Anthropic", { exact: true })).toBeVisible();
-    await expect(page.getByText("OpenAI", { exact: true })).toBeVisible();
-    // Unconnected providers show Connect button
-    await expect(page.getByText("Google", { exact: true })).toBeVisible();
-    await expect(page.getByText("OpenCode Zen", { exact: true })).toBeVisible();
-    const connectButtons = page.getByRole("button", { name: "Connect" });
-    await expect(connectButtons).toHaveCount(2);
+    await expect(page.getByText("Not connected")).toBeVisible();
+    await expect(page.getByRole("button", { name: /Connect/ })).toBeVisible();
   });
 
   test("shows default model picker", async ({ page }) => {
