@@ -142,9 +142,14 @@ test.describe("Flint Simulator - Model Picker", () => {
     await page.waitForTimeout(300);
   });
 
-  test("clicking model button opens picker with chip and model list", async ({ page }) => {
-    // Click the model button in the chat header
-    await page.getByRole("button", { name: /Claude|Model/ }).click();
+  test("typing / opens slash commands and /models opens model picker", async ({ page }) => {
+    const input = searchInput(page);
+    await input.fill("/");
+
+    await expect(page.getByRole("listbox", { name: "Commands" })).toBeVisible();
+    await expect(page.getByText("/models")).toBeVisible();
+
+    await page.keyboard.press("Enter");
     await page.waitForTimeout(200);
 
     // Should show a chip in the search bar
@@ -158,7 +163,8 @@ test.describe("Flint Simulator - Model Picker", () => {
   });
 
   test("typing filters models", async ({ page }) => {
-    await page.getByRole("button", { name: /Claude|Model/ }).click();
+    await searchInput(page).fill("/");
+    await page.keyboard.press("Enter");
     await page.waitForTimeout(200);
 
     const input = searchInput(page);
@@ -171,7 +177,8 @@ test.describe("Flint Simulator - Model Picker", () => {
   });
 
   test("Enter selects model and closes picker", async ({ page }) => {
-    await page.getByRole("button", { name: /Claude|Model/ }).click();
+    await searchInput(page).fill("/");
+    await page.keyboard.press("Enter");
     await page.waitForTimeout(200);
 
     // Navigate down and select
@@ -186,13 +193,26 @@ test.describe("Flint Simulator - Model Picker", () => {
   });
 
   test("Escape closes picker without changing model", async ({ page }) => {
-    await page.getByRole("button", { name: /Claude|Model/ }).click();
+    await searchInput(page).fill("/");
+    await page.keyboard.press("Enter");
     await page.waitForTimeout(200);
     await expect(page.getByTestId("model-chip")).toBeVisible();
 
     await page.keyboard.press("Escape");
 
     await expect(page.getByTestId("model-chip")).not.toBeVisible();
+  });
+
+  test("Escape dismisses slash menu and keeps slash as plain text", async ({ page }) => {
+    const input = searchInput(page);
+    await input.fill("/");
+
+    await expect(page.getByRole("listbox", { name: "Commands" })).toBeVisible();
+
+    await page.keyboard.press("Escape");
+
+    await expect(page.getByRole("listbox", { name: "Commands" })).not.toBeVisible();
+    await expect(input).toHaveValue("/");
   });
 });
 

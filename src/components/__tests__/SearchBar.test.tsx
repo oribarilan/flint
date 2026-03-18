@@ -1,8 +1,16 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { useSearchStore } from "../../stores/searchStore";
 import { useChatStore, filterAndSortModels } from "../../stores/chatStore";
 import SearchBar from "../SearchBar";
+
+vi.mock("../../lib/commands", async () => {
+  const actual = await vi.importActual("../../lib/commands");
+  return {
+    ...actual,
+    setProjectDefaultModel: vi.fn(() => Promise.resolve()),
+  };
+});
 
 vi.mock("../../lib/platform", () => ({
   isMac: vi.fn(() => false),
@@ -31,10 +39,14 @@ beforeEach(() => {
     statusChecked: false,
     selectedModel: null,
     modelPickerOpen: false,
+    modelPickerMode: "session",
     availableModels: [],
     defaultModelId: null,
+    hasProjectDefaultModel: true,
     modelPickerQuery: "",
     modelPickerIndex: 0,
+    modelPickerActionPanelOpen: false,
+    modelPickerActionIndex: 0,
     slashMenuOpen: false,
     slashMenuIndex: 0,
     slashMenuDismissed: false,
@@ -153,6 +165,116 @@ describe("SearchBar", () => {
     const selected = useChatStore.getState().selectedModel;
     expect(selected?.providerId).toBe("anthropic");
     expect(selected?.displayName).toBe("Claude Sonnet 4");
+  });
+
+  it("Escape does not close model picker when default is required", () => {
+    useSearchStore.setState({ mode: "agent", query: "" });
+    useChatStore.setState({
+      modelPickerOpen: true,
+      modelPickerMode: "default_required",
+      modelPickerQuery: "",
+      modelPickerIndex: 0,
+      availableModels: [
+        {
+          id: "anthropic/claude-sonnet-4",
+          name: "Claude Sonnet 4",
+          providerId: "anthropic",
+          providerName: "Anthropic",
+        },
+      ],
+    });
+
+    render(<SearchBar onArrowDown={vi.fn()} onSendChat={vi.fn()} />);
+    const input = screen.getByRole("textbox");
+    fireEvent.keyDown(input, { key: "Escape" });
+
+    expect(useChatStore.getState().modelPickerOpen).toBe(true);
+  });
+
+  it("Enter in required mode persists default before closing picker", async () => {
+    const { setProjectDefaultModel } = await import("../../lib/commands");
+    const mockedSetProjectDefaultModel = vi.mocked(setProjectDefaultModel);
+    mockedSetProjectDefaultModel.mockResolvedValue(undefined);
+
+    useSearchStore.setState({ mode: "agent", query: "" });
+    useChatStore.setState({
+      modelPickerOpen: true,
+      modelPickerMode: "default_required",
+      modelPickerQuery: "",
+      modelPickerIndex: 0,
+      defaultModelId: null,
+      selectedModel: null,
+      availableModels: [
+        {
+          id: "anthropic/claude-sonnet-4",
+          name: "Claude Sonnet 4",
+          providerId: "anthropic",
+          providerName: "Anthropic",
+        },
+      ],
+    });
+
+    render(<SearchBar onArrowDown={vi.fn()} onSendChat={vi.fn()} />);
+    const input = screen.getByRole("textbox");
+
+    await act(async () => {
+      fireEvent.keyDown(input, { key: "Enter" });
+      await Promise.resolve();
+    });
+
+    expect(mockedSetProjectDefaultModel).toHaveBeenCalledWith("anthropic/claude-sonnet-4");
+
+    expect(useChatStore.getState().defaultModelId).toBe("anthropic/claude-sonnet-4");
+    expect(useChatStore.getState().hasProjectDefaultModel).toBe(true);
+    expect(useChatStore.getState().selectedModel?.displayName).toBe("Claude Sonnet 4");
+    expect(useChatStore.getState().modelPickerOpen).toBe(false);
+  });
+
+  it("Shift+Enter in model picker opens model action panel", () => {
+    useSearchStore.setState({ mode: "agent", query: "" });
+    useChatStore.setState({
+      modelPickerOpen: true,
+      modelPickerMode: "session",
+      modelPickerActionPanelOpen: false,
+      availableModels: [
+        {
+          id: "anthropic/claude-sonnet-4",
+          name: "Claude Sonnet 4",
+          providerId: "anthropic",
+          providerName: "Anthropic",
+        },
+      ],
+    });
+
+    render(<SearchBar onArrowDown={vi.fn()} onSendChat={vi.fn()} />);
+    const input = screen.getByRole("textbox");
+    fireEvent.keyDown(input, { key: "Enter", shiftKey: true });
+
+    expect(useChatStore.getState().modelPickerActionPanelOpen).toBe(true);
+  });
+
+  it("Escape closes model action panel but keeps model picker open", () => {
+    useSearchStore.setState({ mode: "agent", query: "" });
+    useChatStore.setState({
+      modelPickerOpen: true,
+      modelPickerMode: "session",
+      modelPickerActionPanelOpen: true,
+      availableModels: [
+        {
+          id: "anthropic/claude-sonnet-4",
+          name: "Claude Sonnet 4",
+          providerId: "anthropic",
+          providerName: "Anthropic",
+        },
+      ],
+    });
+
+    render(<SearchBar onArrowDown={vi.fn()} onSendChat={vi.fn()} />);
+    const input = screen.getByRole("textbox");
+    fireEvent.keyDown(input, { key: "Escape" });
+
+    expect(useChatStore.getState().modelPickerActionPanelOpen).toBe(false);
+    expect(useChatStore.getState().modelPickerOpen).toBe(true);
   });
 
   it("ArrowDown calls onArrowDown in search mode", () => {

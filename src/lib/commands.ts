@@ -63,8 +63,23 @@ export interface AvailableModel {
   provider_name: string;
 }
 
+export interface ProjectModelConfigStatus {
+  exists: boolean;
+  has_model: boolean;
+  model: string | null;
+  path: string;
+}
+
 export async function getAvailableModels(): Promise<[AvailableModel[], string | null]> {
   return invoke("get_available_models");
+}
+
+export async function getProjectModelConfigStatus(): Promise<ProjectModelConfigStatus> {
+  return invoke("get_project_model_config_status");
+}
+
+export async function setProjectDefaultModel(model: string): Promise<void> {
+  return invoke("set_project_default_model", { model });
 }
 
 export async function abortChat(): Promise<void> {

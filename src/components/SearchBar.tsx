@@ -1,6 +1,7 @@
 import { useEffect, useRef, type KeyboardEvent } from "react";
 import { useSearchStore } from "../stores/searchStore";
 import { useChatStore, SLASH_COMMANDS, filterAndSortModels } from "../stores/chatStore";
+import { setProjectDefaultModel } from "../lib/commands";
 import Kbd from "./Kbd";
 import styles from "./SearchBar.module.css";
 
@@ -46,7 +47,9 @@ export default function SearchBar({
   const actionPanelResult = useSearchStore((s) => s.actionPanelResult);
   const isStreaming = useChatStore((s) => s.isStreaming);
   const modelPickerOpen = useChatStore((s) => s.modelPickerOpen);
+  const modelPickerMode = useChatStore((s) => s.modelPickerMode);
   const modelPickerQuery = useChatStore((s) => s.modelPickerQuery);
+  const modelPickerActionPanelOpen = useChatStore((s) => s.modelPickerActionPanelOpen);
   const selectedModel = useChatStore((s) => s.selectedModel);
   const slashMenuOpen = useChatStore((s) => s.slashMenuOpen);
   const slashMenuDismissed = useChatStore((s) => s.slashMenuDismissed);
@@ -80,6 +83,42 @@ export default function SearchBar({
         state.defaultModelId,
       );
 
+      if (modelPickerActionPanelOpen) {
+        const validIndex = Math.min(state.modelPickerIndex, Math.max(0, filteredModels.length - 1));
+        const selected = filteredModels[validIndex];
+
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+          e.preventDefault();
+          useChatStore.getState().setModelPickerActionIndex(0);
+          return;
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          e.stopPropagation();
+          useChatStore.getState().closeModelPickerActionPanel();
+          return;
+        }
+        if (e.key === "Enter") {
+          e.preventDefault();
+          e.stopPropagation();
+
+          if (selected && state.defaultModelId !== selected.id) {
+            void setProjectDefaultModel(selected.id)
+              .then(() => {
+                useChatStore.getState().setDefaultModelId(selected.id);
+                useChatStore.getState().setHasProjectDefaultModel(true);
+              })
+              .finally(() => {
+                useChatStore.getState().closeModelPickerActionPanel();
+              });
+          } else {
+            useChatStore.getState().closeModelPickerActionPanel();
+          }
+          return;
+        }
+        return;
+      }
+
       if (e.key === "ArrowDown") {
         e.preventDefault();
         const next = Math.min(state.modelPickerIndex + 1, Math.max(0, filteredModels.length - 1));
@@ -92,17 +131,40 @@ export default function SearchBar({
         useChatStore.getState().setModelPickerIndex(Math.max(0, idx - 1));
         return;
       }
+      if (e.key === "Enter" && e.shiftKey) {
+        if (filteredModels.length === 0) return;
+        e.preventDefault();
+        e.stopPropagation();
+        useChatStore.getState().openModelPickerActionPanel();
+        return;
+      }
       if (e.key === "Enter") {
         e.preventDefault();
         const validIndex = Math.min(state.modelPickerIndex, Math.max(0, filteredModels.length - 1));
         const model = filteredModels[validIndex];
         if (model) {
-          useChatStore.getState().setSelectedModel({
-            providerId: model.providerId,
-            modelId: model.id.split("/").slice(1).join("/"),
-            displayName: model.name,
-          });
-          useChatStore.getState().closeModelPicker();
+          const applySessionSelection = () => {
+            useChatStore.getState().setSelectedModel({
+              providerId: model.providerId,
+              modelId: model.id.split("/").slice(1).join("/"),
+              displayName: model.name,
+            });
+            useChatStore.getState().closeModelPicker();
+          };
+
+          if (modelPickerMode === "default_required") {
+            void setProjectDefaultModel(model.id)
+              .then(() => {
+                useChatStore.getState().setDefaultModelId(model.id);
+                useChatStore.getState().setHasProjectDefaultModel(true);
+                applySessionSelection();
+              })
+              .catch(() => {
+                // Keep picker open on failure so user can retry.
+              });
+          } else {
+            applySessionSelection();
+          }
         }
         return;
       }
@@ -110,9 +172,23 @@ export default function SearchBar({
         e.key === "Escape" ||
         (e.key === "Backspace" && !useChatStore.getState().modelPickerQuery)
       ) {
+        if (modelPickerMode === "default_required") {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+
         e.preventDefault();
         e.stopPropagation();
         useChatStore.getState().closeModelPicker();
+        return;
+      }
+
+      if ((e.key === "l" || e.key === "L") && e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
+        if (filteredModels.length === 0) return;
+        e.preventDefault();
+        e.stopPropagation();
+        useChatStore.getState().openModelPickerActionPanel();
         return;
       }
       return;
@@ -303,9 +379,11 @@ export default function SearchBar({
         aria-label="Search"
       />
 
-      {!isLoading && !(agentMode && isStreaming) && !actionPanelOpen && !modelPickerOpen && (
-        <Kbd keys="Tab" />
-      )}
+      {!isLoading &&
+        !(agentMode && isStreaming) &&
+        !actionPanelOpen &&
+        !modelPickerOpen &&
+        !slashMenuOpen && <Kbd keys="Tab" />}
     </div>
   );
 }

@@ -42,6 +42,18 @@ const AGENT_HINTS: Hint[] = [
 const MODEL_PICKER_HINTS: Hint[] = [
   { label: "Navigate", keys: "↑↓", raw: true },
   { label: "Select", keys: "Enter" },
+  { label: "Actions", keys: "Shift+Enter" },
+  { label: "Back", keys: "Escape" },
+];
+
+const MODEL_PICKER_REQUIRED_HINTS: Hint[] = [
+  { label: "Navigate", keys: "↑↓", raw: true },
+  { label: "Select", keys: "Enter" },
+  { label: "Required", keys: "Set default", raw: true },
+];
+
+const MODEL_PICKER_ACTION_HINTS: Hint[] = [
+  { label: "Select", keys: "Enter" },
   { label: "Back", keys: "Escape" },
 ];
 
@@ -56,9 +68,17 @@ function useHints(): Hint[] {
   const actionPanelOpen = useSearchStore((s) => s.actionPanelOpen);
   const armedActionIndex = useSearchStore((s) => s.armedActionIndex);
   const modelPickerOpen = useChatStore((s) => s.modelPickerOpen);
+  const modelPickerMode = useChatStore((s) => s.modelPickerMode);
+  const modelPickerActionPanelOpen = useChatStore((s) => s.modelPickerActionPanelOpen);
   const slashMenuOpen = useChatStore((s) => s.slashMenuOpen);
 
   if (modelPickerOpen) {
+    if (modelPickerActionPanelOpen) {
+      return MODEL_PICKER_ACTION_HINTS;
+    }
+    if (modelPickerMode === "default_required") {
+      return MODEL_PICKER_REQUIRED_HINTS;
+    }
     return MODEL_PICKER_HINTS;
   }
   if (slashMenuOpen) {

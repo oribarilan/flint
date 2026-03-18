@@ -6,7 +6,13 @@ import {
   SLASH_COMMANDS,
   filterAndSortModels,
 } from "../stores/chatStore";
-import { getAvailableModels, getSessionMessages, openSettings } from "../lib/commands";
+import {
+  getAvailableModels,
+  getSessionMessages,
+  getProjectModelConfigStatus,
+  setProjectDefaultModel,
+  openSettings,
+} from "../lib/commands";
 import { renderMarkdown } from "../lib/markdown";
 import styles from "./ChatPanel.module.css";
 
@@ -78,10 +84,14 @@ function ModelPickerList() {
   const query = useChatStore((s) => s.modelPickerQuery);
   const selectedIndex = useChatStore((s) => s.modelPickerIndex);
   const selectedModel = useChatStore((s) => s.selectedModel);
+  const modelPickerMode = useChatStore((s) => s.modelPickerMode);
+  const modelPickerActionPanelOpen = useChatStore((s) => s.modelPickerActionPanelOpen);
+  const modelPickerActionIndex = useChatStore((s) => s.modelPickerActionIndex);
 
   const filtered = filterAndSortModels(models, query, defaultModelId);
   const containerRef = useRef<HTMLDivElement>(null);
   const validIndex = Math.min(selectedIndex, Math.max(0, filtered.length - 1));
+  const selectedModelEntry = filtered[validIndex] ?? null;
 
   // Scroll selected item into view
   useEffect(() => {
@@ -95,12 +105,50 @@ function ModelPickerList() {
   }, [validIndex]);
 
   const handleSelect = (model: (typeof filtered)[number]) => {
-    useChatStore.getState().setSelectedModel({
-      providerId: model.providerId,
-      modelId: model.id.split("/").slice(1).join("/"),
-      displayName: model.name,
-    });
-    useChatStore.getState().closeModelPicker();
+    const applySessionSelection = () => {
+      useChatStore.getState().setSelectedModel({
+        providerId: model.providerId,
+        modelId: model.id.split("/").slice(1).join("/"),
+        displayName: model.name,
+      });
+      useChatStore.getState().closeModelPicker();
+    };
+
+    if (modelPickerMode === "default_required") {
+      void setProjectDefaultModel(model.id)
+        .then(() => {
+          useChatStore.getState().setDefaultModelId(model.id);
+          useChatStore.getState().setHasProjectDefaultModel(true);
+          applySessionSelection();
+        })
+        .catch(() => {
+          // Keep picker open on failure so user can retry.
+        });
+      return;
+    }
+
+    applySessionSelection();
+  };
+
+  const handleSetAsProjectDefault = () => {
+    if (!selectedModelEntry) {
+      useChatStore.getState().closeModelPickerActionPanel();
+      return;
+    }
+
+    if (defaultModelId === selectedModelEntry.id) {
+      useChatStore.getState().closeModelPickerActionPanel();
+      return;
+    }
+
+    void setProjectDefaultModel(selectedModelEntry.id)
+      .then(() => {
+        useChatStore.getState().setDefaultModelId(selectedModelEntry.id);
+        useChatStore.getState().setHasProjectDefaultModel(true);
+      })
+      .finally(() => {
+        useChatStore.getState().closeModelPickerActionPanel();
+      });
   };
 
   if (filtered.length === 0) {
@@ -134,10 +182,54 @@ function ModelPickerList() {
           >
             <span className={styles.modelItemName}>{model.name}</span>
             <span className={styles.modelItemProvider}>{model.providerName}</span>
+            {defaultModelId === model.id && (
+              <span className={styles.modelItemDefault}>default</span>
+            )}
             {isCurrent && <span className={styles.modelItemCurrent}>current</span>}
           </div>
         );
       })}
+
+      {modelPickerActionPanelOpen && selectedModelEntry && (
+        <div className={styles.modelActionOverlay} role="dialog" aria-label="Model actions">
+          <div className={styles.modelActionList} role="listbox" aria-label="Model actions">
+            {[
+              {
+                id: "set-default",
+                label:
+                  defaultModelId === selectedModelEntry.id
+                    ? "Already default"
+                    : "Set as project default",
+                disabled: defaultModelId === selectedModelEntry.id,
+                keyHint: defaultModelId === selectedModelEntry.id ? "" : "Enter",
+              },
+            ].map((action, index) => {
+              const selected = index === modelPickerActionIndex;
+              const className = selected ? styles.modelActionItemSelected : styles.modelActionItem;
+              return (
+                <div
+                  key={action.id}
+                  className={className}
+                  role="option"
+                  aria-selected={selected}
+                  aria-disabled={action.disabled}
+                  onMouseEnter={() => {
+                    useChatStore.getState().setModelPickerActionIndex(index);
+                  }}
+                  onClick={() => {
+                    handleSetAsProjectDefault();
+                  }}
+                >
+                  <span className={styles.modelActionLabel}>{action.label}</span>
+                  {action.keyHint && (
+                    <span className={styles.modelActionHint}>{action.keyHint}</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -256,20 +348,30 @@ export default function ChatPanel() {
   useEffect(() => {
     if (!chatStatus.connected) return;
 
-    void getAvailableModels()
-      .then(([list, dflt]) => {
+    const loadModelsAndProjectDefault = async () => {
+      try {
+        const [[list, backendDefault], projectStatus] = await Promise.all([
+          getAvailableModels(),
+          getProjectModelConfigStatus(),
+        ]);
+
         const entries = list.map((m) => ({
           id: m.id,
           name: m.name,
           providerId: m.provider_id,
           providerName: m.provider_name,
         }));
-        useChatStore.getState().setAvailableModels(entries);
-        useChatStore.getState().setDefaultModelId(dflt);
 
-        // Auto-select default if none selected
+        const hasProjectDefault = Boolean(projectStatus.has_model && projectStatus.model);
+        const effectiveDefault = hasProjectDefault ? projectStatus.model : backendDefault;
+
+        useChatStore.getState().setAvailableModels(entries);
+        useChatStore.getState().setDefaultModelId(effectiveDefault);
+        useChatStore.getState().setHasProjectDefaultModel(hasProjectDefault);
+
+        // Auto-select default if none selected.
         if (!useChatStore.getState().selectedModel) {
-          const sorted = filterAndSortModels(entries, "", dflt);
+          const sorted = filterAndSortModels(entries, "", effectiveDefault);
           const initial = sorted[0];
           if (initial) {
             useChatStore.getState().setSelectedModel({
@@ -279,10 +381,17 @@ export default function ChatPanel() {
             });
           }
         }
-      })
-      .catch(() => {
-        // Models unavailable — non-critical, panel still usable.
-      });
+
+        // If project config has no explicit model, force required default picker.
+        if (!hasProjectDefault && entries.length > 0) {
+          useChatStore.getState().openModelPicker("default_required");
+        }
+      } catch {
+        // Models/config unavailable — non-critical, panel still usable.
+      }
+    };
+
+    void loadModelsAndProjectDefault();
 
     // Hydrate chat with existing session history (if any).
     if (useChatStore.getState().messages.length === 0) {

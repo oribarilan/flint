@@ -18,6 +18,8 @@ beforeEach(() => {
   });
   useChatStore.setState({
     modelPickerOpen: false,
+    modelPickerMode: "session",
+    modelPickerActionPanelOpen: false,
     slashMenuOpen: false,
   });
 });
@@ -102,5 +104,25 @@ describe("HintBar", () => {
     expect(screen.getByText("Select")).toBeTruthy();
     expect(screen.getByText("Dismiss")).toBeTruthy();
     expect(screen.getByText("↑↓")).toBeTruthy();
+  });
+
+  it("shows required model picker hints when default model is required", () => {
+    useSearchStore.setState({ mode: "agent" });
+    useChatStore.setState({ modelPickerOpen: true, modelPickerMode: "default_required" });
+
+    render(<HintBar />);
+
+    expect(screen.getByText("Required")).toBeTruthy();
+    expect(screen.getByText("Set default")).toBeTruthy();
+  });
+
+  it("shows model picker action hints when action panel is open", () => {
+    useSearchStore.setState({ mode: "agent" });
+    useChatStore.setState({ modelPickerOpen: true, modelPickerActionPanelOpen: true });
+
+    render(<HintBar />);
+
+    expect(screen.getByText("Select")).toBeTruthy();
+    expect(screen.getByText("Back")).toBeTruthy();
   });
 });

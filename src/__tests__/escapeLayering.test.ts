@@ -48,6 +48,11 @@ beforeEach(() => {
     messages: [],
     isStreaming: false,
     currentResponse: "",
+    modelPickerOpen: false,
+    modelPickerMode: "session",
+    modelPickerActionPanelOpen: false,
+    slashMenuOpen: false,
+    slashMenuDismissed: false,
     chatStatus: { connected: false, sessionId: null, repoPath: null },
   });
   vi.clearAllMocks();
@@ -81,6 +86,58 @@ describe("Escape layering", () => {
     expect(useSearchStore.getState().actionPanelOpen).toBe(false);
     // Command chip still active — next Escape would pop it
     expect(useSearchStore.getState().activeCommand).not.toBeNull();
+  });
+
+  it("Layer 0.5: closes model picker action panel first", () => {
+    useChatStore.setState({
+      modelPickerOpen: true,
+      modelPickerMode: "session",
+      modelPickerActionPanelOpen: true,
+    });
+    renderHook(() => {
+      useKeybindings(createActions());
+    });
+
+    fireEscape();
+
+    expect(useChatStore.getState().modelPickerActionPanelOpen).toBe(false);
+    expect(useChatStore.getState().modelPickerOpen).toBe(true);
+  });
+
+  it("Layer 0.75: closes model picker when not required", () => {
+    useChatStore.setState({ modelPickerOpen: true, modelPickerMode: "session" });
+    renderHook(() => {
+      useKeybindings(createActions());
+    });
+
+    fireEscape();
+
+    expect(useChatStore.getState().modelPickerOpen).toBe(false);
+  });
+
+  it("Layer 0.75: keeps model picker open when default is required", () => {
+    useChatStore.setState({ modelPickerOpen: true, modelPickerMode: "default_required" });
+    renderHook(() => {
+      useKeybindings(createActions());
+    });
+
+    fireEscape();
+
+    expect(useChatStore.getState().modelPickerOpen).toBe(true);
+  });
+
+  it("Layer 0.9: closes slash menu before clearing query", () => {
+    useSearchStore.setState({ query: "/models", mode: "agent" });
+    useChatStore.setState({ slashMenuOpen: true, slashMenuDismissed: false });
+    renderHook(() => {
+      useKeybindings(createActions());
+    });
+
+    fireEscape();
+
+    expect(useChatStore.getState().slashMenuOpen).toBe(false);
+    expect(useChatStore.getState().slashMenuDismissed).toBe(true);
+    expect(useSearchStore.getState().query).toBe("/models");
   });
 
   it("Layer 1: pops command chip before clearing input", () => {

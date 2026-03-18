@@ -9,6 +9,7 @@ use tauri::{AppHandle, State};
 use crate::config::{AppConfig, FlintConfig};
 use crate::indexer::AppIndex;
 use crate::kits::{KitContextBase, KitInfo, KitRegistryState, KitSearchResult, KitState};
+use crate::opencode_project_config;
 use crate::providers::opencode::OpenCodeProviderState;
 use crate::search::SearchResult;
 use crate::window;
@@ -75,6 +76,19 @@ pub struct AvailableModel {
     pub provider_name: String,
 }
 
+/// Project `OpenCode` model config status.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct ProjectModelConfigStatus {
+    /// Whether a project-level `OpenCode` config file exists in the second brain repo.
+    pub exists: bool,
+    /// Whether that config declares a `model` value.
+    pub has_model: bool,
+    /// Current declared model value (`provider/model`) if present.
+    pub model: Option<String>,
+    /// Path to the config file used (or preferred path if missing).
+    pub path: String,
+}
+
 /// Get available models from connected providers.
 #[tauri::command]
 pub async fn get_available_models(
@@ -95,6 +109,47 @@ pub async fn get_available_models(
         })
         .collect();
     Ok((available, default))
+}
+
+/// Get whether the second-brain project `OpenCode` config declares a default model.
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn get_project_model_config_status(
+    config: State<'_, AppConfig>,
+) -> Result<ProjectModelConfigStatus, String> {
+    let cfg = config.get();
+    let repo = cfg
+        .second_brain
+        .repo_path
+        .ok_or_else(|| "second brain repo path not configured".to_string())?;
+
+    let project_cfg =
+        opencode_project_config::get_project_model_config(std::path::Path::new(&repo))
+            .map_err(|e| e.to_string())?;
+
+    Ok(ProjectModelConfigStatus {
+        exists: project_cfg.exists,
+        has_model: project_cfg.has_model,
+        model: project_cfg.model,
+        path: project_cfg.path.display().to_string(),
+    })
+}
+
+/// Persist a new project default model into second-brain `OpenCode` config.
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub fn set_project_default_model(
+    config: State<'_, AppConfig>,
+    model: String,
+) -> Result<(), String> {
+    let cfg = config.get();
+    let repo = cfg
+        .second_brain
+        .repo_path
+        .ok_or_else(|| "second brain repo path not configured".to_string())?;
+
+    opencode_project_config::set_project_default_model(std::path::Path::new(&repo), &model)
+        .map_err(|e| e.to_string())
 }
 
 /// Abort the current in-progress chat response.

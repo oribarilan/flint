@@ -10,6 +10,8 @@ export interface ActiveToolCall {
   toolName: string;
 }
 
+export type ModelPickerMode = "session" | "default_required";
+
 export interface SlashCommand {
   id: string;
   name: string;
@@ -72,10 +74,14 @@ interface ChatState {
   statusChecked: boolean;
   selectedModel: SelectedModel | null;
   modelPickerOpen: boolean;
+  modelPickerMode: ModelPickerMode;
   availableModels: AvailableModelEntry[];
   defaultModelId: string | null;
+  hasProjectDefaultModel: boolean;
   modelPickerQuery: string;
   modelPickerIndex: number;
+  modelPickerActionPanelOpen: boolean;
+  modelPickerActionIndex: number;
   slashMenuOpen: boolean;
   slashMenuIndex: number;
   slashMenuDismissed: boolean;
@@ -91,12 +97,16 @@ interface ChatState {
     repoPath: string | null;
   }) => void;
   setSelectedModel: (model: SelectedModel | null) => void;
-  openModelPicker: () => void;
+  openModelPicker: (mode?: ModelPickerMode) => void;
   closeModelPicker: () => void;
   setAvailableModels: (models: AvailableModelEntry[]) => void;
   setDefaultModelId: (id: string | null) => void;
+  setHasProjectDefaultModel: (hasDefault: boolean) => void;
   setModelPickerQuery: (query: string) => void;
   setModelPickerIndex: (index: number) => void;
+  openModelPickerActionPanel: () => void;
+  closeModelPickerActionPanel: () => void;
+  setModelPickerActionIndex: (index: number) => void;
   openSlashMenu: () => void;
   closeSlashMenu: () => void;
   setSlashMenuIndex: (index: number) => void;
@@ -116,10 +126,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
   statusChecked: false,
   selectedModel: null,
   modelPickerOpen: false,
+  modelPickerMode: "session",
   availableModels: [],
   defaultModelId: null,
+  hasProjectDefaultModel: true,
   modelPickerQuery: "",
   modelPickerIndex: 0,
+  modelPickerActionPanelOpen: false,
+  modelPickerActionIndex: 0,
   slashMenuOpen: false,
   slashMenuIndex: 0,
   slashMenuDismissed: false,
@@ -168,12 +182,26 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set({ selectedModel: model });
   },
 
-  openModelPicker: () => {
-    set({ modelPickerOpen: true, modelPickerQuery: "", modelPickerIndex: 0 });
+  openModelPicker: (mode = "session") => {
+    set({
+      modelPickerOpen: true,
+      modelPickerMode: mode,
+      modelPickerQuery: "",
+      modelPickerIndex: 0,
+      modelPickerActionPanelOpen: false,
+      modelPickerActionIndex: 0,
+    });
   },
 
   closeModelPicker: () => {
-    set({ modelPickerOpen: false, modelPickerQuery: "", modelPickerIndex: 0 });
+    set({
+      modelPickerOpen: false,
+      modelPickerMode: "session",
+      modelPickerQuery: "",
+      modelPickerIndex: 0,
+      modelPickerActionPanelOpen: false,
+      modelPickerActionIndex: 0,
+    });
   },
 
   setAvailableModels: (models) => {
@@ -184,12 +212,28 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set({ defaultModelId: id });
   },
 
+  setHasProjectDefaultModel: (hasDefault) => {
+    set({ hasProjectDefaultModel: hasDefault });
+  },
+
   setModelPickerQuery: (query) => {
     set({ modelPickerQuery: query, modelPickerIndex: 0 });
   },
 
   setModelPickerIndex: (index) => {
     set({ modelPickerIndex: index });
+  },
+
+  openModelPickerActionPanel: () => {
+    set({ modelPickerActionPanelOpen: true, modelPickerActionIndex: 0 });
+  },
+
+  closeModelPickerActionPanel: () => {
+    set({ modelPickerActionPanelOpen: false, modelPickerActionIndex: 0 });
+  },
+
+  setModelPickerActionIndex: (index) => {
+    set({ modelPickerActionIndex: index });
   },
 
   openSlashMenu: () => {

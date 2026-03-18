@@ -60,6 +60,11 @@ beforeEach(() => {
     messages: [],
     isStreaming: false,
     currentResponse: "",
+    modelPickerOpen: false,
+    modelPickerMode: "session",
+    modelPickerActionPanelOpen: false,
+    slashMenuOpen: false,
+    slashMenuDismissed: false,
     chatStatus: { connected: false, sessionId: null, repoPath: null },
   });
   vi.clearAllMocks();
@@ -349,6 +354,62 @@ describe("useKeybindings", () => {
     // Panel should close, command chip should still be active
     expect(useSearchStore.getState().actionPanelOpen).toBe(false);
     expect(useSearchStore.getState().activeCommand).not.toBeNull();
+  });
+
+  it("Escape closes model picker action panel before closing model picker", () => {
+    useChatStore.setState({
+      modelPickerOpen: true,
+      modelPickerMode: "session",
+      modelPickerActionPanelOpen: true,
+    });
+    const actions = createActions();
+    renderHook(() => {
+      useKeybindings(actions);
+    });
+
+    fireKey("Escape");
+
+    expect(useChatStore.getState().modelPickerActionPanelOpen).toBe(false);
+    expect(useChatStore.getState().modelPickerOpen).toBe(true);
+  });
+
+  it("Escape closes model picker when not required", () => {
+    useChatStore.setState({ modelPickerOpen: true, modelPickerMode: "session" });
+    const actions = createActions();
+    renderHook(() => {
+      useKeybindings(actions);
+    });
+
+    fireKey("Escape");
+
+    expect(useChatStore.getState().modelPickerOpen).toBe(false);
+  });
+
+  it("Escape does not close required model picker", () => {
+    useChatStore.setState({ modelPickerOpen: true, modelPickerMode: "default_required" });
+    const actions = createActions();
+    renderHook(() => {
+      useKeybindings(actions);
+    });
+
+    fireKey("Escape");
+
+    expect(useChatStore.getState().modelPickerOpen).toBe(true);
+  });
+
+  it("Escape closes slash menu before clearing query", () => {
+    useSearchStore.setState({ query: "/m", mode: "agent" });
+    useChatStore.setState({ slashMenuOpen: true, slashMenuDismissed: false });
+    const actions = createActions();
+    renderHook(() => {
+      useKeybindings(actions);
+    });
+
+    fireKey("Escape");
+
+    expect(useChatStore.getState().slashMenuOpen).toBe(false);
+    expect(useChatStore.getState().slashMenuDismissed).toBe(true);
+    expect(useSearchStore.getState().query).toBe("/m");
   });
 
   it("Ctrl+Shift+J does not remap (extra modifier blocks vim arrows)", () => {

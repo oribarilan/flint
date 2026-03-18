@@ -11,6 +11,9 @@ import {
   revealInFileManager,
   deleteToTrash,
   openInEditor,
+  getAvailableModels,
+  getProjectModelConfigStatus,
+  setProjectDefaultModel,
 } from "../commands";
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -119,6 +122,31 @@ describe("commands", () => {
     await openInEditor("/tmp/test.rs");
     expect(mockedInvoke).toHaveBeenCalledWith("open_in_editor", {
       path: "/tmp/test.rs",
+    });
+  });
+
+  it("getAvailableModels invokes get_available_models", async () => {
+    mockedInvoke.mockResolvedValue([[], null]);
+    await getAvailableModels();
+    expect(mockedInvoke).toHaveBeenCalledWith("get_available_models");
+  });
+
+  it("getProjectModelConfigStatus invokes backend status command", async () => {
+    mockedInvoke.mockResolvedValue({
+      exists: true,
+      has_model: true,
+      model: "anthropic/claude-sonnet-4",
+      path: "/repo/opencode.jsonc",
+    });
+    await getProjectModelConfigStatus();
+    expect(mockedInvoke).toHaveBeenCalledWith("get_project_model_config_status");
+  });
+
+  it("setProjectDefaultModel passes model parameter", async () => {
+    mockedInvoke.mockResolvedValue(undefined);
+    await setProjectDefaultModel("openai/gpt-5.4");
+    expect(mockedInvoke).toHaveBeenCalledWith("set_project_default_model", {
+      model: "openai/gpt-5.4",
     });
   });
 });

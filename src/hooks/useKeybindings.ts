@@ -124,6 +124,15 @@ export function useKeybindings(actions: KeybindingActions): void {
       // ── Tab → Toggle mode ─────────────────────────────────
       if (e.key === "Tab" && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
+
+        // Required model selection gate: do not allow leaving Agent flow
+        // until a project default model has been explicitly chosen.
+        const chat = useChatStore.getState();
+        if (chat.modelPickerOpen && chat.modelPickerMode === "default_required") {
+          actions.onFocusSearchBar();
+          return;
+        }
+
         // Close action panel first if open
         if (useSearchStore.getState().actionPanelOpen) {
           useSearchStore.getState().closeActionPanel();
@@ -139,6 +148,30 @@ export function useKeybindings(actions: KeybindingActions): void {
         // Layer 0: close Action Panel
         if (useSearchStore.getState().actionPanelOpen) {
           useSearchStore.getState().closeActionPanel();
+          actions.onFocusSearchBar();
+          return;
+        }
+
+        // Layer 0.5: close model-picker action panel
+        if (useChatStore.getState().modelPickerActionPanelOpen) {
+          useChatStore.getState().closeModelPickerActionPanel();
+          actions.onFocusSearchBar();
+          return;
+        }
+
+        // Layer 0.75: close model picker (unless default is required)
+        if (useChatStore.getState().modelPickerOpen) {
+          if (useChatStore.getState().modelPickerMode !== "default_required") {
+            useChatStore.getState().closeModelPicker();
+          }
+          actions.onFocusSearchBar();
+          return;
+        }
+
+        // Layer 0.9: close slash command menu
+        if (useChatStore.getState().slashMenuOpen) {
+          useChatStore.getState().closeSlashMenu();
+          useChatStore.getState().setSlashMenuDismissed(true);
           actions.onFocusSearchBar();
           return;
         }

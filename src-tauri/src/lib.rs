@@ -10,6 +10,7 @@ mod focus;
 mod icons;
 pub mod indexer;
 pub mod kits;
+mod opencode_project_config;
 pub mod providers;
 pub mod search;
 mod tray;
@@ -77,6 +78,8 @@ pub fn run() {
             commands::get_chat_status,
             commands::send_chat_message,
             commands::get_available_models,
+            commands::get_project_model_config_status,
+            commands::set_project_default_model,
             commands::abort_chat,
             commands::clear_chat,
             commands::get_session_messages,

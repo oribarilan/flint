@@ -169,7 +169,20 @@ export function createMockOpenCodeHandlers(state: SimState, emit: EmitFn): Comma
       simulateChatResponse(msg, state, emit);
     },
 
-    get_available_models: () => [MOCK_MODELS, MOCK_DEFAULT_MODEL],
+    get_available_models: () => [MOCK_MODELS, state.projectModelConfig.model ?? MOCK_DEFAULT_MODEL],
+
+    get_project_model_config_status: () => structuredClone(state.projectModelConfig),
+
+    set_project_default_model: (args) => {
+      const model = ((args?.model as string) ?? "").trim();
+      if (!model) return;
+      state.projectModelConfig.exists = true;
+      state.projectModelConfig.has_model = true;
+      state.projectModelConfig.model = model;
+      if (!state.projectModelConfig.path) {
+        state.projectModelConfig.path = `${state.chatStatus.repo_path ?? "/mock/second-brain"}/opencode.jsonc`;
+      }
+    },
 
     abort_chat: () => {
       if (streamTimer) {

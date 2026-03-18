@@ -60,6 +60,12 @@ const state: SimState = {
     repo_path: SIM_MODE === "test" ? "/mock/second-brain" : null,
   },
   isStreaming: false,
+  projectModelConfig: {
+    exists: SIM_MODE === "test",
+    has_model: SIM_MODE === "test",
+    model: SIM_MODE === "test" ? "anthropic/claude-sonnet-4" : null,
+    path: SIM_MODE === "test" ? "/mock/second-brain/opencode.jsonc" : "",
+  },
 };
 
 // ---------------------------------------------------------------------------

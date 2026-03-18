@@ -162,24 +162,39 @@ describe("chatStore", () => {
   it("openModelPicker sets modelPickerOpen and resets query/index", () => {
     useChatStore.getState().setModelPickerQuery("test");
     useChatStore.getState().setModelPickerIndex(5);
+    useChatStore.getState().openModelPickerActionPanel();
     useChatStore.getState().openModelPicker();
 
     const state = useChatStore.getState();
     expect(state.modelPickerOpen).toBe(true);
+    expect(state.modelPickerMode).toBe("session");
     expect(state.modelPickerQuery).toBe("");
     expect(state.modelPickerIndex).toBe(0);
+    expect(state.modelPickerActionPanelOpen).toBe(false);
+    expect(state.modelPickerActionIndex).toBe(0);
+  });
+
+  it("openModelPicker can open in default_required mode", () => {
+    useChatStore.getState().openModelPicker("default_required");
+    const state = useChatStore.getState();
+    expect(state.modelPickerOpen).toBe(true);
+    expect(state.modelPickerMode).toBe("default_required");
   });
 
   it("closeModelPicker resets all picker state", () => {
-    useChatStore.getState().openModelPicker();
+    useChatStore.getState().openModelPicker("default_required");
     useChatStore.getState().setModelPickerQuery("claude");
     useChatStore.getState().setModelPickerIndex(3);
+    useChatStore.getState().openModelPickerActionPanel();
     useChatStore.getState().closeModelPicker();
 
     const state = useChatStore.getState();
     expect(state.modelPickerOpen).toBe(false);
+    expect(state.modelPickerMode).toBe("session");
     expect(state.modelPickerQuery).toBe("");
     expect(state.modelPickerIndex).toBe(0);
+    expect(state.modelPickerActionPanelOpen).toBe(false);
+    expect(state.modelPickerActionIndex).toBe(0);
   });
 
   it("setAvailableModels stores the model list", () => {
@@ -207,6 +222,26 @@ describe("chatStore", () => {
   it("setModelPickerIndex updates selected index", () => {
     useChatStore.getState().setModelPickerIndex(3);
     expect(useChatStore.getState().modelPickerIndex).toBe(3);
+  });
+
+  it("model picker action panel toggles and resets index", () => {
+    useChatStore.getState().openModelPickerActionPanel();
+    expect(useChatStore.getState().modelPickerActionPanelOpen).toBe(true);
+    expect(useChatStore.getState().modelPickerActionIndex).toBe(0);
+
+    useChatStore.getState().setModelPickerActionIndex(2);
+    expect(useChatStore.getState().modelPickerActionIndex).toBe(2);
+
+    useChatStore.getState().closeModelPickerActionPanel();
+    expect(useChatStore.getState().modelPickerActionPanelOpen).toBe(false);
+    expect(useChatStore.getState().modelPickerActionIndex).toBe(0);
+  });
+
+  it("setHasProjectDefaultModel updates project-default flag", () => {
+    useChatStore.getState().setHasProjectDefaultModel(false);
+    expect(useChatStore.getState().hasProjectDefaultModel).toBe(false);
+    useChatStore.getState().setHasProjectDefaultModel(true);
+    expect(useChatStore.getState().hasProjectDefaultModel).toBe(true);
   });
 
   it("setSelectedModel updates the selected model", () => {

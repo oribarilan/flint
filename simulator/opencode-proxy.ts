@@ -21,6 +21,12 @@ interface ProxyState {
   connected: boolean;
   repoPath: string | null;
   sseController: AbortController | null;
+  projectModelConfig: {
+    exists: boolean;
+    has_model: boolean;
+    model: string | null;
+    path: string;
+  };
 }
 
 const proxyState: ProxyState = {
@@ -28,6 +34,12 @@ const proxyState: ProxyState = {
   connected: false,
   repoPath: null,
   sseController: null,
+  projectModelConfig: {
+    exists: false,
+    has_model: false,
+    model: null,
+    path: "",
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -262,12 +274,45 @@ export function createProxyHandlers(emit: EmitFn): CommandHandlerMap {
           })),
         );
 
-        const defaultModel = Object.values(data.default)[0] ?? null;
+        let defaultModel: string | null = null;
+        try {
+          const cfg = await apiGet<{ model?: string }>("/config");
+          defaultModel = typeof cfg.model === "string" && cfg.model.length > 0 ? cfg.model : null;
+        } catch {
+          defaultModel = Object.values(data.default)[0] ?? null;
+        }
         return [models, defaultModel];
       } catch (e) {
         console.warn("[proxy] get_available_models failed:", e);
         return [[], null];
       }
+    },
+
+    get_project_model_config_status: async () => {
+      if (proxyState.projectModelConfig.path.length > 0) {
+        return structuredClone(proxyState.projectModelConfig);
+      }
+
+      // Dev simulator cannot safely inspect local project files in browser mode.
+      // Return an optimistic status so the required-default gate is only enforced
+      // in real app/runtime, not in browser simulator dev mode.
+      return {
+        exists: false,
+        has_model: true,
+        model: null,
+        path: "",
+      };
+    },
+
+    set_project_default_model: async (args) => {
+      const model = ((args?.model as string) ?? "").trim();
+      if (!model) return;
+      proxyState.projectModelConfig = {
+        exists: true,
+        has_model: true,
+        model,
+        path: proxyState.repoPath ? `${proxyState.repoPath}/opencode.jsonc` : "opencode.jsonc",
+      };
     },
 
     abort_chat: async () => {
