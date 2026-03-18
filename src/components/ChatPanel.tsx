@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { useChatStore, type ChatMessage, type AvailableModelEntry } from "../stores/chatStore";
+import { useSearchStore } from "../stores/searchStore";
+import {
+  useChatStore,
+  type ChatMessage,
+  type AvailableModelEntry,
+  SLASH_COMMANDS,
+} from "../stores/chatStore";
 import { getAvailableModels, getSessionMessages, openSettings } from "../lib/commands";
 import { renderMarkdown } from "../lib/markdown";
 import styles from "./ChatPanel.module.css";
@@ -146,6 +152,82 @@ function ModelPickerList() {
 }
 
 // ---------------------------------------------------------------------------
+// Slash menu list
+// ---------------------------------------------------------------------------
+
+function SlashMenuList() {
+  const query = useSearchStore((s) => s.query);
+  const selectedIndex = useChatStore((s) => s.slashMenuIndex);
+
+  const commandQuery = query.startsWith("/") ? query.slice(1).toLowerCase() : "";
+
+  const filtered = SLASH_COMMANDS.filter(
+    (c) => c.name.toLowerCase().includes(commandQuery) || c.id.includes(commandQuery),
+  );
+
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Scroll selected item into view
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const items = container.querySelectorAll("[role='option']");
+    // Ensure index is within bounds (in case filtering reduced the list)
+    const validIndex = Math.min(selectedIndex, Math.max(0, filtered.length - 1));
+    const selected = items[validIndex];
+    if (selected) {
+      selected.scrollIntoView({ block: "nearest" });
+    }
+  }, [selectedIndex, filtered.length]);
+
+  if (filtered.length === 0) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.empty}>
+          <div className={styles.emptyText}>No commands match "{commandQuery}"</div>
+        </div>
+      </div>
+    );
+  }
+
+  const handleSelect = (id: string) => {
+    if (id === "model") {
+      useChatStore.getState().closeSlashMenu();
+      useSearchStore.getState().setQuery("");
+      useChatStore.getState().openModelPicker();
+    }
+  };
+
+  return (
+    <div ref={containerRef} className={styles.modelList} role="listbox" aria-label="Commands">
+      {filtered.map((cmd, index) => {
+        // Enforce valid index for rendering selection
+        const isSelected = index === Math.min(selectedIndex, Math.max(0, filtered.length - 1));
+        return (
+          <div
+            key={cmd.id}
+            className={isSelected ? styles.modelItemSelected : styles.modelItem}
+            role="option"
+            aria-selected={isSelected}
+            onMouseEnter={() => {
+              useChatStore.getState().setSlashMenuIndex(index);
+            }}
+            onClick={() => {
+              handleSelect(cmd.id);
+            }}
+          >
+            <span className={styles.modelItemName}>
+              <span className={styles.slashCommandIcon}>{cmd.icon}</span> {cmd.name}
+            </span>
+            <span className={styles.modelItemProvider}>/{cmd.id}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main ChatPanel
 // ---------------------------------------------------------------------------
 
@@ -157,6 +239,8 @@ export default function ChatPanel() {
   const chatStatus = useChatStore((s) => s.chatStatus);
   const statusChecked = useChatStore((s) => s.statusChecked);
   const modelPickerOpen = useChatStore((s) => s.modelPickerOpen);
+  const slashMenuOpen = useChatStore((s) => s.slashMenuOpen);
+  const selectedModel = useChatStore((s) => s.selectedModel);
   const [completedTools, setCompletedTools] = useState<string[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -292,7 +376,10 @@ export default function ChatPanel() {
     <div className={styles.panel}>
       {/* Chat header — new chat + status */}
       <div className={styles.header}>
-        <div className={styles.headerTitle}>Agent Mode</div>
+        <div className={styles.headerTitle}>
+          Agent Mode
+          {selectedModel && <span className={styles.modelHint}>{selectedModel.displayName}</span>}
+        </div>
         <div className={styles.headerActions}>
           {hasContent && (
             <button
@@ -310,9 +397,11 @@ export default function ChatPanel() {
         </div>
       </div>
 
-      {/* Model picker list OR messages area */}
+      {/* Menus OR messages area */}
       {modelPickerOpen ? (
         <ModelPickerList />
+      ) : slashMenuOpen ? (
+        <SlashMenuList />
       ) : (
         <div ref={containerRef} className={styles.container}>
           {!hasContent && (

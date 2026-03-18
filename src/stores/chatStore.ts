@@ -10,6 +10,8 @@ export interface ActiveToolCall {
   toolName: string;
 }
 
+export const SLASH_COMMANDS = [{ id: "model", name: "Change Model", icon: "🧠" }];
+
 export interface SelectedModel {
   providerId: string;
   modelId: string;
@@ -36,6 +38,9 @@ interface ChatState {
   availableModels: AvailableModelEntry[];
   modelPickerQuery: string;
   modelPickerIndex: number;
+  slashMenuOpen: boolean;
+  slashMenuIndex: number;
+  slashMenuDismissed: boolean;
 
   addUserMessage: (content: string) => void;
   appendToken: (token: string) => void;
@@ -53,6 +58,10 @@ interface ChatState {
   setAvailableModels: (models: AvailableModelEntry[]) => void;
   setModelPickerQuery: (query: string) => void;
   setModelPickerIndex: (index: number) => void;
+  openSlashMenu: () => void;
+  closeSlashMenu: () => void;
+  setSlashMenuIndex: (index: number) => void;
+  setSlashMenuDismissed: (dismissed: boolean) => void;
   addToolCall: (call: ActiveToolCall) => void;
   removeToolCall: (toolName: string) => void;
   setMessages: (messages: ChatMessage[]) => void;
@@ -71,6 +80,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
   availableModels: [],
   modelPickerQuery: "",
   modelPickerIndex: 0,
+  slashMenuOpen: false,
+  slashMenuIndex: 0,
+  slashMenuDismissed: false,
 
   addUserMessage: (content) => {
     set((state) => ({
@@ -134,6 +146,22 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   setModelPickerIndex: (index) => {
     set({ modelPickerIndex: index });
+  },
+
+  openSlashMenu: () => {
+    set({ slashMenuOpen: true, slashMenuIndex: 0 });
+  },
+
+  closeSlashMenu: () => {
+    set({ slashMenuOpen: false });
+  },
+
+  setSlashMenuIndex: (index) => {
+    set({ slashMenuIndex: index });
+  },
+
+  setSlashMenuDismissed: (dismissed) => {
+    set({ slashMenuDismissed: dismissed });
   },
 
   addToolCall: (call) => {

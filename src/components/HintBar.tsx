@@ -45,14 +45,24 @@ const MODEL_PICKER_HINTS: Hint[] = [
   { label: "Back", keys: "Escape" },
 ];
 
+const SLASH_MENU_HINTS: Hint[] = [
+  { label: "Navigate", keys: "↑↓", raw: true },
+  { label: "Select", keys: "Enter" },
+  { label: "Dismiss", keys: "Escape" },
+];
+
 function useHints(): Hint[] {
   const mode = useSearchStore((s) => s.mode);
   const actionPanelOpen = useSearchStore((s) => s.actionPanelOpen);
   const armedActionIndex = useSearchStore((s) => s.armedActionIndex);
   const modelPickerOpen = useChatStore((s) => s.modelPickerOpen);
+  const slashMenuOpen = useChatStore((s) => s.slashMenuOpen);
 
   if (modelPickerOpen) {
     return MODEL_PICKER_HINTS;
+  }
+  if (slashMenuOpen) {
+    return SLASH_MENU_HINTS;
   }
   if (actionPanelOpen) {
     return armedActionIndex !== null ? ACTION_ARMED_HINTS : ACTION_PANEL_HINTS;
@@ -62,9 +72,6 @@ function useHints(): Hint[] {
 
 export default function HintBar() {
   const hints = useHints();
-  const mode = useSearchStore((s) => s.mode);
-  const selectedModel = useChatStore((s) => s.selectedModel);
-  const isAgentMode = mode === "agent";
 
   return (
     <div className={styles.bar}>
@@ -76,9 +83,6 @@ export default function HintBar() {
           </span>
         ))}
       </div>
-      {isAgentMode && selectedModel && (
-        <div className={styles.model}>{selectedModel.displayName}</div>
-      )}
     </div>
   );
 }

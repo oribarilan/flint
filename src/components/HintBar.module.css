@@ -25,13 +25,6 @@
   color: var(--text-placeholder);
 }
 
-.model {
-  display: inline-flex;
-  align-items: center;
-  font-size: var(--font-sm);
-  color: var(--text-placeholder);
-}
-
 .rawKbd {
   composes: kbd from "./Kbd.module.css";
 }

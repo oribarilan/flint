@@ -1,6 +1,6 @@
 import { useEffect, useRef, type KeyboardEvent } from "react";
 import { useSearchStore } from "../stores/searchStore";
-import { useChatStore } from "../stores/chatStore";
+import { useChatStore, SLASH_COMMANDS } from "../stores/chatStore";
 import Kbd from "./Kbd";
 import styles from "./SearchBar.module.css";
 
@@ -48,6 +48,8 @@ export default function SearchBar({
   const modelPickerOpen = useChatStore((s) => s.modelPickerOpen);
   const modelPickerQuery = useChatStore((s) => s.modelPickerQuery);
   const selectedModel = useChatStore((s) => s.selectedModel);
+  const slashMenuOpen = useChatStore((s) => s.slashMenuOpen);
+  const slashMenuDismissed = useChatStore((s) => s.slashMenuDismissed);
 
   const agentMode = mode === "agent";
 
@@ -59,7 +61,14 @@ export default function SearchBar({
   // Re-focus when action panel or model picker opens/closes
   useEffect(() => {
     inputRef.current?.focus();
-  }, [actionPanelOpen, modelPickerOpen]);
+  }, [actionPanelOpen, modelPickerOpen, slashMenuOpen]);
+
+  // Reset slash menu dismissed state when query no longer starts with /
+  useEffect(() => {
+    if (!query.startsWith("/")) {
+      useChatStore.getState().setSlashMenuDismissed(false);
+    }
+  }, [query]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     // Model picker mode — intercept navigation and selection
@@ -113,6 +122,56 @@ export default function SearchBar({
         return;
       }
       return;
+    }
+
+    if (slashMenuOpen) {
+      const commandQuery = query.startsWith("/") ? query.slice(1).toLowerCase() : "";
+      const filteredCommands = SLASH_COMMANDS.filter(
+        (c) => c.name.toLowerCase().includes(commandQuery) || c.id.includes(commandQuery),
+      );
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        const state = useChatStore.getState();
+        const next = Math.min(state.slashMenuIndex + 1, Math.max(0, filteredCommands.length - 1));
+        useChatStore.getState().setSlashMenuIndex(next);
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        const idx = useChatStore.getState().slashMenuIndex;
+        useChatStore.getState().setSlashMenuIndex(Math.max(0, idx - 1));
+        return;
+      }
+      if (e.key === "Enter") {
+        const state = useChatStore.getState();
+        if (filteredCommands.length > 0) {
+          e.preventDefault();
+          const validIndex = Math.min(
+            state.slashMenuIndex,
+            Math.max(0, filteredCommands.length - 1),
+          );
+          const cmd = filteredCommands[validIndex];
+
+          if (cmd?.id === "model") {
+            useChatStore.getState().closeSlashMenu();
+            useSearchStore.getState().setQuery("");
+            useChatStore.getState().openModelPicker();
+          }
+          return;
+        } else {
+          // If no commands match, treat it like plain text and close menu, letting Enter fall through
+          useChatStore.getState().closeSlashMenu();
+          useChatStore.getState().setSlashMenuDismissed(true);
+        }
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        useChatStore.getState().closeSlashMenu();
+        useChatStore.getState().setSlashMenuDismissed(true);
+        return;
+      }
     }
 
     if (e.key === "Backspace" && !query && activeCommand) {
@@ -189,11 +248,17 @@ export default function SearchBar({
       useChatStore.getState().setModelPickerQuery(e.target.value);
     } else if (!actionPanelOpen) {
       const val = e.target.value;
-      if (agentMode && val === "/model ") {
-        useChatStore.getState().openModelPicker();
-        setQuery("");
-      } else {
-        setQuery(val);
+      setQuery(val);
+      if (agentMode) {
+        if (val.startsWith("/") && !slashMenuDismissed) {
+          if (!useChatStore.getState().slashMenuOpen) {
+            useChatStore.getState().openSlashMenu();
+          }
+        } else {
+          if (useChatStore.getState().slashMenuOpen) {
+            useChatStore.getState().closeSlashMenu();
+          }
+        }
       }
     }
   };
