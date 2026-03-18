@@ -34,7 +34,7 @@ const AGENT_HINTS: Hint[] = [
   { label: "Send", keys: "Enter" },
   { label: "Newline", keys: "Shift+Enter" },
   { label: "New", keys: "CmdOrCtrl+N" },
-  { label: "Model", keys: "/model", raw: true },
+  { label: "Commands", keys: "/", raw: true },
   { label: "Search", keys: "Tab" },
   { label: "Clear", keys: "Escape" },
 ];

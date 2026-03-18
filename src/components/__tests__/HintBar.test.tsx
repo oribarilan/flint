@@ -1,6 +1,7 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { useSearchStore } from "../../stores/searchStore";
+import { useChatStore } from "../../stores/chatStore";
 import HintBar from "../HintBar";
 
 vi.mock("../../lib/platform", () => ({
@@ -14,6 +15,10 @@ beforeEach(() => {
     results: [],
     selectedIndex: 0,
     isLoading: false,
+  });
+  useChatStore.setState({
+    modelPickerOpen: false,
+    slashMenuOpen: false,
   });
 });
 
@@ -40,6 +45,8 @@ describe("HintBar", () => {
 
     expect(screen.getByText("Send")).toBeTruthy();
     expect(screen.getByText("Newline")).toBeTruthy();
+    expect(screen.getByText("Commands")).toBeTruthy();
+    expect(screen.getByText("/")).toBeTruthy();
     expect(screen.getByText("Search")).toBeTruthy();
     expect(screen.getByText("Clear")).toBeTruthy();
   });
@@ -84,5 +91,16 @@ describe("HintBar", () => {
 
     expect(screen.getByText("Actions")).toBeTruthy();
     expect(screen.getByText("Open")).toBeTruthy();
+  });
+
+  it("shows slash menu hints when slash menu is open", () => {
+    useSearchStore.setState({ mode: "agent" });
+    useChatStore.setState({ slashMenuOpen: true });
+
+    render(<HintBar />);
+
+    expect(screen.getByText("Select")).toBeTruthy();
+    expect(screen.getByText("Dismiss")).toBeTruthy();
+    expect(screen.getByText("↑↓")).toBeTruthy();
   });
 });

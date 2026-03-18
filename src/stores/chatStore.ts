@@ -10,7 +10,13 @@ export interface ActiveToolCall {
   toolName: string;
 }
 
-export const SLASH_COMMANDS = [{ id: "model", name: "Change Model", icon: "🧠" }];
+export interface SlashCommand {
+  id: string;
+  name: string;
+  icon: "command";
+}
+
+export const SLASH_COMMANDS: SlashCommand[] = [{ id: "models", name: "Models", icon: "command" }];
 
 export interface SelectedModel {
   providerId: string;
@@ -25,6 +31,37 @@ export interface AvailableModelEntry {
   providerName: string;
 }
 
+/**
+ * Filter and sort model entries for picker display.
+ * Sort order: configured default model first, then alphabetical by name.
+ */
+export function filterAndSortModels(
+  models: AvailableModelEntry[],
+  query: string,
+  defaultModelId: string | null,
+): AvailableModelEntry[] {
+  const lower = query.trim().toLowerCase();
+  const filtered =
+    lower.length === 0
+      ? models
+      : models.filter(
+          (m) =>
+            m.name.toLowerCase().includes(lower) ||
+            m.providerName.toLowerCase().includes(lower) ||
+            m.id.toLowerCase().includes(lower),
+        );
+
+  return [...filtered].sort((a, b) => {
+    const aIsDefault = defaultModelId !== null && a.id === defaultModelId;
+    const bIsDefault = defaultModelId !== null && b.id === defaultModelId;
+
+    if (aIsDefault && !bIsDefault) return -1;
+    if (!aIsDefault && bIsDefault) return 1;
+
+    return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+  });
+}
+
 interface ChatState {
   messages: ChatMessage[];
   isStreaming: boolean;
@@ -36,6 +73,7 @@ interface ChatState {
   selectedModel: SelectedModel | null;
   modelPickerOpen: boolean;
   availableModels: AvailableModelEntry[];
+  defaultModelId: string | null;
   modelPickerQuery: string;
   modelPickerIndex: number;
   slashMenuOpen: boolean;
@@ -56,6 +94,7 @@ interface ChatState {
   openModelPicker: () => void;
   closeModelPicker: () => void;
   setAvailableModels: (models: AvailableModelEntry[]) => void;
+  setDefaultModelId: (id: string | null) => void;
   setModelPickerQuery: (query: string) => void;
   setModelPickerIndex: (index: number) => void;
   openSlashMenu: () => void;
@@ -78,6 +117,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   selectedModel: null,
   modelPickerOpen: false,
   availableModels: [],
+  defaultModelId: null,
   modelPickerQuery: "",
   modelPickerIndex: 0,
   slashMenuOpen: false,
@@ -138,6 +178,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   setAvailableModels: (models) => {
     set({ availableModels: models });
+  },
+
+  setDefaultModelId: (id) => {
+    set({ defaultModelId: id });
   },
 
   setModelPickerQuery: (query) => {

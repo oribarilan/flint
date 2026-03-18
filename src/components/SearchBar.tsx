@@ -1,6 +1,6 @@
 import { useEffect, useRef, type KeyboardEvent } from "react";
 import { useSearchStore } from "../stores/searchStore";
-import { useChatStore, SLASH_COMMANDS } from "../stores/chatStore";
+import { useChatStore, SLASH_COMMANDS, filterAndSortModels } from "../stores/chatStore";
 import Kbd from "./Kbd";
 import styles from "./SearchBar.module.css";
 
@@ -73,16 +73,16 @@ export default function SearchBar({
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     // Model picker mode — intercept navigation and selection
     if (modelPickerOpen) {
+      const state = useChatStore.getState();
+      const filteredModels = filterAndSortModels(
+        state.availableModels,
+        state.modelPickerQuery,
+        state.defaultModelId,
+      );
+
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        const state = useChatStore.getState();
-        const filtered = state.availableModels.filter(
-          (m) =>
-            !state.modelPickerQuery ||
-            m.name.toLowerCase().includes(state.modelPickerQuery.toLowerCase()) ||
-            m.providerName.toLowerCase().includes(state.modelPickerQuery.toLowerCase()),
-        );
-        const next = Math.min(state.modelPickerIndex + 1, filtered.length - 1);
+        const next = Math.min(state.modelPickerIndex + 1, Math.max(0, filteredModels.length - 1));
         useChatStore.getState().setModelPickerIndex(next);
         return;
       }
@@ -94,14 +94,8 @@ export default function SearchBar({
       }
       if (e.key === "Enter") {
         e.preventDefault();
-        const state = useChatStore.getState();
-        const filtered = state.availableModels.filter(
-          (m) =>
-            !state.modelPickerQuery ||
-            m.name.toLowerCase().includes(state.modelPickerQuery.toLowerCase()) ||
-            m.providerName.toLowerCase().includes(state.modelPickerQuery.toLowerCase()),
-        );
-        const model = filtered[state.modelPickerIndex];
+        const validIndex = Math.min(state.modelPickerIndex, Math.max(0, filteredModels.length - 1));
+        const model = filteredModels[validIndex];
         if (model) {
           useChatStore.getState().setSelectedModel({
             providerId: model.providerId,
@@ -153,7 +147,7 @@ export default function SearchBar({
           );
           const cmd = filteredCommands[validIndex];
 
-          if (cmd?.id === "model") {
+          if (cmd?.id === "models") {
             useChatStore.getState().closeSlashMenu();
             useSearchStore.getState().setQuery("");
             useChatStore.getState().openModelPicker();

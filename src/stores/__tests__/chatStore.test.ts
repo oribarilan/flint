@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { useChatStore } from "../chatStore";
+import { useChatStore, filterAndSortModels, SLASH_COMMANDS } from "../chatStore";
 
 beforeEach(() => {
   useChatStore.setState({
@@ -233,5 +233,45 @@ describe("chatStore", () => {
     expect(chatStatus.connected).toBe(true);
     expect(chatStatus.sessionId).toBe("sess-123");
     expect(chatStatus.repoPath).toBe("/path/to/brain");
+  });
+
+  it("slash commands include /models", () => {
+    expect(SLASH_COMMANDS.some((cmd) => cmd.id === "models")).toBe(true);
+  });
+
+  it("filterAndSortModels puts configured default first then alphabetic", () => {
+    const models = [
+      {
+        id: "anthropic/claude-sonnet-4",
+        name: "Claude Sonnet 4",
+        providerId: "anthropic",
+        providerName: "Anthropic",
+      },
+      { id: "openai/gpt-4o", name: "GPT-4o", providerId: "openai", providerName: "OpenAI" },
+      { id: "google/gemini-2.0", name: "Gemini 2.0", providerId: "google", providerName: "Google" },
+    ];
+
+    const sorted = filterAndSortModels(models, "", "openai/gpt-4o");
+
+    expect(sorted.map((m) => m.id)).toEqual([
+      "openai/gpt-4o",
+      "anthropic/claude-sonnet-4",
+      "google/gemini-2.0",
+    ]);
+  });
+
+  it("filterAndSortModels filters by query before sorting", () => {
+    const models = [
+      {
+        id: "anthropic/claude-sonnet-4",
+        name: "Claude Sonnet 4",
+        providerId: "anthropic",
+        providerName: "Anthropic",
+      },
+      { id: "openai/gpt-4o", name: "GPT-4o", providerId: "openai", providerName: "OpenAI" },
+    ];
+
+    const filtered = filterAndSortModels(models, "claude", "openai/gpt-4o");
+    expect(filtered.map((m) => m.id)).toEqual(["anthropic/claude-sonnet-4"]);
   });
 });

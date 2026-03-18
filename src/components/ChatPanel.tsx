@@ -3,8 +3,8 @@ import { useSearchStore } from "../stores/searchStore";
 import {
   useChatStore,
   type ChatMessage,
-  type AvailableModelEntry,
   SLASH_COMMANDS,
+  filterAndSortModels,
 } from "../stores/chatStore";
 import { getAvailableModels, getSessionMessages, openSettings } from "../lib/commands";
 import { renderMarkdown } from "../lib/markdown";
@@ -72,38 +72,29 @@ function ToolCallCard({ toolName, state }: { toolName: string; state: "running" 
 // Model picker list — replaces messages area when active
 // ---------------------------------------------------------------------------
 
-function filterModels(models: AvailableModelEntry[], query: string): AvailableModelEntry[] {
-  if (!query) return models;
-  const lower = query.toLowerCase();
-  return models.filter(
-    (m) =>
-      m.name.toLowerCase().includes(lower) ||
-      m.providerName.toLowerCase().includes(lower) ||
-      m.id.toLowerCase().includes(lower),
-  );
-}
-
 function ModelPickerList() {
   const models = useChatStore((s) => s.availableModels);
+  const defaultModelId = useChatStore((s) => s.defaultModelId);
   const query = useChatStore((s) => s.modelPickerQuery);
   const selectedIndex = useChatStore((s) => s.modelPickerIndex);
   const selectedModel = useChatStore((s) => s.selectedModel);
 
-  const filtered = filterModels(models, query);
+  const filtered = filterAndSortModels(models, query, defaultModelId);
   const containerRef = useRef<HTMLDivElement>(null);
+  const validIndex = Math.min(selectedIndex, Math.max(0, filtered.length - 1));
 
   // Scroll selected item into view
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
     const items = container.querySelectorAll("[role='option']");
-    const selected = items[selectedIndex];
+    const selected = items[validIndex];
     if (selected) {
       selected.scrollIntoView({ block: "nearest" });
     }
-  }, [selectedIndex]);
+  }, [validIndex]);
 
-  const handleSelect = (model: AvailableModelEntry) => {
+  const handleSelect = (model: (typeof filtered)[number]) => {
     useChatStore.getState().setSelectedModel({
       providerId: model.providerId,
       modelId: model.id.split("/").slice(1).join("/"),
@@ -131,9 +122,9 @@ function ModelPickerList() {
         return (
           <div
             key={model.id}
-            className={index === selectedIndex ? styles.modelItemSelected : styles.modelItem}
+            className={index === validIndex ? styles.modelItemSelected : styles.modelItem}
             role="option"
-            aria-selected={index === selectedIndex}
+            aria-selected={index === validIndex}
             onMouseEnter={() => {
               useChatStore.getState().setModelPickerIndex(index);
             }}
@@ -154,6 +145,21 @@ function ModelPickerList() {
 // ---------------------------------------------------------------------------
 // Slash menu list
 // ---------------------------------------------------------------------------
+
+function SlashCommandIcon() {
+  return (
+    <svg
+      className={styles.slashCommandIcon}
+      viewBox="0 0 16 16"
+      fill="currentColor"
+      width="14"
+      height="14"
+      aria-hidden="true"
+    >
+      <path d="M12.22 1.22a.75.75 0 010 1.06L3.28 11.22a.75.75 0 11-1.06-1.06l8.94-8.94a.75.75 0 011.06 0zM5.5 12a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm0 1a.5.5 0 100 1 .5.5 0 000-1zM11 1a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm0-1a.5.5 0 100-1 .5.5 0 000 1z" />
+    </svg>
+  );
+}
 
 function SlashMenuList() {
   const query = useSearchStore((s) => s.query);
@@ -191,7 +197,7 @@ function SlashMenuList() {
   }
 
   const handleSelect = (id: string) => {
-    if (id === "model") {
+    if (id === "models") {
       useChatStore.getState().closeSlashMenu();
       useSearchStore.getState().setQuery("");
       useChatStore.getState().openModelPicker();
@@ -217,7 +223,7 @@ function SlashMenuList() {
             }}
           >
             <span className={styles.modelItemName}>
-              <span className={styles.slashCommandIcon}>{cmd.icon}</span> {cmd.name}
+              <SlashCommandIcon /> {cmd.name}
             </span>
             <span className={styles.modelItemProvider}>/{cmd.id}</span>
           </div>
@@ -259,14 +265,17 @@ export default function ChatPanel() {
           providerName: m.provider_name,
         }));
         useChatStore.getState().setAvailableModels(entries);
+        useChatStore.getState().setDefaultModelId(dflt);
+
         // Auto-select default if none selected
-        if (!useChatStore.getState().selectedModel && dflt) {
-          const found = list.find((m) => m.id === dflt);
-          if (found) {
+        if (!useChatStore.getState().selectedModel) {
+          const sorted = filterAndSortModels(entries, "", dflt);
+          const initial = sorted[0];
+          if (initial) {
             useChatStore.getState().setSelectedModel({
-              providerId: found.provider_id,
-              modelId: found.id.split("/").slice(1).join("/"),
-              displayName: found.name,
+              providerId: initial.providerId,
+              modelId: initial.id.split("/").slice(1).join("/"),
+              displayName: initial.name,
             });
           }
         }
@@ -378,7 +387,9 @@ export default function ChatPanel() {
       <div className={styles.header}>
         <div className={styles.headerTitle}>
           Agent Mode
-          {selectedModel && <span className={styles.modelHint}>{selectedModel.displayName}</span>}
+          <span className={styles.modelHint}>
+            {selectedModel?.displayName ?? "No model configured"}
+          </span>
         </div>
         <div className={styles.headerActions}>
           {hasContent && (

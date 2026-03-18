@@ -35,6 +35,10 @@
   text-transform: none;
   font-size: var(--font-xs);
   opacity: 0.7;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .headerActions {
@@ -145,7 +149,8 @@
 
 .slashCommandIcon {
   margin-right: var(--space-xs);
-  font-size: 1.1em;
+  color: var(--text-secondary);
+  flex-shrink: 0;
 }
 
 .modelItemProvider {

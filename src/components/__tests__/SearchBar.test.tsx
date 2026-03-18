@@ -1,7 +1,7 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { useSearchStore } from "../../stores/searchStore";
-import { useChatStore } from "../../stores/chatStore";
+import { useChatStore, filterAndSortModels } from "../../stores/chatStore";
 import SearchBar from "../SearchBar";
 
 vi.mock("../../lib/platform", () => ({
@@ -16,12 +16,28 @@ beforeEach(() => {
     selectedIndex: 0,
     isLoading: false,
     activeCommand: null,
+    actionPanelOpen: false,
+    actionPanelResult: null,
+    actionFilterQuery: "",
+    selectedActionIndex: 0,
+    armedActionIndex: null,
   });
   useChatStore.setState({
     messages: [],
     isStreaming: false,
     currentResponse: "",
+    activeToolCalls: [],
     chatStatus: { connected: false, sessionId: null, repoPath: null },
+    statusChecked: false,
+    selectedModel: null,
+    modelPickerOpen: false,
+    availableModels: [],
+    defaultModelId: null,
+    modelPickerQuery: "",
+    modelPickerIndex: 0,
+    slashMenuOpen: false,
+    slashMenuIndex: 0,
+    slashMenuDismissed: false,
   });
 });
 
@@ -68,6 +84,75 @@ describe("SearchBar", () => {
     fireEvent.keyDown(input, { key: "Enter" });
 
     expect(onSendChat).not.toHaveBeenCalled();
+  });
+
+  it("Enter in slash menu triggers models picker", () => {
+    useSearchStore.setState({ mode: "agent", query: "/m" });
+    useChatStore.setState({ slashMenuOpen: true, slashMenuIndex: 0, modelPickerOpen: false });
+
+    render(<SearchBar onArrowDown={vi.fn()} onSendChat={vi.fn()} />);
+
+    const input = screen.getByRole("textbox");
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(useChatStore.getState().modelPickerOpen).toBe(true);
+    expect(useSearchStore.getState().query).toBe("");
+  });
+
+  it("Escape closes slash menu and keeps slash text", () => {
+    useSearchStore.setState({ mode: "agent", query: "/" });
+    useChatStore.setState({ slashMenuOpen: true, slashMenuDismissed: false });
+
+    render(<SearchBar onArrowDown={vi.fn()} onSendChat={vi.fn()} />);
+
+    const input = screen.getByRole("textbox");
+    fireEvent.keyDown(input, { key: "Escape" });
+
+    expect(useChatStore.getState().slashMenuOpen).toBe(false);
+    expect(useSearchStore.getState().query).toBe("/");
+    expect(useChatStore.getState().slashMenuDismissed).toBe(true);
+  });
+
+  it("ArrowDown in model picker follows default-first ordering", () => {
+    useSearchStore.setState({ mode: "agent", query: "" });
+    useChatStore.setState({
+      modelPickerOpen: true,
+      modelPickerIndex: 0,
+      modelPickerQuery: "",
+      defaultModelId: "openai/gpt-4o",
+      availableModels: [
+        {
+          id: "anthropic/claude-sonnet-4",
+          name: "Claude Sonnet 4",
+          providerId: "anthropic",
+          providerName: "Anthropic",
+        },
+        { id: "openai/gpt-4o", name: "GPT-4o", providerId: "openai", providerName: "OpenAI" },
+        {
+          id: "google/gemini-2.0",
+          name: "Gemini 2.0",
+          providerId: "google",
+          providerName: "Google",
+        },
+      ],
+    });
+
+    const ordered = filterAndSortModels(
+      useChatStore.getState().availableModels,
+      "",
+      useChatStore.getState().defaultModelId,
+    );
+    expect(ordered[0]?.id).toBe("openai/gpt-4o");
+
+    render(<SearchBar onArrowDown={vi.fn()} onSendChat={vi.fn()} />);
+    const input = screen.getByRole("textbox");
+
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    const selected = useChatStore.getState().selectedModel;
+    expect(selected?.providerId).toBe("anthropic");
+    expect(selected?.displayName).toBe("Claude Sonnet 4");
   });
 
   it("ArrowDown calls onArrowDown in search mode", () => {
