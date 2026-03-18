@@ -4,7 +4,7 @@ use flint_lib::indexer::{EntryKind, FileEntry};
 use flint_lib::search;
 use tempfile::tempdir;
 
-/// Build a Vec of FileEntry from files in a temp directory (for testing
+/// Build a Vec of `FileEntry` from files in a temp directory (for testing
 /// the search module without Spotlight).
 fn entries_from_temp_dir(root: &std::path::Path) -> Vec<FileEntry> {
     let mut entries = Vec::new();
@@ -34,7 +34,7 @@ fn walkdir_lite(root: &std::path::Path) -> Vec<(String, String, bool)> {
                 continue;
             }
             let path = entry.path().to_string_lossy().to_string();
-            let is_dir = entry.file_type().map_or(false, |ft| ft.is_dir());
+            let is_dir = entry.file_type().is_ok_and(|ft| ft.is_dir());
             results.push((path, name, is_dir));
         }
     }

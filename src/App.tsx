@@ -67,7 +67,8 @@ export default function App() {
     useSearchStore.getState().setQuery("");
     const model = useChatStore.getState().selectedModel;
     sendChatMessage(text, model?.providerId, model?.modelId).catch((err: unknown) => {
-      console.error("Failed to send chat message:", err);
+      const message = err instanceof Error ? err.message : "Failed to send message";
+      useChatStore.getState().setError(message);
     });
   }, [query, isStreaming, addUserMessage]);
 
@@ -141,7 +142,7 @@ export default function App() {
   const showActionPanel = !isAgentMode && actionPanelOpen;
 
   return (
-    <div className={styles.launcher}>
+    <div className={[styles.launcher, isAgentMode && styles.agentMode].filter(Boolean).join(" ")}>
       <SearchBar
         onArrowDown={() => {
           useSearchStore.getState().moveSelection("down");

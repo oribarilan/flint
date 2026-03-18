@@ -57,7 +57,7 @@ const state: SimState = {
   chatStatus: {
     connected: SIM_MODE === "test",
     session_id: SIM_MODE === "test" ? "sim-session-001" : null,
-    repo_path: null,
+    repo_path: SIM_MODE === "test" ? "/mock/second-brain" : null,
   },
   isStreaming: false,
 };

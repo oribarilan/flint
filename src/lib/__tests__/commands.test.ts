@@ -46,7 +46,7 @@ describe("commands", () => {
     const mockResults = [{ id: "1", name: "test.txt", path: "/test.txt", kind: "file" }];
     mockedInvoke.mockResolvedValue(mockResults);
 
-    const result = await searchFiles("hello");
+    const result = await searchFiles("hello"); // eslint-disable-line @typescript-eslint/no-deprecated -- testing deprecated function
 
     expect(mockedInvoke).toHaveBeenCalledWith("search_files", {
       query: "hello",

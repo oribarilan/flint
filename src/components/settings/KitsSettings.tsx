@@ -26,7 +26,9 @@ export default function KitsSettings({ config, onUpdate }: KitsSettingsProps) {
       .catch((err: unknown) => {
         console.error("Failed to load kit manifests:", err);
       });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    // Intentionally run only on mount: fetches manifests once and snapshots
+    // the initial config for dirty-checking.
+  }, []); // mount-only effect, config intentionally excluded
 
   const markDirty = (newConfig: FlintConfig) => {
     if (JSON.stringify(newConfig.kits) !== initialConfigRef.current) {
@@ -71,31 +73,34 @@ export default function KitsSettings({ config, onUpdate }: KitsSettingsProps) {
   };
 
   const handleCommandToggle = (kitId: string, commandId: string) => {
-    const cmds = (config.kits[kitId]?.commands as Record<string, Record<string, unknown>>) ?? {};
+    const cmds = config.kits[kitId]?.commands ?? {};
+    const existing = cmds[commandId];
     updateKitConfig(kitId, {
       commands: {
         ...cmds,
-        [commandId]: { ...cmds[commandId], enabled: !isCommandEnabled(kitId, commandId) },
+        [commandId]: { ...existing, enabled: !isCommandEnabled(kitId, commandId) },
       },
     });
   };
 
   const handlePrefixChange = (kitId: string, commandId: string, prefix: string) => {
-    const cmds = (config.kits[kitId]?.commands as Record<string, Record<string, unknown>>) ?? {};
+    const cmds = config.kits[kitId]?.commands ?? {};
+    const existing = cmds[commandId];
     updateKitConfig(kitId, {
       commands: {
         ...cmds,
-        [commandId]: { ...cmds[commandId], prefix: prefix || undefined },
+        [commandId]: { ...existing, prefix: prefix || undefined },
       },
     });
   };
 
   const handleHotkeyChange = (kitId: string, commandId: string, hotkey: string) => {
-    const cmds = (config.kits[kitId]?.commands as Record<string, Record<string, unknown>>) ?? {};
+    const cmds = config.kits[kitId]?.commands ?? {};
+    const existing = cmds[commandId];
     updateKitConfig(kitId, {
       commands: {
         ...cmds,
-        [commandId]: { ...cmds[commandId], hotkey: hotkey || undefined },
+        [commandId]: { ...existing, hotkey: hotkey || undefined },
       },
     });
   };

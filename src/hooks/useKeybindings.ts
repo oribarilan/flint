@@ -98,6 +98,19 @@ export function useKeybindings(actions: KeybindingActions): void {
         return;
       }
 
+      // ── CmdOrCtrl+N → New session ─────────────────────────
+      if (isCmdOrCtrl(e) && e.key.toLowerCase() === "n") {
+        e.preventDefault();
+        useChatStore.getState().clearChat();
+        void import("../lib/commands").then(({ clearChat }) => {
+          clearChat().catch(() => {
+            // best effort
+          });
+        });
+        actions.onFocusSearchBar();
+        return;
+      }
+
       // ── CmdOrCtrl+1..9 → Open Nth result directly ─────────
       if (isCmdOrCtrl(e) && !e.shiftKey && !e.altKey) {
         const digit = parseInt(e.key, 10);

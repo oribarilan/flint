@@ -112,7 +112,9 @@ export default function HotkeyRecorder({ value, onChange, ariaLabel }: HotkeyRec
 
   return (
     <span
-      className={`${kitStyles.hotkeyCapsule} ${recording ? kitStyles.hotkeyCapsuleRecording : ""}`}
+      className={[kitStyles.hotkeyCapsule, recording ? kitStyles.hotkeyCapsuleRecording : ""]
+        .filter(Boolean)
+        .join(" ")}
     >
       {recording ? (
         <button

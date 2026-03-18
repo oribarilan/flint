@@ -74,7 +74,7 @@ export default function Settings() {
   // false on the Rust side) to avoid a white flash while the theme loads.
   useEffect(() => {
     if (!isLoading && config) {
-      getCurrentWindow().show();
+      void getCurrentWindow().show();
     }
   }, [isLoading, config]);
 

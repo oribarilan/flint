@@ -45,6 +45,55 @@ pub struct Session {
     pub title: String,
 }
 
+/// Session summary returned by `GET /session` (list).
+#[derive(Debug, Clone, Deserialize)]
+pub struct SessionSummary {
+    pub id: String,
+    #[serde(default)]
+    pub title: String,
+    #[serde(default)]
+    pub time: SessionTime,
+}
+
+/// Timestamps on a session.
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct SessionTime {
+    #[serde(default)]
+    pub created: u64,
+    #[serde(default)]
+    pub updated: u64,
+}
+
+/// A message in a session, as returned by `GET /session/{id}/message`.
+#[derive(Debug, Clone, Deserialize)]
+pub struct SessionMessageRaw {
+    pub info: MessageInfo,
+    #[serde(default)]
+    pub parts: Vec<MessagePartRaw>,
+}
+
+/// Metadata for a single message.
+#[derive(Debug, Clone, Deserialize)]
+pub struct MessageInfo {
+    pub role: String,
+}
+
+/// A single part of a message.
+#[derive(Debug, Clone, Deserialize)]
+pub struct MessagePartRaw {
+    #[serde(default, rename = "type")]
+    pub kind: String,
+    #[serde(default)]
+    pub text: String,
+}
+
+/// A simplified chat message for the frontend.
+#[derive(Debug, Clone, Serialize)]
+pub struct HistoryMessage {
+    pub role: String,
+    pub content: String,
+}
+
 /// Request body for creating a session.
 #[derive(Debug, Serialize)]
 struct CreateSessionRequest {
@@ -91,12 +140,12 @@ struct ProvidersResponse {
     default: std::collections::HashMap<String, String>,
 }
 
-/// A single provider with its models.
+/// A single provider with its models (keyed by model ID).
 #[derive(Debug, Clone, Deserialize)]
 struct ProviderEntry {
     id: String,
     name: String,
-    models: Vec<ProviderModel>,
+    models: std::collections::HashMap<String, ProviderModel>,
 }
 
 /// A model within a provider.
@@ -228,7 +277,7 @@ impl OpenCodeClient {
 
         let mut models = Vec::new();
         for provider in &data.providers {
-            for model in &provider.models {
+            for model in provider.models.values() {
                 models.push(ModelInfo {
                     id: format!("{}/{}", provider.id, model.id),
                     name: model.name.clone(),
@@ -280,6 +329,72 @@ impl OpenCodeClient {
     /// Get the SSE event stream URL.
     pub fn event_stream_url(&self) -> String {
         format!("{}/global/event", self.base_url)
+    }
+
+    /// List all sessions, sorted by most recently updated first.
+    pub async fn list_sessions(&self) -> Result<Vec<SessionSummary>, ClientError> {
+        let resp = self.http.get(format!("{}/session", self.base_url)).send().await?;
+
+        if !resp.status().is_success() {
+            let status = resp.status().as_u16();
+            let body = resp.text().await.unwrap_or_default();
+            return Err(ClientError::Server { status, body });
+        }
+
+        let mut sessions: Vec<SessionSummary> =
+            resp.json().await.map_err(|e| ClientError::Parse(e.to_string()))?;
+
+        // Most recently updated first.
+        sessions.sort_by(|a, b| b.time.updated.cmp(&a.time.updated));
+        Ok(sessions)
+    }
+
+    /// Get messages for a session, returning simplified role + content pairs.
+    ///
+    /// Extracts only text parts from each message; skips tool invocations,
+    /// step-start/finish, and other non-text parts.
+    pub async fn get_session_messages(
+        &self,
+        session_id: &str,
+    ) -> Result<Vec<HistoryMessage>, ClientError> {
+        let resp =
+            self.http.get(format!("{}/session/{session_id}/message", self.base_url)).send().await?;
+
+        if !resp.status().is_success() {
+            let status = resp.status().as_u16();
+            let body = resp.text().await.unwrap_or_default();
+            return Err(ClientError::Server { status, body });
+        }
+
+        let raw: Vec<SessionMessageRaw> =
+            resp.json().await.map_err(|e| ClientError::Parse(e.to_string()))?;
+
+        let messages = raw
+            .into_iter()
+            .filter_map(|msg| {
+                let text: String = msg
+                    .parts
+                    .iter()
+                    .filter(|p| p.kind == "text")
+                    .map(|p| p.text.as_str())
+                    .collect::<Vec<_>>()
+                    .join("");
+
+                if text.is_empty() {
+                    return None;
+                }
+
+                let role = match msg.info.role.as_str() {
+                    "user" => "user",
+                    "assistant" => "assistant",
+                    _ => return None,
+                };
+
+                Some(HistoryMessage { role: role.to_owned(), content: text })
+            })
+            .collect();
+
+        Ok(messages)
     }
 
     /// Get a raw reqwest client for SSE streaming.

@@ -108,7 +108,7 @@
   font-weight: 500;
   color: var(--text-secondary);
   background: var(--bg-secondary);
-  padding: 2px 7px;
+  padding: 2px var(--space-xs);
   border-radius: var(--radius-sm);
   white-space: nowrap;
 }
@@ -116,9 +116,10 @@
 .originPill {
   font-size: var(--font-xs);
   font-weight: 500;
-  color: oklch(74% 0.12 65 / 0.7);
-  background: oklch(74% 0.15 65 / 0.08);
-  padding: 2px 7px;
+  color: var(--accent);
+  opacity: 0.7;
+  background: var(--bg-accent-subtle);
+  padding: 2px var(--space-xs);
   border-radius: var(--radius-sm);
   white-space: nowrap;
 }

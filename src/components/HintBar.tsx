@@ -1,4 +1,5 @@
 import { useSearchStore } from "../stores/searchStore";
+import { useChatStore } from "../stores/chatStore";
 import Kbd from "./Kbd";
 import styles from "./HintBar.module.css";
 
@@ -32,15 +33,27 @@ const ACTION_ARMED_HINTS: Hint[] = [
 const AGENT_HINTS: Hint[] = [
   { label: "Send", keys: "Enter" },
   { label: "Newline", keys: "Shift+Enter" },
+  { label: "New", keys: "CmdOrCtrl+N" },
+  { label: "Model", keys: "/model", raw: true },
   { label: "Search", keys: "Tab" },
   { label: "Clear", keys: "Escape" },
+];
+
+const MODEL_PICKER_HINTS: Hint[] = [
+  { label: "Navigate", keys: "↑↓", raw: true },
+  { label: "Select", keys: "Enter" },
+  { label: "Back", keys: "Escape" },
 ];
 
 function useHints(): Hint[] {
   const mode = useSearchStore((s) => s.mode);
   const actionPanelOpen = useSearchStore((s) => s.actionPanelOpen);
   const armedActionIndex = useSearchStore((s) => s.armedActionIndex);
+  const modelPickerOpen = useChatStore((s) => s.modelPickerOpen);
 
+  if (modelPickerOpen) {
+    return MODEL_PICKER_HINTS;
+  }
   if (actionPanelOpen) {
     return armedActionIndex !== null ? ACTION_ARMED_HINTS : ACTION_PANEL_HINTS;
   }
@@ -49,15 +62,23 @@ function useHints(): Hint[] {
 
 export default function HintBar() {
   const hints = useHints();
+  const mode = useSearchStore((s) => s.mode);
+  const selectedModel = useChatStore((s) => s.selectedModel);
+  const isAgentMode = mode === "agent";
 
   return (
     <div className={styles.bar}>
-      {hints.map((hint) => (
-        <span key={hint.keys} className={styles.hint}>
-          {hint.raw ? <kbd className={styles.rawKbd}>{hint.keys}</kbd> : <Kbd keys={hint.keys} />}
-          <span className={styles.label}>{hint.label}</span>
-        </span>
-      ))}
+      <div className={styles.hints}>
+        {hints.map((hint) => (
+          <span key={hint.keys} className={styles.hint}>
+            {hint.raw ? <kbd className={styles.rawKbd}>{hint.keys}</kbd> : <Kbd keys={hint.keys} />}
+            <span className={styles.label}>{hint.label}</span>
+          </span>
+        ))}
+      </div>
+      {isAgentMode && selectedModel && (
+        <div className={styles.model}>{selectedModel.displayName}</div>
+      )}
     </div>
   );
 }

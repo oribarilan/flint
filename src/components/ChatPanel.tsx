@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useChatStore, type ChatMessage, type AvailableModelEntry } from "../stores/chatStore";
-import { getAvailableModels } from "../lib/commands";
+import { getAvailableModels, getSessionMessages, openSettings } from "../lib/commands";
 import { renderMarkdown } from "../lib/markdown";
 import styles from "./ChatPanel.module.css";
 
@@ -154,14 +154,18 @@ export default function ChatPanel() {
   const isStreaming = useChatStore((s) => s.isStreaming);
   const currentResponse = useChatStore((s) => s.currentResponse);
   const activeToolCalls = useChatStore((s) => s.activeToolCalls);
-  const selectedModel = useChatStore((s) => s.selectedModel);
   const chatStatus = useChatStore((s) => s.chatStatus);
+  const statusChecked = useChatStore((s) => s.statusChecked);
   const modelPickerOpen = useChatStore((s) => s.modelPickerOpen);
   const [completedTools, setCompletedTools] = useState<string[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Fetch models on mount
+  const isConfigured = chatStatus.repoPath !== null;
+
+  // Fetch models and session history on mount (only when connected)
   useEffect(() => {
+    if (!chatStatus.connected) return;
+
     void getAvailableModels()
       .then(([list, dflt]) => {
         const entries = list.map((m) => ({
@@ -186,7 +190,25 @@ export default function ChatPanel() {
       .catch(() => {
         // Models unavailable — non-critical, panel still usable.
       });
-  }, []);
+
+    // Hydrate chat with existing session history (if any).
+    if (useChatStore.getState().messages.length === 0) {
+      void getSessionMessages()
+        .then((history) => {
+          if (history.length > 0) {
+            useChatStore.getState().setMessages(
+              history.map((m) => ({
+                role: m.role as ChatMessage["role"],
+                content: m.content,
+              })),
+            );
+          }
+        })
+        .catch(() => {
+          // History unavailable — non-critical, start fresh.
+        });
+    }
+  }, [chatStatus.connected]);
 
   // Track completed tool calls
   useEffect(() => {
@@ -231,40 +253,46 @@ export default function ChatPanel() {
     useChatStore.getState().addUserMessage(text);
     void import("../lib/commands").then(({ sendChatMessage }) => {
       const model = useChatStore.getState().selectedModel;
-      sendChatMessage(text, model?.providerId, model?.modelId).catch(() => {
-        // Send failed — error will surface via chat status.
+      sendChatMessage(text, model?.providerId, model?.modelId).catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : "Failed to send message";
+        useChatStore.getState().setError(message);
       });
     });
   };
 
-  const modelDisplayName = selectedModel?.displayName ?? "Model";
+  // Guard: waiting for initial status check
+  if (!statusChecked) {
+    return <div className={styles.panel} />;
+  }
+
+  // Guard: second brain not configured — lock chat
+  if (!isConfigured) {
+    return (
+      <div className={styles.panel}>
+        <div className={styles.notConfigured}>
+          <div className={styles.emptyIcon}>✦</div>
+          <div className={styles.emptyTitle}>Second Brain Not Connected</div>
+          <div className={styles.emptyText}>
+            Connect a notes repository in Settings to start chatting with your second brain.
+          </div>
+          <button
+            className={styles.configureButton}
+            onClick={() => {
+              void openSettings();
+            }}
+          >
+            Open Settings
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.panel}>
-      {/* Chat header — model button + new chat + status */}
+      {/* Chat header — new chat + status */}
       <div className={styles.header}>
-        <button
-          className={modelPickerOpen ? styles.modelButtonActive : styles.modelButton}
-          onClick={() => {
-            if (modelPickerOpen) {
-              useChatStore.getState().closeModelPicker();
-            } else {
-              useChatStore.getState().openModelPicker();
-            }
-          }}
-          title="Change model"
-        >
-          <span className={styles.modelLabel}>{modelDisplayName}</span>
-          <svg
-            className={styles.modelChevron}
-            viewBox="0 0 16 16"
-            fill="currentColor"
-            width="12"
-            height="12"
-          >
-            <path d="M4.427 7.427l3.396 3.396a.25.25 0 00.354 0l3.396-3.396A.25.25 0 0011.396 7H4.604a.25.25 0 00-.177.427z" />
-          </svg>
-        </button>
+        <div className={styles.headerTitle}>Agent Mode</div>
         <div className={styles.headerActions}>
           {hasContent && (
             <button

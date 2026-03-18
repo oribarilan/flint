@@ -14,7 +14,7 @@
   border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-xs);
   flex-shrink: 0;
 }
 
@@ -97,6 +97,7 @@
   min-height: 0;
   padding: var(--space-3xl) var(--space-3xl);
   overflow-y: auto;
+  overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb) transparent;
 }

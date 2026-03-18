@@ -125,7 +125,12 @@ describe("useConfig", () => {
   });
 
   it("should return undefined when resetting before config loads", async () => {
-    mockGetConfig.mockImplementation(() => new Promise(() => {})); // never resolves
+    mockGetConfig.mockImplementation(
+      () =>
+        new Promise(() => {
+          /* intentionally never resolves */
+        }),
+    );
     const { result } = renderHook(() => useConfig());
 
     // Config is still null

@@ -181,6 +181,11 @@ export function createMockOpenCodeHandlers(state: SimState, emit: EmitFn): Comma
 
     clear_chat: () => {},
 
+    get_session_messages: () => {
+      // In test mode, return empty history (fresh session).
+      return [];
+    },
+
     init_opencode: () => {
       state.chatStatus = {
         connected: true,

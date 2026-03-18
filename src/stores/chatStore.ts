@@ -29,6 +29,8 @@ interface ChatState {
   currentResponse: string;
   activeToolCalls: ActiveToolCall[];
   chatStatus: { connected: boolean; sessionId: string | null; repoPath: string | null };
+  /** Whether `setChatStatus` has been called at least once (avoids flash of "not configured"). */
+  statusChecked: boolean;
   selectedModel: SelectedModel | null;
   modelPickerOpen: boolean;
   availableModels: AvailableModelEntry[];
@@ -53,6 +55,7 @@ interface ChatState {
   setModelPickerIndex: (index: number) => void;
   addToolCall: (call: ActiveToolCall) => void;
   removeToolCall: (toolName: string) => void;
+  setMessages: (messages: ChatMessage[]) => void;
   clearChat: () => void;
 }
 
@@ -62,6 +65,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   currentResponse: "",
   activeToolCalls: [],
   chatStatus: { connected: false, sessionId: null, repoPath: null },
+  statusChecked: false,
   selectedModel: null,
   modelPickerOpen: false,
   availableModels: [],
@@ -105,7 +109,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   setChatStatus: (status) => {
-    set({ chatStatus: status });
+    set({ chatStatus: status, statusChecked: true });
   },
 
   setSelectedModel: (model) => {
@@ -142,6 +146,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set((state) => ({
       activeToolCalls: state.activeToolCalls.filter((tc) => tc.toolName !== toolName),
     }));
+  },
+
+  setMessages: (messages) => {
+    set({ messages, isStreaming: false, currentResponse: "", activeToolCalls: [] });
   },
 
   clearChat: () => {

@@ -7,6 +7,7 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: var(--space-xs) 0;
 }
 
@@ -98,7 +99,7 @@
 .actionShortcut {
   flex-shrink: 0;
   display: flex;
-  gap: 3px;
+  gap: var(--space-xs);
 }
 
 .actionShortcut kbd {
@@ -106,8 +107,8 @@
   font-weight: 500;
   color: var(--text-secondary);
   background: var(--bg-secondary);
-  padding: 1px 5px;
-  border-radius: 3px;
+  padding: 1px var(--space-xs);
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border-subtle);
   font-family: inherit;
 }

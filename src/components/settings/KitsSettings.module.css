@@ -78,10 +78,19 @@
   padding: 0 var(--space-sm) var(--space-sm);
 }
 
-.thCommand { width: auto; }
-.thPrefix { width: 80px; }
-.thHotkey { width: 110px; }
-.thToggle { width: 48px; text-align: center !important; }
+.thCommand {
+  width: auto;
+}
+.thPrefix {
+  width: 80px;
+}
+.thHotkey {
+  width: 110px;
+}
+.thToggle {
+  width: 48px;
+  text-align: center !important;
+}
 
 .tableRow td {
   padding: var(--space-xs) var(--space-sm);
@@ -93,10 +102,15 @@
   background: var(--bg-hover);
 }
 
-.tdCommand { }
-.tdPrefix { }
-.tdHotkey { }
-.tdToggle { text-align: center; }
+.tdCommand {
+}
+.tdPrefix {
+}
+.tdHotkey {
+}
+.tdToggle {
+  text-align: center;
+}
 
 .commandName {
   font-size: var(--font-md);
@@ -167,9 +181,18 @@
   transition: border-color var(--transition-fast);
 }
 
-.prefixInput:hover { border-color: var(--border-hover); }
-.prefixInput:focus { outline: none; border-color: var(--accent); }
-.prefixInput::placeholder { color: var(--text-placeholder); font-family: var(--font-sans); font-style: italic; }
+.prefixInput:hover {
+  border-color: var(--border-hover);
+}
+.prefixInput:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.prefixInput::placeholder {
+  color: var(--text-placeholder);
+  font-family: var(--font-sans);
+  font-style: italic;
+}
 
 .hotkeyInput {
   width: 88px;
@@ -184,9 +207,18 @@
   transition: border-color var(--transition-fast);
 }
 
-.hotkeyInput:hover { border-color: var(--border-hover); }
-.hotkeyInput:focus { outline: none; border-color: var(--accent); }
-.hotkeyInput::placeholder { color: var(--text-placeholder); font-family: var(--font-sans); font-style: italic; }
+.hotkeyInput:hover {
+  border-color: var(--border-hover);
+}
+.hotkeyInput:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.hotkeyInput::placeholder {
+  color: var(--text-placeholder);
+  font-family: var(--font-sans);
+  font-style: italic;
+}
 
 /* ── Hotkey recorder ──────────────────────────────────────── */
 
@@ -213,8 +245,13 @@
 }
 
 @keyframes pulseOutline {
-  0%, 100% { border-color: var(--accent); }
-  50% { border-color: transparent; }
+  0%,
+  100% {
+    border-color: var(--accent);
+  }
+  50% {
+    border-color: transparent;
+  }
 }
 
 .hotkeyBtn {

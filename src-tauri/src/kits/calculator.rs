@@ -251,6 +251,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::approx_constant)]
     fn should_format_floats_trimming_trailing_zeros() {
         assert_eq!(format_number(3.14), "3.14");
         assert_eq!(format_number(1.5), "1.5");

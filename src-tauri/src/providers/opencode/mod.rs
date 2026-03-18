@@ -83,9 +83,11 @@ impl OpenCodeProvider {
         }
     }
 
-    /// Initialize the provider: start the server, wait for health, create a session.
+    /// Initialize the provider: start the server, wait for health, resume or create a session.
     ///
-    /// If the server is already running, this is a no-op.
+    /// Resumes the most recently updated session if one exists, otherwise creates
+    /// a new one. This ensures Flint and `OpenCode` share a single session with
+    /// full history.
     pub async fn init(&mut self, repo_path: &Path, app: &AppHandle) -> Result<(), OpenCodeError> {
         if self.process.is_some() {
             tracing::info!("OpenCode provider already initialized");
@@ -116,16 +118,32 @@ impl OpenCodeProvider {
             .map_err(|e| OpenCodeError::Api(e.to_string()))?;
         self.event_bridge = Some(bridge);
 
-        // Create a session.
-        let session = client
-            .create_session("Flint chat")
-            .await
-            .map_err(|e| OpenCodeError::Api(e.to_string()))?;
-        self.session_id = Some(session.id.clone());
+        // Resume the most recent session, or create a new one.
+        let session_id = match client.list_sessions().await {
+            Ok(sessions) if !sessions.is_empty() => {
+                let resumed = &sessions[0];
+                tracing::info!(
+                    session_id = %resumed.id,
+                    title = %resumed.title,
+                    "resuming existing OpenCode session"
+                );
+                resumed.id.clone()
+            }
+            _ => {
+                let session = client
+                    .create_session("Flint chat")
+                    .await
+                    .map_err(|e| OpenCodeError::Api(e.to_string()))?;
+                tracing::info!(session_id = %session.id, "created new OpenCode session");
+                session.id
+            }
+        };
+
+        self.session_id = Some(session_id.clone());
         self.client = Some(client);
 
         tracing::info!(
-            session_id = %session.id,
+            session_id = %session_id,
             port = self.port,
             "OpenCode provider initialized"
         );
@@ -177,6 +195,14 @@ impl OpenCodeProvider {
 
         tracing::info!(session_id = %session.id, "created new OpenCode session");
         Ok(())
+    }
+
+    /// Get message history for the current session.
+    pub async fn get_session_messages(&self) -> Result<Vec<client::HistoryMessage>, OpenCodeError> {
+        let client = self.client.as_ref().ok_or(OpenCodeError::ServerNotRunning)?;
+        let session_id = self.session_id.as_ref().ok_or(OpenCodeError::NoSession)?;
+
+        client.get_session_messages(session_id).await.map_err(|e| OpenCodeError::Api(e.to_string()))
     }
 
     /// Whether the provider is initialized and the server is running.

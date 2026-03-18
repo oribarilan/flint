@@ -144,7 +144,16 @@ fn process_event(data: &str, app: &AppHandle) {
     let properties = payload.get("properties").cloned().unwrap_or(serde_json::Value::Null);
 
     match event_type {
-        // Text content delta — emit as chat:token.
+        // Incremental text delta — the primary streaming event.
+        "message.part.delta" => {
+            if let Some(delta) = properties.get("delta").and_then(|d| d.as_str()) {
+                if !delta.is_empty() {
+                    let _ = app.emit_to("main", "chat:token", delta);
+                }
+            }
+        }
+
+        // Part snapshot — may carry a delta for text or tool state changes.
         "message.part.updated" => {
             handle_part_updated(&properties, app);
         }

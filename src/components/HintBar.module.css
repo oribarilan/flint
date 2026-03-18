@@ -1,11 +1,17 @@
 .bar {
   display: flex;
   align-items: center;
-  gap: var(--space-lg);
+  justify-content: space-between;
   padding: var(--space-sm) var(--space-xl);
   border-top: 1px solid var(--border-subtle);
   user-select: none;
   flex-shrink: 0;
+}
+
+.hints {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
 }
 
 .hint {
@@ -15,6 +21,13 @@
 }
 
 .label {
+  font-size: var(--font-sm);
+  color: var(--text-placeholder);
+}
+
+.model {
+  display: inline-flex;
+  align-items: center;
   font-size: var(--font-sm);
   color: var(--text-placeholder);
 }

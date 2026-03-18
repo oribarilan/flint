@@ -14,6 +14,8 @@ export async function toggleWindow(): Promise<void> {
   return invoke("toggle_window");
 }
 
+/** @deprecated Use searchAll instead. Wraps the legacy search_files command. */
+// eslint-disable-next-line @typescript-eslint/no-deprecated -- function itself is deprecated
 export async function searchFiles(query: string): Promise<SearchResult[]> {
   return invoke("search_files", { query });
 }
@@ -71,6 +73,15 @@ export async function abortChat(): Promise<void> {
 
 export async function clearChat(): Promise<void> {
   return invoke("clear_chat");
+}
+
+export interface HistoryMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export async function getSessionMessages(): Promise<HistoryMessage[]> {
+  return invoke("get_session_messages");
 }
 
 export async function initOpencode(): Promise<void> {

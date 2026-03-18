@@ -229,7 +229,7 @@ mod tests {
     #[tokio::test]
     async fn search_files_returns_results_for_known_name() {
         // "Safari" should exist on any macOS machine.
-        let results = search_files("Safari", &["~".to_owned()]).await.unwrap_or_default();
+        let _results = search_files("Safari", &["~".to_owned()]).await.unwrap_or_default();
         // We don't assert non-empty because Spotlight indexing may not
         // include the home directory, but it should not error.
     }

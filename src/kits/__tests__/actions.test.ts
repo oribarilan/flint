@@ -85,7 +85,9 @@ describe("executeAction", () => {
 
   it("does not crash on unimplemented action types", () => {
     const action: KitAction = { type: "OpenApp" };
-    expect(() => executeAction(action)).not.toThrow();
+    expect(() => {
+      executeAction(action);
+    }).not.toThrow();
   });
 });
 
@@ -157,7 +159,9 @@ describe("executeDefaultAction", () => {
       actions: [],
     };
 
-    expect(() => executeDefaultAction(result)).not.toThrow();
+    expect(() => {
+      executeDefaultAction(result);
+    }).not.toThrow();
     expect(mockedOpenFile).not.toHaveBeenCalled();
   });
 });

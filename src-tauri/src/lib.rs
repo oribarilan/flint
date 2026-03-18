@@ -79,6 +79,7 @@ pub fn run() {
             commands::get_available_models,
             commands::abort_chat,
             commands::clear_chat,
+            commands::get_session_messages,
             commands::init_opencode,
             commands::get_config,
             commands::get_default_config,
@@ -108,17 +109,10 @@ pub fn run() {
                 OpenCodeProviderState(Arc::new(tokio::sync::RwLock::new(opencode)));
             app.manage(opencode_state.clone());
 
-            // Start the OpenCode server — uses brain repo if configured,
-            // otherwise a temp directory so provider auth works immediately.
-            {
-                let path = cfg.second_brain.repo_path.as_deref().map_or_else(
-                    || {
-                        let tmp = std::env::temp_dir().join("flint-opencode");
-                        let _ = std::fs::create_dir_all(&tmp);
-                        tmp
-                    },
-                    std::path::PathBuf::from,
-                );
+            // Start the OpenCode server only if a second brain repo is configured.
+            // No fallback — chat is locked until the user configures a repo in Settings.
+            if let Some(ref repo) = cfg.second_brain.repo_path {
+                let path = std::path::PathBuf::from(repo);
                 let app_handle = app.handle().clone();
                 let state = opencode_state;
                 tauri::async_runtime::spawn(async move {
@@ -131,6 +125,8 @@ pub fn run() {
                         );
                     }
                 });
+            } else {
+                tracing::info!("second brain repo not configured — skipping OpenCode init");
             }
 
             // Manage application config.

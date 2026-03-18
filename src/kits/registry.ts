@@ -31,7 +31,7 @@ export function registerKit(kitId: string, components: KitComponents): void {
 
 /** Get components for a kit, falling back to the default renderer. */
 export function getKitComponents(kitId: string): KitComponents {
-  const kit = KIT_REGISTRY[kitId] ?? KIT_REGISTRY["_default"];
+  const kit = KIT_REGISTRY[kitId] ?? KIT_REGISTRY._default;
   if (!kit) {
     throw new Error(`No kit components registered for "${kitId}" and no default renderer`);
   }

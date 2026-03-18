@@ -68,7 +68,7 @@ impl TaskManager {
 
     /// Number of tracked tasks.
     #[cfg(test)]
-    pub fn len(&self) -> usize {
+    pub const fn len(&self) -> usize {
         self.handles.len()
     }
 }
@@ -194,7 +194,8 @@ impl KitRegistry {
 
         let kit_id = &matched.kit_id;
         let command_id = matched.def.id;
-        let prefix_len = matched.effective_prefix.as_ref().unwrap().len();
+        // Safe: the `find` filter above guarantees `effective_prefix` is `Some`.
+        let prefix_len = matched.effective_prefix.as_ref()?.len();
 
         if !matches!(self.states.get(kit_id), Some(KitState::Ready)) {
             return Some((kit_id.clone(), command_id.to_string(), vec![]));
@@ -293,13 +294,15 @@ impl KitRegistry {
         self.commands
             .iter()
             .filter(|ic| ic.enabled && ic.effective_hotkey.is_some())
-            .map(|ic| CommandHotkeyEntry {
-                kit_id: ic.kit_id.clone(),
-                command_id: ic.def.id.to_string(),
-                mode: ic.def.mode.clone(),
-                name: ic.def.name.to_string(),
-                icon: Some(ic.def.icon.clone()),
-                hotkey: ic.effective_hotkey.clone().unwrap(),
+            .filter_map(|ic| {
+                Some(CommandHotkeyEntry {
+                    kit_id: ic.kit_id.clone(),
+                    command_id: ic.def.id.to_string(),
+                    mode: ic.def.mode.clone(),
+                    name: ic.def.name.to_string(),
+                    icon: Some(ic.def.icon.clone()),
+                    hotkey: ic.effective_hotkey.clone()?,
+                })
             })
             .collect()
     }

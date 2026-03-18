@@ -657,8 +657,7 @@ mod tests {
     fn search_limits_results_to_20() {
         let entries: Vec<(&str, bool)> =
             (0..30).map(|_| ("some text that matches query", false)).collect();
-        let kit = kit_with_entries(&entries);
-        // All have the same content so dedup collapses them — use distinct content.
+        let _kit = kit_with_entries(&entries);
         let kit2 = ClipboardKit::new(&default_config());
         {
             let mut store = ClipboardStore::in_memory(200, 7);
@@ -680,13 +679,14 @@ mod tests {
 
         match output {
             CommandOutput::Message { text } => assert!(text.contains('2')),
-            _ => panic!("expected Message"),
+            CommandOutput::Done => panic!("expected Message"),
         }
 
         let store = kit.store.read().await;
         assert_eq!(store.len(), 1);
         let remaining = store.all_sorted();
         assert!(remaining[0].pinned);
+        drop(store);
     }
 
     #[tokio::test]
@@ -701,7 +701,7 @@ mod tests {
         let output = kit.execute(CMD_CLEAR).await.unwrap();
         match output {
             CommandOutput::Message { text } => assert!(text.contains('0')),
-            _ => panic!("expected Message"),
+            CommandOutput::Done => panic!("expected Message"),
         }
     }
 
@@ -725,6 +725,7 @@ mod tests {
 
         let store = kit.store.read().await;
         assert_eq!(store.len(), 0);
+        drop(store);
     }
 
     #[tokio::test]

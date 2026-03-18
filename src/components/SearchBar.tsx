@@ -103,11 +103,21 @@ export default function SearchBar({
         }
         return;
       }
-      if (e.key === "Escape") {
+      if (
+        e.key === "Escape" ||
+        (e.key === "Backspace" && !useChatStore.getState().modelPickerQuery)
+      ) {
         e.preventDefault();
+        e.stopPropagation();
         useChatStore.getState().closeModelPicker();
         return;
       }
+      return;
+    }
+
+    if (e.key === "Backspace" && !query && activeCommand) {
+      e.preventDefault();
+      useSearchStore.getState().deactivateCommand();
       return;
     }
 
@@ -178,7 +188,13 @@ export default function SearchBar({
     if (modelPickerOpen) {
       useChatStore.getState().setModelPickerQuery(e.target.value);
     } else if (!actionPanelOpen) {
-      setQuery(e.target.value);
+      const val = e.target.value;
+      if (agentMode && val === "/model ") {
+        useChatStore.getState().openModelPicker();
+        setQuery("");
+      } else {
+        setQuery(val);
+      }
     }
   };
 

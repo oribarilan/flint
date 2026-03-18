@@ -29,15 +29,20 @@ pub struct ChatStatus {
 }
 
 /// Get the current chat connection status.
+///
+/// Uses the persisted config for `repo_path` (not the provider's runtime
+/// path) so the frontend can distinguish "not configured" from "configured
+/// but failed to connect."
 #[tauri::command]
 pub async fn get_chat_status(
     provider: State<'_, OpenCodeProviderState>,
+    config: State<'_, AppConfig>,
 ) -> Result<ChatStatus, String> {
     let p = provider.0.read().await;
     Ok(ChatStatus {
         connected: p.is_connected(),
         session_id: p.session_id().map(String::from),
-        repo_path: p.repo_path().map(|p| p.to_string_lossy().to_string()),
+        repo_path: config.get().second_brain.repo_path,
     })
 }
 
@@ -106,25 +111,37 @@ pub async fn clear_chat(provider: State<'_, OpenCodeProviderState>) -> Result<()
     p.new_session().await.map_err(|e| e.to_string())
 }
 
+/// A chat message from session history (for frontend hydration).
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct HistoryMessage {
+    pub role: String,
+    pub content: String,
+}
+
+/// Get message history for the current `OpenCode` session.
+#[tauri::command]
+pub async fn get_session_messages(
+    provider: State<'_, OpenCodeProviderState>,
+) -> Result<Vec<HistoryMessage>, String> {
+    let messages =
+        provider.0.read().await.get_session_messages().await.map_err(|e| e.to_string())?;
+    Ok(messages.into_iter().map(|m| HistoryMessage { role: m.role, content: m.content }).collect())
+}
+
 /// Initialize or reinitialize the `OpenCode` provider.
 ///
-/// Uses the configured second brain repo path, or falls back to a temp
-/// directory so that provider auth and model listing work even before
-/// a brain repo is selected.
+/// Requires a configured second brain repo path. Returns an error if
+/// no repo is configured — the frontend should direct the user to Settings.
 #[tauri::command]
 pub async fn init_opencode(
     app: AppHandle,
     provider: State<'_, OpenCodeProviderState>,
     config: State<'_, AppConfig>,
 ) -> Result<(), String> {
-    let path = config
-        .get()
-        .second_brain
-        .repo_path
-        .map_or_else(|| std::env::temp_dir().join("flint-opencode"), PathBuf::from);
-
-    // Ensure the directory exists (temp fallback may not).
-    std::fs::create_dir_all(&path).map_err(|e| format!("failed to create dir: {e}"))?;
+    let path =
+        config.get().second_brain.repo_path.map(PathBuf::from).ok_or_else(|| {
+            "second brain repo path not configured — set it in Settings".to_string()
+        })?;
 
     let mut p = provider.0.write().await;
     p.shutdown().await;

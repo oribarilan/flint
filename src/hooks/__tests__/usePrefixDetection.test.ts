@@ -186,7 +186,9 @@ describe("usePrefixDetection", () => {
   });
 
   it("does not activate prefix for disabled kits", async () => {
-    const disabledKit = { ...mockManifests[0]!, enabled: false };
+    const firstManifest = mockManifests[0];
+    if (!firstManifest) throw new Error("Expected mockManifests[0] to exist");
+    const disabledKit = { ...firstManifest, enabled: false };
     mockedGetKitManifests.mockResolvedValue([disabledKit]);
 
     renderHook(() => {
