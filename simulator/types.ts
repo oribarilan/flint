@@ -8,7 +8,6 @@ export interface SimState {
   config: FlintConfig;
   chatStatus: ChatStatus;
   isStreaming: boolean;
-  providerConnected: boolean;
 }
 
 export type EmitFn = (event: string, payload: unknown) => void;

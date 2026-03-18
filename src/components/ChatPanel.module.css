@@ -177,6 +177,41 @@
   color: var(--text-secondary);
 }
 
+.emptyTitle {
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  width: 100%;
+  max-width: 320px;
+  margin-top: var(--space-sm);
+}
+
+.suggestionButton {
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: var(--font-base);
+  font-family: var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.suggestionButton:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
 /* ── Messages ──────────────────────────────────────────────── */
 
 .userMessage {
@@ -245,6 +280,54 @@
 
 .assistantMessage :global(.md-link:hover) {
   text-decoration: underline;
+}
+
+.assistantMessage :global(.md-heading) {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: var(--space-xs) 0;
+}
+
+.assistantMessage :global(.md-h1) {
+  font-size: var(--font-xl);
+}
+
+.assistantMessage :global(.md-h2) {
+  font-size: var(--font-lg);
+}
+
+.assistantMessage :global(.md-h3) {
+  font-size: var(--font-md);
+}
+
+.assistantMessage :global(.md-h4),
+.assistantMessage :global(.md-h5),
+.assistantMessage :global(.md-h6) {
+  font-size: var(--font-base);
+}
+
+.assistantMessage :global(.md-hr) {
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+  margin: var(--space-sm) 0;
+}
+
+.assistantMessage :global(.md-list),
+.assistantMessage :global(.md-list-ordered) {
+  margin: 0;
+  padding-left: var(--space-xl);
+}
+
+.assistantMessage :global(.md-list-item) {
+  margin: var(--space-xs) 0;
+}
+
+.assistantMessage :global(.md-blockquote) {
+  border-left: 3px solid var(--border-hover);
+  padding-left: var(--space-md);
+  color: var(--text-secondary);
+  margin: var(--space-xs) 0;
+  font-style: italic;
 }
 
 .error {

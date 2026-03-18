@@ -1,8 +1,8 @@
 /**
  * Mock OpenCode handlers — used in test mode for deterministic behavior.
  *
- * Simulates chat streaming, model listing, and provider auth without
- * requiring a real OpenCode server.
+ * Simulates chat streaming and model listing without requiring a real
+ * OpenCode server.
  */
 
 import type { SimState, EmitFn, CommandHandlerMap } from "./types";
@@ -56,19 +56,40 @@ function simulateChatResponse(message: string, state: SimState, emit: EmitFn): v
 
 function generateMockResponse(message: string): string {
   const lower = message.toLowerCase();
+
   if (lower.includes("hello") || lower.includes("hi")) {
-    return "Hello! I'm the Flint simulator. I can help you test the UI.\n\nTry asking me about **code**, `files`, or your second brain.";
+    return "Hello! I'm your **Second Brain Doctor**. I can help you search, organize, and improve your notes.\n\nTry asking me about your projects, learning progress, or notes that need attention.";
   }
+
+  if (lower.includes("work") && lower.includes("week")) {
+    return "Based on your recent notes, here's what you worked on this week:\n\n## Projects\n- **Flint App** — implemented kit system, fixed search ranking\n- **Vault Setup** — reorganized PARA structure, added AGENTS.md\n\n## Notes Modified\n- `01_projects/flint/architecture.md` — updated IPC design\n- `02_areas/engineering/rust-patterns.md` — added error handling notes\n- `03_resources/tools/opencode.md` — new file\n\n> 💡 Consider adding a weekly summary note to capture these insights.";
+  }
+
+  if (lower.includes("incomplete") || lower.includes("updating") || lower.includes("need")) {
+    return "I found **3 notes** that could use attention:\n\n1. **`02_areas/health/workout-routine.md`** — last updated 3 months ago, contains TODO items\n2. **`01_projects/blog/draft-ai-tools.md`** — marked as draft, 60% complete\n3. **`03_resources/books/atomic-habits.md`** — has placeholder sections\n\n### Suggestions\n- Archive the workout routine if it's no longer relevant\n- Set a deadline for the blog draft\n- Fill in the book notes while the content is fresh";
+  }
+
+  if (lower.includes("project") && lower.includes("status")) {
+    return "## Active Projects\n\n| Project | Status | Last Activity |\n|---------|--------|---------------|\n| Flint App | 🟢 Active | Today |\n| Blog | 🟡 Stalled | 2 weeks ago |\n| Vault Setup | ✅ Complete | 3 days ago |\n\n---\n\n**Flint App** has the most activity. Your blog project hasn't been touched in a while — would you like me to surface your draft notes?";
+  }
+
+  if (lower.includes("learning") || lower.includes("progress")) {
+    return "## Your Learning Tracks\n\n- **Rust** — 12 notes across basics, ownership, async, and error handling\n- **AI/ML** — 5 notes on prompt engineering, RAG, and embeddings\n- **Design** — 3 notes on typography, color theory\n\n### Recent Additions\n- `rust-patterns.md` — error handling with `thiserror` vs `anyhow`\n- `prompt-engineering.md` — chain-of-thought techniques\n\n> You're building strong foundations in Rust. Consider creating a *spaced repetition* note to review key concepts.";
+  }
+
   if (lower.includes("search") || lower.includes("find")) {
     return "I found several relevant notes in your second brain:\n\n- **Project ideas** — brainstorm notes from last week\n- **Rust learning** — notes on ownership and borrowing\n- **Meeting notes** — Q2 planning session\n\nWould you like me to open any of these?";
   }
+
   if (lower.includes("code") || lower.includes("rust")) {
     return 'Here\'s an example from your notes:\n\n```rust\nfn main() {\n    let greeting = "Hello, second brain!";\n    println!("{greeting}");\n}\n```\n\nThis is from your `rust-learning/basics.md` file.';
   }
+
   if (lower.includes("help")) {
-    return "I can help you **capture** and **retrieve** information from your second brain.\n\n- Type a question to search your notes\n- Use `Tab` to switch between search and chat\n- Select a model from the dropdown above";
+    return "I can help you **capture** and **retrieve** information from your second brain.\n\n- Ask about your projects, learning, or notes\n- Request a health check on your vault organization\n- Find incomplete or stale notes\n- Get summaries of any topic in your notes\n\nYour second brain uses the **PARA method**:\n1. **Projects** — active work with deadlines\n2. **Areas** — ongoing responsibilities\n3. **Resources** — reference material\n4. **Archive** — completed or inactive items";
   }
-  return `You said: *"${message}"*. This is a simulated response. In production, this would come from **OpenCode** connected to your second brain.`;
+
+  return `You asked: *"${message}"*\n\nI searched your second brain but didn't find a direct match. Try being more specific, or I can help you **create a new note** on this topic.`;
 }
 
 // ---------------------------------------------------------------------------
@@ -167,31 +188,5 @@ export function createMockOpenCodeHandlers(state: SimState, emit: EmitFn): Comma
         repo_path: state.config.second_brain.repo_path,
       };
     },
-
-    get_provider_auth: () => [
-      { id: "github-copilot", name: "GitHub Copilot", connected: state.providerConnected },
-      { id: "opencode", name: "OpenCode Zen", connected: true },
-    ],
-
-    start_provider_auth: (args) => {
-      const pid = (args?.providerId as string) ?? "unknown";
-      console.log(`[sim] start_provider_auth: ${pid}`);
-      setTimeout(() => {
-        state.providerConnected = true;
-      }, 1000);
-      return {
-        url: `https://opencode.ai/auth?provider=${pid}`,
-        method: "auto",
-        instructions: `Opening browser for ${pid} authentication...`,
-      };
-    },
-
-    complete_provider_auth: (args) => {
-      const pid = (args?.providerId as string) ?? "unknown";
-      console.log(`[sim] complete_provider_auth: ${pid}`);
-      state.providerConnected = true;
-    },
-
-    check_provider_connected: () => state.providerConnected,
   };
 }

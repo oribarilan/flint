@@ -7,7 +7,6 @@ import ResultsList, {
 } from "./components/ResultsList";
 import ActionPanel from "./components/ActionPanel";
 import ChatPanel from "./components/ChatPanel";
-import AuthPrompt from "./components/AuthPrompt";
 import HintBar from "./components/HintBar";
 import { useSearchStore, actionRequiresConfirmation } from "./stores/searchStore";
 import { useChatStore } from "./stores/chatStore";
@@ -33,7 +32,6 @@ export default function App() {
   const mode = useSearchStore((s) => s.mode);
   const toggleMode = useSearchStore((s) => s.toggleMode);
 
-  const chatStatus = useChatStore((s) => s.chatStatus);
   const setChatStatus = useChatStore((s) => s.setChatStatus);
   const isStreaming = useChatStore((s) => s.isStreaming);
   const addUserMessage = useChatStore((s) => s.addUserMessage);
@@ -137,8 +135,7 @@ export default function App() {
     return () => unlistenFocus?.();
   }, [focusSearchBar, refreshChatStatus]);
 
-  const showSetupPrompt = isAgentMode && !chatStatus.connected;
-  const showChat = isAgentMode && chatStatus.connected;
+  const showChat = isAgentMode;
   const actionPanelOpen = useSearchStore((s) => s.actionPanelOpen);
   const showResults = !isAgentMode && !actionPanelOpen;
   const showActionPanel = !isAgentMode && actionPanelOpen;
@@ -182,7 +179,6 @@ export default function App() {
           if (result) executeDefaultAction(result);
         }}
       />
-      {showSetupPrompt && <AuthPrompt />}
       {showChat && <ChatPanel />}
       {showActionPanel && <ActionPanel />}
       {showResults && <ResultsList />}

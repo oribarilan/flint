@@ -60,7 +60,6 @@ const state: SimState = {
     repo_path: null,
   },
   isStreaming: false,
-  providerConnected: SIM_MODE === "test",
 };
 
 // ---------------------------------------------------------------------------

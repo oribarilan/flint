@@ -128,8 +128,12 @@ function ModelPickerList() {
             className={index === selectedIndex ? styles.modelItemSelected : styles.modelItem}
             role="option"
             aria-selected={index === selectedIndex}
-            onMouseEnter={() => useChatStore.getState().setModelPickerIndex(index)}
-            onClick={() => handleSelect(model)}
+            onMouseEnter={() => {
+              useChatStore.getState().setModelPickerIndex(index);
+            }}
+            onClick={() => {
+              handleSelect(model);
+            }}
           >
             <span className={styles.modelItemName}>{model.name}</span>
             <span className={styles.modelItemProvider}>{model.providerName}</span>
@@ -158,7 +162,7 @@ export default function ChatPanel() {
 
   // Fetch models on mount
   useEffect(() => {
-    getAvailableModels()
+    void getAvailableModels()
       .then(([list, dflt]) => {
         const entries = list.map((m) => ({
           id: m.id,
@@ -179,7 +183,9 @@ export default function ChatPanel() {
           }
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        // Models unavailable — non-critical, panel still usable.
+      });
   }, []);
 
   // Track completed tool calls
@@ -214,8 +220,20 @@ export default function ChatPanel() {
   const handleNewChat = () => {
     useChatStore.getState().clearChat();
     setCompletedTools([]);
-    import("../lib/commands").then(({ clearChat }) => {
-      clearChat().catch(() => {});
+    void import("../lib/commands").then(({ clearChat }) => {
+      clearChat().catch(() => {
+        // Clear failed — non-critical.
+      });
+    });
+  };
+
+  const handleSuggestion = (text: string) => {
+    useChatStore.getState().addUserMessage(text);
+    void import("../lib/commands").then(({ sendChatMessage }) => {
+      const model = useChatStore.getState().selectedModel;
+      sendChatMessage(text, model?.providerId, model?.modelId).catch(() => {
+        // Send failed — error will surface via chat status.
+      });
     });
   };
 
@@ -272,7 +290,44 @@ export default function ChatPanel() {
           {!hasContent && (
             <div className={styles.empty}>
               <div className={styles.emptyIcon}>✦</div>
-              <div className={styles.emptyText}>Ask anything about your second brain</div>
+              <div className={styles.emptyTitle}>Second Brain Doctor</div>
+              <div className={styles.emptyText}>
+                Ask anything about your notes, or try a suggestion:
+              </div>
+              <div className={styles.suggestions}>
+                <button
+                  className={styles.suggestionButton}
+                  onClick={() => {
+                    handleSuggestion("What did I work on this week?");
+                  }}
+                >
+                  What did I work on this week?
+                </button>
+                <button
+                  className={styles.suggestionButton}
+                  onClick={() => {
+                    handleSuggestion("Find notes that need updating or are incomplete");
+                  }}
+                >
+                  Find incomplete notes
+                </button>
+                <button
+                  className={styles.suggestionButton}
+                  onClick={() => {
+                    handleSuggestion("Summarize my current projects and their status");
+                  }}
+                >
+                  Project status summary
+                </button>
+                <button
+                  className={styles.suggestionButton}
+                  onClick={() => {
+                    handleSuggestion("What topics am I learning about? Show my progress.");
+                  }}
+                >
+                  Learning progress
+                </button>
+              </div>
             </div>
           )}
 
@@ -292,7 +347,7 @@ export default function ChatPanel() {
           )}
 
           {isStreaming && currentResponse.length > 0 && (
-            <div className={styles.streaming}>{currentResponse}</div>
+            <div className={styles.assistantMessage}>{renderMarkdown(currentResponse)}</div>
           )}
 
           {isStreaming && currentResponse.length === 0 && activeToolCalls.length === 0 && (
