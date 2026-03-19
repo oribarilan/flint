@@ -58,7 +58,14 @@ jobs:
   2. Capture representative run URL(s) and observed duration(s) for `sprint01-chat-e2e`.
   3. Record findings here and in sprint task tracking before finalizing.
 
+Status: **Runtime budget proven on representative PR CI run**.
+
 ### Evidence Log
 
-- Pending: draft PR run for `sprint01-chat-e2e` (focused `simulator/tests/smoke.spec.ts -g "Sprint01 Chat Regressions"`).
-- Local pre-check: focused regression command passes locally; CI duration evidence will be added from GitHub Actions run summary.
+- Draft PR evidence run captured:
+  - PR: `https://github.com/oribarilan/flint/pull/1`
+  - Workflow run: `https://github.com/oribarilan/flint/actions/runs/23320234373`
+  - Job: `sprint01-chat-e2e` (`https://github.com/oribarilan/flint/actions/runs/23320234373/job/67829706752`)
+  - Result: **success**, duration **49s** (`2026-03-19T22:37:35Z` → `2026-03-19T22:38:24Z`)
+  - Budget check: **PASS** (`49s <= 8m`)
+- Local pre-check: focused regression command passes locally.
