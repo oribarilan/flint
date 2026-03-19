@@ -51,3 +51,36 @@ jobs:
 
       - name: Run checks
         run: just check
+
+  sprint01-chat-e2e:
+    runs-on: ubuntu-latest
+    # Runtime budget guardrail: keep focused simulator regression <= 8 minutes.
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run focused sprint01 chat regression E2E
+        run: xvfb-run -a npx playwright test simulator/tests/smoke.spec.ts -g "Sprint01 Chat Regressions"
+
+      - name: Upload Playwright artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sprint01-chat-e2e-artifacts-${{ github.run_id }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7

@@ -18,6 +18,15 @@ test.describe("Flint Simulator - Smoke Tests", () => {
     await waitForSimReady(page);
   });
 
+  test("simulator runs in deterministic test mode", async ({ page }) => {
+    const mode = await page.evaluate(() => {
+      const sim = (window as unknown as { __sim?: { mode?: string } }).__sim;
+      return sim?.mode ?? null;
+    });
+
+    expect(mode).toBe("test");
+  });
+
   test("app renders with search bar", async ({ page }) => {
     const input = searchInput(page);
     await expect(input).toBeVisible();
@@ -46,6 +55,69 @@ test.describe("Flint Simulator - Smoke Tests", () => {
     await page.waitForTimeout(300);
     const results = page.locator('[class*="resultItem"]');
     await expect(results).toHaveCount(0);
+  });
+});
+
+test.describe("Flint Simulator - Sprint01 Chat Regressions", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+    await waitForSimReady(page);
+    await page.keyboard.press("Tab");
+    await page.waitForTimeout(300);
+  });
+
+  test("agent mode stays interactive in simulator test mode", async ({ page }) => {
+    await expect(searchInput(page)).toHaveAttribute("placeholder", "Ask anything...");
+    await expect(page.getByText("Agent Mode", { exact: false })).toBeVisible();
+  });
+
+  test("sending a message renders assistant response", async ({ page }) => {
+    const input = searchInput(page);
+    await input.fill("hello");
+    await page.keyboard.press("Enter");
+
+    await expect(page.getByText("Second Brain Doctor", { exact: false })).toBeVisible({
+      timeout: 6000,
+    });
+  });
+
+  test("new chat clears previous conversation", async ({ page }) => {
+    const input = searchInput(page);
+    await input.fill("hello");
+    await page.keyboard.press("Enter");
+    await expect(page.getByText("Second Brain Doctor", { exact: false })).toBeVisible({
+      timeout: 6000,
+    });
+
+    await page.getByRole("button", { name: "New chat" }).click();
+
+    await expect(
+      page.getByText("Ask anything about your notes, or try a suggestion:"),
+    ).toBeVisible();
+    await expect(page.getByText("Second Brain Doctor", { exact: false })).toHaveCount(0);
+  });
+
+  test("repeated init path still allows normal chat response", async ({ page }) => {
+    await page.evaluate(async () => {
+      const internals = (
+        window as unknown as {
+          __TAURI_INTERNALS__?: {
+            invoke?: (command: string, args?: Record<string, unknown>) => Promise<unknown>;
+          };
+        }
+      ).__TAURI_INTERNALS__;
+
+      await internals?.invoke?.("init_opencode");
+      await internals?.invoke?.("init_opencode");
+    });
+
+    const input = searchInput(page);
+    await input.fill("hello");
+    await page.keyboard.press("Enter");
+
+    await expect(page.getByText("Second Brain Doctor", { exact: false })).toBeVisible({
+      timeout: 6000,
+    });
   });
 });
 

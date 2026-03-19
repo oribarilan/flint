@@ -7,7 +7,7 @@ module.exports = {
     "plugin:@typescript-eslint/stylistic-type-checked",
     "prettier",
   ],
-  ignorePatterns: ["dist", ".eslintrc.cjs", "*.d.ts"],
+  ignorePatterns: ["dist", ".eslintrc.cjs", "*.d.ts", "simulator/**", "playwright.config.ts"],
   parser: "@typescript-eslint/parser",
   parserOptions: {
     project: ["./tsconfig.json", "./tsconfig.node.json"],

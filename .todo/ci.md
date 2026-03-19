@@ -48,3 +48,17 @@ jobs:
 1. Create `.github/workflows/check.yml` with the matrix above.
 2. Verify it passes on all three platforms.
 3. Add branch protection rule requiring the check to pass.
+
+## Runtime Budget Tracking (Sprint02)
+
+- Focused simulator regression job target: `sprint01-chat-e2e` should complete within **<= 8 minutes** on `ubuntu-latest`.
+- Added CI guardrail: job-level `timeout-minutes: 8` plus focused command scope (`simulator/tests/smoke.spec.ts` + `-g "Sprint01 Chat Regressions"`).
+- Follow-up process:
+  1. Open draft PR with workflow changes.
+  2. Capture representative run URL(s) and observed duration(s) for `sprint01-chat-e2e`.
+  3. Record findings here and in sprint task tracking before finalizing.
+
+### Evidence Log
+
+- Pending: draft PR run for `sprint01-chat-e2e` (focused `simulator/tests/smoke.spec.ts -g "Sprint01 Chat Regressions"`).
+- Local pre-check: focused regression command passes locally; CI duration evidence will be added from GitHub Actions run summary.
