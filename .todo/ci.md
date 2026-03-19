@@ -68,4 +68,9 @@ Status: **Runtime budget proven on representative PR CI run**.
   - Job: `sprint01-chat-e2e` (`https://github.com/oribarilan/flint/actions/runs/23320234373/job/67829706752`)
   - Result: **success**, duration **49s** (`2026-03-19T22:37:35Z` → `2026-03-19T22:38:24Z`)
   - Budget check: **PASS** (`49s <= 8m`)
+- Re-run after docs evidence commit:
+  - Workflow run: `https://github.com/oribarilan/flint/actions/runs/23320457402`
+  - Job: `sprint01-chat-e2e` (`https://github.com/oribarilan/flint/actions/runs/23320457402/job/67830391602`)
+  - Result: **success**, duration **51s** (`2026-03-19T22:44:16Z` → `2026-03-19T22:45:07Z`)
+  - Budget check: **PASS** (`51s <= 8m`)
 - Local pre-check: focused regression command passes locally.
