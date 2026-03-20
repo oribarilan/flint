@@ -20,46 +20,53 @@ When proposing changes that would alter the spec or design spec (new modes, diff
 
 ## Task Management
 
-Work items live in `.todo/` as self-contained Markdown files. Each file carries enough context for a fresh session to pick it up and execute without external knowledge.
+Work items live in `.todo/` and are organized by sprint. Each sprint is theme-focused and contains its own plan plus task files that carry enough context for a fresh session.
 
 ### Directory Structure
 
-| Directory        | Purpose                                                                | Contents                                                       |
-| ---------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------- |
-| `.todo/`         | **Ready to implement** — clear tasks with defined scope                | Requirements, implementation steps, file changes               |
-| `.todo/explore/` | **Needs research** — ideas that need investigation before committing   | Options, trade-offs, platform considerations, phased breakdown |
-| `.todo/done/`    | **Historical record** — completed tasks preserved for future reference | Decisions made, rationale, architecture chosen                 |
+| Path                       | Purpose                                                              | Contents                                                                 |
+| -------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `.todo/sprint07/`          | **Active sprint** — a focused theme for a bounded batch of work      | `main.md` + task files for that sprint                                   |
+| `.todo/sprint07/main.md`   | **Sprint plan** — shared context and sequencing for the whole sprint | Theme, goals, ordering, dependencies, sprint-level notes and checkpoints |
+| `.todo/sprint07/<task>.md` | **Task file** — spec + implementation tracker for one unit of work   | Requirements, DoD/tests, alternatives, recommendation, progress          |
+| `.todo/done/sprint07/`     | **Completed sprint archive** — preserved for future reference        | Finalized `main.md`, task files, decisions, rationale                    |
 
 ### Lifecycle
 
 ```
-explore/  ──(promote)──▶  .todo/  ──(finalize)──▶  done/
-                            ▲
-               (clear tasks go directly here)
+.todo/sprint07/  ──(finalize sprint)──▶  .todo/done/sprint07/
 ```
 
-- **Clear tasks** go directly to `.todo/` root — no exploration needed.
-- **Exploratory items** start in `explore/`. When research is complete, update the file with findings and decisions, then promote it to `.todo/` root.
-- **Completed tasks** move to `done/` via `git mv` when the user says to finalize. The `done/` directory serves as a decision log — future sessions can reference it for rationale and context.
+- **Every sprint must have a theme.** Keep tasks in that sprint aligned to one coherent objective.
+- **Every sprint must include `main.md`.** This is the sprint-level source of truth for sequencing and shared context.
+- **When a sprint is complete**, move the entire sprint folder to `.todo/done/` via `git mv` when the user says to finalize.
 
 ### File Format
 
-Every `.todo/` file follows this structure:
+Every sprint task file (`.todo/sprint07/<task-name>.md`) should follow this structure:
 
 1. **`# Title`** — Feature or task name.
 2. **`## Summary`** — 2–4 sentences: what and why.
-3. **`## Requirements`** or **`## Decisions`** — Scope, constraints, decision tables.
-4. **`## Implementation`** — Architecture, code sketches, numbered steps.
-5. (Optional) **`## Notes`**, **`## Risks`**, **`## Out of Scope`** — Caveats and boundaries.
+3. **`## High-Level Requirements`** — Scope, constraints, expectations.
+4. **`## Definition of Done`** — Explicit completion criteria.
+5. **`## Testing Plan`** — How DoD will be verified (commands, test layers, validation evidence).
+6. **`## Alternatives Considered`** — Candidate designs/implementations with trade-offs.
+7. **`## Recommended Approach`** — Which alternative to execute and why.
+8. **`## Implementation`** — Architecture, code sketches, numbered steps.
+9. **`## Progress / Notes`** — Ongoing implementation notes, findings, blockers, and status updates.
 
-Explore files tend to be longer with more options and trade-off analysis. Root files are focused and imperative.
+`main.md` in each sprint should describe the sprint theme, overall plan, sequencing/order, cross-task dependencies, and any sprint-wide context.
+
+Task files are living documents and should be updated as work progresses to capture task-related information.
 
 ### Rules for Agents
 
-- **Only work on a `.todo/` item when the user explicitly asks.** Do not proactively pick up tasks.
-- **Do not move files to `done/` until the user says to finalize.** The user decides when a task is truly complete.
-- **Either the user or the agent can create new `.todo/` files.** When an agent identifies follow-up work during a task, it can create a new `.todo/` file for it.
-- **Treat `.todo/` files as the task spec.** Read the file thoroughly before starting. If the file conflicts with `spec.md` or `specs/design.md`, raise it.
+- **Only work on a sprint task when the user explicitly asks.** Do not proactively pick up tasks.
+- **Read both sprint `main.md` and the task file before starting.** Treat them as the task spec.
+- **Keep task progress in the task file.** Update `## Progress / Notes` with relevant implementation context.
+- **Do not move a sprint to `.todo/done/` until the user says to finalize.** The user decides when a sprint is truly complete.
+- **Either the user or the agent can create new sprint task files.** When follow-up work is discovered, add it under the same sprint when appropriate.
+- If a task file conflicts with `spec.md` or `specs/design.md`, raise it before implementing.
 
 ## Engineering Principles
 
