@@ -22,8 +22,8 @@ The matrix `check` job is currently failing on Ubuntu and Windows due to Rust/Cl
 
 ## Acceptance Criteria
 
-- [ ] `just lint-rust` passes locally.
-- [ ] `just check` passes locally.
+- [x] `just lint-rust` passes locally.
+- [x] `just check` passes locally.
 - [ ] Representative PR `check` matrix passes on Ubuntu/Windows for this ticket.
 
 ## Verification Commands
@@ -32,3 +32,19 @@ The matrix `check` job is currently failing on Ubuntu and Windows due to Rust/Cl
 just lint-rust
 just check
 ```
+
+## Progress / Notes
+
+- 2026-03-20: Implemented cross-platform lint fixes for reported CI failures:
+  - `src-tauri/src/commands/search.rs`: removed non-macOS-only `unused_mut` by splitting mutable/non-mutable bindings behind `#[cfg]`.
+  - `src-tauri/src/commands/files.rs`: replaced `map(...).unwrap_or_else(...)` with `map_or_else(...)`.
+  - `src-tauri/src/kits/window_management.rs`:
+    - removed redundant local rebinding,
+    - removed `trim()` before `split_whitespace()`,
+    - made Windows stub `tile_window` synchronous and added cfg-specific call sites in `execute`.
+  - `src-tauri/src/focus.rs`: made Windows stub helpers `const fn` to satisfy Clippy.
+  - `src-tauri/src/lib.rs`: gated `mod icons;` to macOS so Linux/Windows CI does not fail on macOS-only dead code.
+- Local verification:
+  - `just lint-rust` ✅
+  - `just check` ✅
+- Remaining acceptance item requires a representative PR run to confirm Ubuntu/Windows matrix green.

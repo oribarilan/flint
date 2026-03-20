@@ -119,7 +119,15 @@ impl Kit for WindowManagementKit {
 
         tracing::debug!(command = %command_id, "executing window tile");
 
-        platform::tile_window(layout).await.map_err(KitError::Internal)?;
+        #[cfg(target_os = "windows")]
+        {
+            platform::tile_window(layout).map_err(KitError::Internal)?;
+        }
+
+        #[cfg(not(target_os = "windows"))]
+        {
+            platform::tile_window(layout).await.map_err(KitError::Internal)?;
+        }
 
         Ok(CommandOutput::Done)
     }
@@ -256,7 +264,6 @@ mod platform {
     /// Uses display geometry for screen bounds. Does not account for
     /// desktop panels — a known limitation for V1.
     pub async fn tile_window(layout: TileLayout) -> Result<(), String> {
-        let layout = layout;
         tokio::task::spawn_blocking(move || tile_window_blocking(layout))
             .await
             .map_err(|e| format!("task join failed: {e}"))?
@@ -300,7 +307,7 @@ mod platform {
             .map_err(|e| format!("xdotool not found: {e}"))?;
 
         let text = String::from_utf8_lossy(&output.stdout);
-        let parts: Vec<&str> = text.trim().split_whitespace().collect();
+        let parts: Vec<&str> = text.split_whitespace().collect();
         if parts.len() < 2 {
             return Err(format!("unexpected xdotool output: {text}"));
         }
@@ -335,7 +342,7 @@ mod platform {
 
     /// Stub — Windows support requires the `windows` crate for
     /// `SetWindowPos` / `GetForegroundWindow`.
-    pub async fn tile_window(_layout: TileLayout) -> Result<(), String> {
+    pub fn tile_window(_layout: TileLayout) -> Result<(), String> {
         Err("window tiling is not yet supported on Windows".to_string())
     }
 }

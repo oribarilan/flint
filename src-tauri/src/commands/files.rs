@@ -157,8 +157,7 @@ fn reveal_path_in_file_manager(path: &str) -> Result<(), String> {
         // DBus method to select the file; falls back to opening the parent.
         let parent = std::path::Path::new(path)
             .parent()
-            .map(|p| p.to_string_lossy().to_string())
-            .unwrap_or_else(|| path.to_string());
+            .map_or_else(|| path.to_string(), |p| p.to_string_lossy().to_string());
         std::process::Command::new("xdg-open").arg(&parent).spawn().map_err(|e| e.to_string())?;
     }
 

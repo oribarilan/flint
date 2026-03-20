@@ -92,8 +92,14 @@ pub async fn search_all(
         .collect();
     scored.sort_by(|a, b| b.0.cmp(&a.0));
 
-    let mut results: Vec<KitSearchResult> =
+    let base_results: Vec<KitSearchResult> =
         scored.into_iter().take(MAX_RESULTS).map(|(_, r)| r).collect();
+
+    #[cfg(target_os = "macos")]
+    let mut results = base_results;
+
+    #[cfg(not(target_os = "macos"))]
+    let results = base_results;
 
     // For 3+ char queries, also search files via Spotlight (async, ~100ms).
     #[cfg(target_os = "macos")]

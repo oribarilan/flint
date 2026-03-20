@@ -99,11 +99,11 @@ mod platform {
 mod platform {
     /// Stub — Windows support requires the `windows` crate for
     /// `GetForegroundWindow` / `SetForegroundWindow`.
-    pub fn get_frontmost_app() -> Option<String> {
+    pub const fn get_frontmost_app() -> Option<String> {
         None
     }
 
-    pub fn activate_app(_handle: &str) {
+    pub const fn activate_app(_handle: &str) {
         // No-op until Win32 API support is added.
     }
 }

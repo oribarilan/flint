@@ -7,6 +7,7 @@ mod commands;
 pub mod config;
 mod error;
 mod focus;
+#[cfg(target_os = "macos")]
 mod icons;
 pub mod indexer;
 pub mod kits;
