@@ -17,7 +17,6 @@ test.describe("Settings - Navigation", () => {
     await expect(page.getByRole("button", { name: "General" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Search" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Agent" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Brain" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Kits" })).toBeVisible();
   });
 
@@ -33,17 +32,10 @@ test.describe("Settings - Agent", () => {
     await page.getByRole("button", { name: "Agent" }).click();
   });
 
-  test("shows connected providers list", async ({ page }) => {
-    await expect(page.getByText("Model Providers")).toBeVisible();
-    // Both providers should show as connected
-    await expect(page.getByText("GitHub Copilot")).toBeVisible();
-    await expect(page.getByText("OpenCode Zen")).toBeVisible();
-  });
-
-  test("shows Reconnect button when provider is connected", async ({ page }) => {
-    // Connected badge should be visible for providers
-    const badges = page.getByText("Connected", { exact: true });
-    expect(await badges.count()).toBeGreaterThanOrEqual(1);
+  test("shows connection controls for second-brain/OpenCode", async ({ page }) => {
+    await expect(page.getByText("Second Brain", { exact: true })).toBeVisible();
+    await expect(page.getByText("Connection", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Restart OpenCode" })).toBeVisible();
   });
 
   test("shows default model picker", async ({ page }) => {
@@ -55,21 +47,21 @@ test.describe("Settings - Agent", () => {
   });
 });
 
-test.describe("Settings - Brain", () => {
+test.describe("Settings - Agent Repository", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/?page=settings");
     await waitForSettings(page);
-    await page.getByRole("button", { name: "Brain" }).click();
+    await page.getByRole("button", { name: "Agent" }).click();
   });
 
-  test("shows Second Brain section with no-repo state", async ({ page }) => {
+  test("shows second brain section with repository controls", async ({ page }) => {
     await expect(page.getByText("Second Brain")).toBeVisible();
-    // Select button visible when no repo
-    await expect(page.getByRole("button", { name: "Select" })).toBeVisible();
+    await expect(page.getByLabel("Second brain repository path")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Browse" })).toBeVisible();
   });
 
-  test("shows select button when no repo", async ({ page }) => {
+  test("shows repository and save controls", async ({ page }) => {
     await expect(page.getByText("Repository")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Select" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Save" })).toBeVisible();
   });
 });

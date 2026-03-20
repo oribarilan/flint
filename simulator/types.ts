@@ -8,6 +8,10 @@ export interface SimState {
   config: FlintConfig;
   chatStatus: ChatStatus;
   isStreaming: boolean;
+  opencode: {
+    autoReconnectOnInit: boolean;
+    nextSessionIndex: number;
+  };
   projectModelConfig: {
     exists: boolean;
     has_model: boolean;

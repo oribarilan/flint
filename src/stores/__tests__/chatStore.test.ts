@@ -8,6 +8,7 @@ beforeEach(() => {
     currentResponse: "",
     activeToolCalls: [],
     chatStatus: { connected: false, sessionId: null, repoPath: null },
+    notice: null,
   });
 });
 
@@ -49,8 +50,8 @@ describe("chatStore", () => {
     const state = useChatStore.getState();
     // Messages unchanged — no empty assistant message added
     expect(state.messages).toEqual([{ role: "user", content: "hi" }]);
-    // isStreaming stays true because finishResponse bailed out early
-    expect(state.isStreaming).toBe(true);
+    // stream is terminated even without buffered text
+    expect(state.isStreaming).toBe(false);
   });
 
   it("full chat lifecycle: addUser → append tokens → finish", () => {
@@ -154,6 +155,34 @@ describe("chatStore", () => {
     useChatStore.getState().addToolCall({ kitId: "calculator", toolName: "calculate" });
     useChatStore.getState().clearChat();
 
+    expect(useChatStore.getState().activeToolCalls).toEqual([]);
+  });
+
+  it("setNotice and clearNotice manage non-blocking notice state", () => {
+    useChatStore.getState().setNotice({
+      level: "warning",
+      message: "Retrying…",
+    });
+    expect(useChatStore.getState().notice).toEqual({
+      level: "warning",
+      message: "Retrying…",
+    });
+
+    useChatStore.getState().clearNotice();
+    expect(useChatStore.getState().notice).toBeNull();
+  });
+
+  it("resetTransientState clears streaming and tool indicators", () => {
+    useChatStore.setState({
+      isStreaming: true,
+      currentResponse: "partial",
+      activeToolCalls: [{ kitId: null, toolName: "bash" }],
+    });
+
+    useChatStore.getState().resetTransientState();
+
+    expect(useChatStore.getState().isStreaming).toBe(false);
+    expect(useChatStore.getState().currentResponse).toBe("");
     expect(useChatStore.getState().activeToolCalls).toEqual([]);
   });
 

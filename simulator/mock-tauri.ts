@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 /**
  * Simulator mock layer for Tauri APIs.
  *
@@ -17,11 +19,69 @@ import { DEFAULT_CONFIG, createPlatformHandlers } from "./mock-platform";
 import { createMockOpenCodeHandlers } from "./mock-opencode";
 import { createProxyHandlers, shutdownProxy } from "./opencode-proxy";
 
+interface SimulatorGlobal {
+  __TAURI_INTERNALS__: {
+    invoke: typeof invoke;
+    transformCallback: typeof transformCallback;
+    convertFileSrc: (path: string) => string;
+    unregisterCallback: (id: number) => void;
+    metadata: {
+      currentWindow: { label: string };
+      currentWebview: { label: string };
+    };
+  };
+  __TAURI_EVENT_PLUGIN_INTERNALS__: {
+    unregisterListener: (event: string, eventId: number) => void;
+  };
+  __sim: {
+    emit: typeof emitToListeners;
+    state: SimState;
+    getState: () => SimState;
+    setConnected: (connected: boolean) => void;
+    setAutoReconnectOnInit: (enabled: boolean) => void;
+    setHasModel: (hasModel: boolean) => void;
+    setRepoPath: (path: string) => void;
+    shutdown: typeof shutdownProxy;
+    mode: "dev" | "test";
+  };
+}
+
+const simWindow = window as unknown as Window & SimulatorGlobal;
+
 // ---------------------------------------------------------------------------
 // Mode detection
 // ---------------------------------------------------------------------------
 
 const SIM_MODE: "dev" | "test" = import.meta.env.MODE === "test" ? "test" : "dev";
+
+const SIM_OVERRIDES_KEY = "flint:sim:overrides";
+const DEFAULT_PROJECT_MODEL = "anthropic/claude-sonnet-4";
+
+type SimOverrides = {
+  connected?: boolean;
+  autoReconnectOnInit?: boolean;
+  hasModel?: boolean;
+  repoPath?: string;
+};
+
+function readSimOverrides(): SimOverrides {
+  if (SIM_MODE !== "test") return {};
+  try {
+    const raw = window.sessionStorage.getItem(SIM_OVERRIDES_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as SimOverrides;
+    return typeof parsed === "object" && parsed !== null ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeSimOverrides(patch: SimOverrides): void {
+  if (SIM_MODE !== "test") return;
+  const current = readSimOverrides();
+  const next = { ...current, ...patch };
+  window.sessionStorage.setItem(SIM_OVERRIDES_KEY, JSON.stringify(next));
+}
 
 // ---------------------------------------------------------------------------
 // Event system — mirrors Tauri's event infrastructure
@@ -32,6 +92,16 @@ type EventHandler = (event: { event: string; id: number; payload: unknown }) => 
 let nextCallbackId = 1;
 const callbacks = new Map<number, EventHandler>();
 const eventListeners = new Map<string, Set<number>>();
+
+function unregisterEventHandler(handlerId: number): void {
+  callbacks.delete(handlerId);
+  for (const [event, listeners] of eventListeners.entries()) {
+    listeners.delete(handlerId);
+    if (listeners.size === 0) {
+      eventListeners.delete(event);
+    }
+  }
+}
 
 function transformCallback(callback: EventHandler, _once?: boolean): number {
   const id = nextCallbackId++;
@@ -55,18 +125,44 @@ function emitToListeners(event: string, payload: unknown): void {
 const state: SimState = {
   config: structuredClone(DEFAULT_CONFIG),
   chatStatus: {
-    connected: SIM_MODE === "test",
+    connected: true,
     session_id: SIM_MODE === "test" ? "sim-session-001" : null,
     repo_path: SIM_MODE === "test" ? "/mock/second-brain" : null,
   },
   isStreaming: false,
+  opencode: {
+    autoReconnectOnInit: true,
+    nextSessionIndex: 2,
+  },
   projectModelConfig: {
     exists: SIM_MODE === "test",
     has_model: SIM_MODE === "test",
-    model: SIM_MODE === "test" ? "anthropic/claude-sonnet-4" : null,
+    model: SIM_MODE === "test" ? DEFAULT_PROJECT_MODEL : null,
     path: SIM_MODE === "test" ? "/mock/second-brain/opencode.jsonc" : "",
   },
 };
+
+const persistedOverrides = readSimOverrides();
+
+if (SIM_MODE === "test") {
+  if (typeof persistedOverrides.connected === "boolean") {
+    state.chatStatus.connected = persistedOverrides.connected;
+  }
+
+  if (typeof persistedOverrides.autoReconnectOnInit === "boolean") {
+    state.opencode.autoReconnectOnInit = persistedOverrides.autoReconnectOnInit;
+  }
+
+  if (typeof persistedOverrides.repoPath === "string") {
+    state.config.second_brain.repo_path = persistedOverrides.repoPath;
+    state.chatStatus.repo_path = persistedOverrides.repoPath;
+  }
+
+  if (typeof persistedOverrides.hasModel === "boolean") {
+    state.projectModelConfig.has_model = persistedOverrides.hasModel;
+    state.projectModelConfig.model = persistedOverrides.hasModel ? DEFAULT_PROJECT_MODEL : null;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Build handler map — platform mocks + either proxy or mock OpenCode handlers
@@ -84,20 +180,20 @@ const allHandlers: CommandHandlerMap = { ...platformHandlers, ...opencodeHandler
 // Invoke handler — routes commands to handlers or event system
 // ---------------------------------------------------------------------------
 
-let nextEventId = 1;
-
 async function invoke(command: string, args?: Record<string, unknown>): Promise<unknown> {
   // Handle Tauri's internal event plugin commands
   if (command === "plugin:event|listen") {
     const event = args?.event as string;
     const handlerId = args?.handler as number;
-    const eventId = nextEventId++;
 
     const listeners = eventListeners.get(event) ?? new Set();
     listeners.add(handlerId);
     eventListeners.set(event, listeners);
 
-    return eventId;
+    // Tauri's JS event layer expects an id that can be passed back to
+    // unregisterListener(event, id). Returning the handler callback id keeps
+    // listen/unlisten semantics deterministic and avoids leaked listeners.
+    return handlerId;
   }
 
   if (command === "plugin:event|unlisten") {
@@ -108,6 +204,9 @@ async function invoke(command: string, args?: Record<string, unknown>): Promise<
       listeners.delete(eventId);
       if (listeners.size === 0) eventListeners.delete(event);
     }
+
+    // Keep callback map in sync even if callers skip unregisterListener.
+    callbacks.delete(eventId);
     return;
   }
 
@@ -134,12 +233,12 @@ async function invoke(command: string, args?: Record<string, unknown>): Promise<
 
 export function installSimulator(): void {
   // Patch the global that @tauri-apps/api reads from
-  (window as Record<string, unknown>).__TAURI_INTERNALS__ = {
+  simWindow.__TAURI_INTERNALS__ = {
     invoke,
     transformCallback,
     convertFileSrc: (path: string) => path,
     unregisterCallback: (id: number) => {
-      callbacks.delete(id);
+      unregisterEventHandler(id);
     },
     metadata: {
       currentWindow: { label: "main" },
@@ -148,23 +247,38 @@ export function installSimulator(): void {
   };
 
   // Patch the event plugin internals (used by _unlisten in @tauri-apps/api/event)
-  (window as Record<string, unknown>).__TAURI_EVENT_PLUGIN_INTERNALS__ = {
-    unregisterListener: (_event: string, _eventId: number) => {
-      // Handled by invoke('plugin:event|unlisten')
+  simWindow.__TAURI_EVENT_PLUGIN_INTERNALS__ = {
+    unregisterListener: (_event: string, eventId: number) => {
+      unregisterEventHandler(eventId);
     },
   };
 
   // Expose simulator API for Playwright
-  (window as Record<string, unknown>).__sim = {
+  simWindow.__sim = {
     emit: emitToListeners,
     state,
     getState: () => state,
     setConnected: (connected: boolean) => {
       state.chatStatus.connected = connected;
+      writeSimOverrides({ connected });
+    },
+    setAutoReconnectOnInit: (enabled: boolean) => {
+      state.opencode.autoReconnectOnInit = enabled;
+      writeSimOverrides({ autoReconnectOnInit: enabled });
+    },
+    setHasModel: (hasModel: boolean) => {
+      state.projectModelConfig.has_model = hasModel;
+      if (!hasModel) {
+        state.projectModelConfig.model = null;
+      } else if (!state.projectModelConfig.model) {
+        state.projectModelConfig.model = DEFAULT_PROJECT_MODEL;
+      }
+      writeSimOverrides({ hasModel });
     },
     setRepoPath: (path: string) => {
       state.config.second_brain.repo_path = path;
       state.chatStatus.repo_path = path;
+      writeSimOverrides({ repoPath: path });
     },
     shutdown: shutdownProxy,
     mode: SIM_MODE,

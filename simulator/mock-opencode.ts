@@ -158,6 +158,12 @@ const MOCK_DEFAULT_MODEL = "anthropic/claude-sonnet-4";
 // ---------------------------------------------------------------------------
 
 export function createMockOpenCodeHandlers(state: SimState, emit: EmitFn): CommandHandlerMap {
+  const nextSessionId = () => {
+    const id = `sim-session-${String(state.opencode.nextSessionIndex).padStart(3, "0")}`;
+    state.opencode.nextSessionIndex += 1;
+    return id;
+  };
+
   return {
     get_chat_status: () => structuredClone(state.chatStatus),
 
@@ -192,7 +198,9 @@ export function createMockOpenCodeHandlers(state: SimState, emit: EmitFn): Comma
       state.isStreaming = false;
     },
 
-    clear_chat: () => {},
+    clear_chat: () => {
+      state.chatStatus.session_id = nextSessionId();
+    },
 
     get_session_messages: () => {
       // In test mode, return empty history (fresh session).
@@ -200,10 +208,18 @@ export function createMockOpenCodeHandlers(state: SimState, emit: EmitFn): Comma
     },
 
     init_opencode: () => {
+      if (!state.opencode.autoReconnectOnInit) {
+        throw new Error("Simulated reconnect failure");
+      }
+
+      const resolvedRepoPath =
+        state.config.second_brain.repo_path ?? state.chatStatus.repo_path ?? "/mock/second-brain";
+
+      state.config.second_brain.repo_path = resolvedRepoPath;
       state.chatStatus = {
         connected: true,
-        session_id: "sim-session-001",
-        repo_path: state.config.second_brain.repo_path,
+        session_id: state.chatStatus.session_id ?? "sim-session-001",
+        repo_path: resolvedRepoPath,
       };
     },
   };

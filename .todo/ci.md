@@ -48,3 +48,23 @@ jobs:
 1. Create `.github/workflows/check.yml` with the matrix above.
 2. Verify it passes on all three platforms.
 3. Add branch protection rule requiring the check to pass.
+
+## Sprint03 Gap Snapshot (2026-03-20)
+
+Representative failing run: `https://github.com/oribarilan/flint/actions/runs/23320457402`
+
+- `sprint01-chat-e2e`: ✅ passing, **51s** (within <= 8m budget)
+- `check (ubuntu-latest)`: ❌ fails in `lint-rust` (`clippy -D warnings`)
+- `check (windows-latest)`: ❌ fails in `lint-rust` (`clippy -D warnings`)
+
+Primary gap classes:
+
+1. Rust lint failures (cross-platform + Windows-specific) in `commands.rs`, `icons.rs`, `focus.rs`, `kits/window_management.rs`.
+2. Node 20 action deprecation warning for `actions/checkout@v4` and `actions/setup-node@v4`.
+
+Tracked in Sprint03:
+
+- `.todo/sprint03/1-fix-cross-platform-clippy-breakages.md`
+- `.todo/sprint03/2-icons-module-lifecycle-and-usage.md`
+- `.todo/sprint03/3-actions-node24-deprecation-mitigation.md`
+- `.todo/sprint03/4-ci-diagnostics-and-runtime-observability.md`

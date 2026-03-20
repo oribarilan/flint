@@ -1,8 +1,9 @@
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   getChatStatus,
   initOpencode,
   getAvailableModels,
+  getProjectModelConfigStatus,
   type FlintConfig,
   type ChatStatus,
   type AvailableModel,
@@ -16,6 +17,11 @@ interface AgentSettingsProps {
   onResetSection: (section: keyof FlintConfig) => Promise<FlintConfig | undefined>;
 }
 
+interface ProjectModelStatus {
+  has_model: boolean;
+  model: string | null;
+}
+
 export default function AgentSettings({ config, onUpdate, onResetSection }: AgentSettingsProps) {
   const [chatStatus, setChatStatus] = useState<ChatStatus>({
     connected: false,
@@ -23,7 +29,11 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
     repo_path: null,
   });
   const [models, setModels] = useState<AvailableModel[]>([]);
+  const [projectModelStatus, setProjectModelStatus] = useState<ProjectModelStatus | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isRestarting, setIsRestarting] = useState(false);
+  const [repoPathDraft, setRepoPathDraft] = useState(config.second_brain.repo_path ?? "");
+  const [repoPathError, setRepoPathError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const refreshStatus = useCallback(() => {
@@ -35,12 +45,26 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
   }, []);
 
   const refreshModels = useCallback(() => {
-    getAvailableModels()
-      .then(([list]) => {
-        setModels(list);
+    Promise.allSettled([getAvailableModels(), getProjectModelConfigStatus()])
+      .then(([modelsResult, projectResult]) => {
+        if (modelsResult.status === "fulfilled") {
+          setModels(modelsResult.value[0]);
+        } else {
+          setModels([]);
+        }
+
+        if (projectResult.status === "fulfilled") {
+          setProjectModelStatus({
+            has_model: projectResult.value.has_model,
+            model: projectResult.value.model,
+          });
+        } else {
+          setProjectModelStatus(null);
+        }
       })
       .catch(() => {
-        // Models unavailable — section will be hidden.
+        setModels([]);
+        setProjectModelStatus(null);
       });
   }, []);
 
@@ -62,8 +86,45 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
       }
       refreshModels();
     };
+
     void init();
   }, [refreshStatus, refreshModels]);
+
+  useEffect(() => {
+    setRepoPathDraft(config.second_brain.repo_path ?? "");
+  }, [config.second_brain.repo_path]);
+
+  const reconnectAndRefresh = async (): Promise<void> => {
+    await initOpencode();
+    refreshStatus();
+    refreshModels();
+  };
+
+  const handleSaveRepoPath = async (rawPath?: string): Promise<void> => {
+    const nextPath = (rawPath ?? repoPathDraft).trim();
+    if (!nextPath) {
+      setRepoPathError("Repository path is required.");
+      return;
+    }
+
+    setRepoPathError(null);
+    setError(null);
+
+    await onUpdate({
+      ...config,
+      second_brain: { ...config.second_brain, repo_path: nextPath },
+    });
+
+    setIsConnecting(true);
+    try {
+      await reconnectAndRefresh();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message);
+    } finally {
+      setIsConnecting(false);
+    }
+  };
 
   const handleBrowseRepo = async () => {
     try {
@@ -73,27 +134,35 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
         multiple: false,
         title: "Select your second brain repository",
       });
+
       if (selected && typeof selected === "string") {
-        await onUpdate({
-          ...config,
-          second_brain: { ...config.second_brain, repo_path: selected },
-        });
-        // Reconnect with new repo path.
-        setIsConnecting(true);
-        setError(null);
-        try {
-          await initOpencode();
-          refreshStatus();
-          refreshModels();
-        } catch (err: unknown) {
-          const message = err instanceof Error ? err.message : String(err);
-          setError(message);
-        } finally {
-          setIsConnecting(false);
-        }
+        setRepoPathDraft(selected);
+        await handleSaveRepoPath(selected);
       }
     } catch {
       // Dialog cancelled or unavailable.
+    }
+  };
+
+  const handleRepoPathKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      void handleSaveRepoPath();
+    }
+  };
+
+  const handleRestart = async () => {
+    if (isRestarting || isConnecting) return;
+
+    setIsRestarting(true);
+    setError(null);
+    try {
+      await reconnectAndRefresh();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message);
+    } finally {
+      setIsRestarting(false);
     }
   };
 
@@ -109,9 +178,17 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
     await onResetSection("second_brain");
   };
 
-  const hasRepoPath = Boolean(config.second_brain.repo_path);
+  const hasRepoPath = Boolean((config.second_brain.repo_path ?? "").trim());
   const currentModelName =
     models.find((m) => m.id === config.chat.default_model)?.name ?? config.chat.default_model;
+  const modelSubtitle =
+    models.length === 0
+      ? chatStatus.connected
+        ? "No models available from OpenCode"
+        : "Models unavailable while disconnected"
+      : projectModelStatus?.has_model && projectModelStatus.model
+        ? `Project default: ${projectModelStatus.model}`
+        : currentModelName;
 
   return (
     <div className={styles.page}>
@@ -128,8 +205,8 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
           </div>
           {chatStatus.connected && hasRepoPath ? (
             <span className={styles.statusBadge}>Connected</span>
-          ) : isConnecting ? (
-            <span className={styles.hint}>Connecting…</span>
+          ) : isConnecting || isRestarting ? (
+            <span className={styles.hint}>{isRestarting ? "Restarting…" : "Connecting…"}</span>
           ) : hasRepoPath ? (
             <span className={styles.statusDisconnected}>Not connected</span>
           ) : (
@@ -137,17 +214,63 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
           )}
         </div>
 
-        <div className={styles.row}>
+        <div className={styles.rowTop}>
           <span className={styles.label}>Repository</span>
           <div className={styles.pathRow}>
-            <span className={styles.pathValue}>
-              {config.second_brain.repo_path ?? "No repo selected"}
-            </span>
+            <input
+              className={[styles.input, repoPathError ? styles.inputError : ""]
+                .filter(Boolean)
+                .join(" ")}
+              value={repoPathDraft}
+              onChange={(e) => {
+                setRepoPathDraft(e.target.value);
+                if (repoPathError) {
+                  setRepoPathError(null);
+                }
+              }}
+              onKeyDown={handleRepoPathKeyDown}
+              placeholder="/path/to/second-brain"
+              aria-label="Second brain repository path"
+            />
             <button className={styles.buttonSmall} onClick={() => void handleBrowseRepo()}>
-              {hasRepoPath ? "Change" : "Select"}
+              Browse
+            </button>
+            <button
+              className={styles.buttonSmall}
+              onClick={() => {
+                void handleSaveRepoPath();
+              }}
+              disabled={isConnecting || isRestarting}
+            >
+              Save
             </button>
           </div>
         </div>
+
+        <div className={styles.row}>
+          <span className={styles.label}>Connection</span>
+          <div className={styles.providerControl}>
+            <span className={styles.statusInline}>
+              {chatStatus.connected ? "Connected" : "Disconnected"}
+            </span>
+            <button
+              className={styles.buttonSmallGhost}
+              onClick={() => {
+                void handleRestart();
+              }}
+              disabled={isConnecting || isRestarting}
+            >
+              {isRestarting ? "Restarting…" : "Restart OpenCode"}
+            </button>
+          </div>
+        </div>
+
+        {repoPathError && (
+          <div className={styles.row}>
+            <span />
+            <p className={styles.error}>{repoPathError}</p>
+          </div>
+        )}
 
         {error && (
           <div className={styles.row}>
@@ -158,18 +281,18 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
       </section>
 
       {/* ── Default Model ────────────────────────────────── */}
-      {models.length > 0 && (
-        <section className={styles.section}>
-          <div className={styles.providerHeader}>
-            <div className={styles.providerInfo}>
-              <div>
-                <span className={styles.providerName}>Default Model</span>
-                <span className={styles.providerDesc}>{currentModelName}</span>
-              </div>
+      <section className={styles.section}>
+        <div className={styles.providerHeader}>
+          <div className={styles.providerInfo}>
+            <div>
+              <span className={styles.providerName}>Default Model</span>
+              <span className={styles.providerDesc}>{modelSubtitle}</span>
             </div>
           </div>
-          <div className={styles.row}>
-            <span className={styles.label}>Model</span>
+        </div>
+        <div className={styles.row}>
+          <span className={styles.label}>Model</span>
+          {models.length > 0 ? (
             <div className={styles.selectWrap}>
               <select
                 className={styles.select}
@@ -183,9 +306,13 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
                 ))}
               </select>
             </div>
-          </div>
-        </section>
-      )}
+          ) : (
+            <p className={styles.fieldHint}>
+              No models available right now. Reconnect and try again.
+            </p>
+          )}
+        </div>
+      </section>
 
       <ResetSection label="Reset agent settings to defaults?" onReset={handleResetDefaults} />
     </div>

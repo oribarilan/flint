@@ -11,6 +11,8 @@ vi.mock("../lib/commands", () => ({
   openSettings: vi.fn(() => Promise.resolve()),
   searchFiles: vi.fn(() => Promise.resolve([])),
   searchAll: vi.fn(() => Promise.resolve([])),
+  clearChat: vi.fn(() => Promise.resolve()),
+  abortChat: vi.fn(() => Promise.resolve()),
   getChatStatus: vi.fn(() =>
     Promise.resolve({ connected: false, session_id: null, repo_path: null }),
   ),
@@ -53,6 +55,7 @@ beforeEach(() => {
     modelPickerActionPanelOpen: false,
     slashMenuOpen: false,
     slashMenuDismissed: false,
+    notice: null,
     chatStatus: { connected: false, sessionId: null, repoPath: null },
   });
   vi.clearAllMocks();
@@ -182,7 +185,27 @@ describe("Escape layering", () => {
     expect(useSearchStore.getState().mode).toBe("agent");
   });
 
-  it("Layer 3: clears chat session when messages exist and input is empty (stays in mode)", () => {
+  it("Layer 3: aborts streaming but keeps conversation history", () => {
+    useSearchStore.setState({ query: "", mode: "agent" });
+    useChatStore.setState({
+      messages: [{ role: "user", content: "hi" }],
+      isStreaming: true,
+      currentResponse: "partial",
+    });
+    renderHook(() => {
+      useKeybindings(createActions());
+    });
+
+    fireEscape();
+
+    expect(useChatStore.getState().isStreaming).toBe(false);
+    expect(useChatStore.getState().messages).toHaveLength(2); // user + finalized assistant
+    expect(useChatStore.getState().messages[1]).toEqual({ role: "assistant", content: "partial" });
+    expect(commands.abortChat).toHaveBeenCalledTimes(1);
+    expect(commands.clearChat).not.toHaveBeenCalled();
+  });
+
+  it("Layer 3: skips to hide window when messages exist but not streaming", () => {
     useSearchStore.setState({ query: "", mode: "agent" });
     useChatStore.setState({
       messages: [{ role: "user", content: "hi" }],
@@ -193,8 +216,10 @@ describe("Escape layering", () => {
 
     fireEscape();
 
-    expect(useChatStore.getState().messages).toEqual([]);
-    expect(useSearchStore.getState().mode).toBe("agent");
+    // Messages preserved — Escape goes straight to hide window
+    expect(useChatStore.getState().messages).toHaveLength(1);
+    expect(commands.hideWindow).toHaveBeenCalledTimes(1);
+    expect(commands.clearChat).not.toHaveBeenCalled();
   });
 
   it("Layer 4: dismisses window when in agent mode with empty input and no messages", () => {
@@ -222,30 +247,30 @@ describe("Escape layering", () => {
   });
 
   it("processes layers sequentially across multiple presses", () => {
-    // Start: agent mode with query text and messages
+    // Start: agent mode with query text, streaming response
     useSearchStore.setState({ query: "test query", mode: "agent" });
     useChatStore.setState({
-      messages: [
-        { role: "user", content: "hello" },
-        { role: "assistant", content: "hi there" },
-      ],
+      messages: [{ role: "user", content: "hello" }],
+      isStreaming: true,
+      currentResponse: "partial answer",
     });
     renderHook(() => {
       useKeybindings(createActions());
     });
 
-    // First Escape: clears input (Layer 1)
+    // First Escape: clears input (Layer 2)
     fireEscape();
     expect(useSearchStore.getState().query).toBe("");
     expect(useSearchStore.getState().mode).toBe("agent");
-    expect(useChatStore.getState().messages).toHaveLength(2);
+    expect(useChatStore.getState().isStreaming).toBe(true); // still streaming
 
-    // Second Escape: clears chat (Layer 2), stays in agent mode
+    // Second Escape: aborts streaming (Layer 3), keeps messages
     fireEscape();
-    expect(useChatStore.getState().messages).toEqual([]);
-    expect(useSearchStore.getState().mode).toBe("agent");
+    expect(useChatStore.getState().isStreaming).toBe(false);
+    expect(useChatStore.getState().messages).toHaveLength(2); // user + finalized assistant
+    expect(commands.abortChat).toHaveBeenCalledTimes(1);
 
-    // Third Escape: dismisses window (Layer 3)
+    // Third Escape: dismisses window (Layer 4) — messages still present
     fireEscape();
     expect(commands.hideWindow).toHaveBeenCalledTimes(1);
   });

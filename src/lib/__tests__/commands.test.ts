@@ -11,6 +11,10 @@ import {
   revealInFileManager,
   deleteToTrash,
   openInEditor,
+  sendChatMessage,
+  getSessionMessages,
+  initOpencode,
+  clearChat,
   getAvailableModels,
   getProjectModelConfigStatus,
   setProjectDefaultModel,
@@ -123,6 +127,38 @@ describe("commands", () => {
     expect(mockedInvoke).toHaveBeenCalledWith("open_in_editor", {
       path: "/tmp/test.rs",
     });
+  });
+
+  it("sendChatMessage passes delta-only message payload", async () => {
+    mockedInvoke.mockResolvedValue(undefined);
+
+    await sendChatMessage("hello", "anthropic", "claude-sonnet-4");
+
+    expect(mockedInvoke).toHaveBeenCalledWith("send_chat_message", {
+      message: "hello",
+      providerId: "anthropic",
+      modelId: "claude-sonnet-4",
+    });
+    const payload = mockedInvoke.mock.calls[0]?.[1] as Record<string, unknown>;
+    expect(payload).not.toHaveProperty("history");
+  });
+
+  it("getSessionMessages invokes backend session history command", async () => {
+    mockedInvoke.mockResolvedValue([]);
+    await getSessionMessages();
+    expect(mockedInvoke).toHaveBeenCalledWith("get_session_messages");
+  });
+
+  it("clearChat invokes backend clear command", async () => {
+    mockedInvoke.mockResolvedValue(undefined);
+    await clearChat();
+    expect(mockedInvoke).toHaveBeenCalledWith("clear_chat");
+  });
+
+  it("initOpencode invokes backend init command", async () => {
+    mockedInvoke.mockResolvedValue(undefined);
+    await initOpencode();
+    expect(mockedInvoke).toHaveBeenCalledWith("init_opencode");
   });
 
   it("getAvailableModels invokes get_available_models", async () => {

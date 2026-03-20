@@ -29,6 +29,11 @@ test.describe("Flint Simulator - Smoke Tests", () => {
     await expect(banner).toHaveText("SIMULATOR");
   });
 
+  test("simulator mode is deterministic test mode under Playwright", async ({ page }) => {
+    const mode = await page.evaluate(() => (window as any).__sim.mode);
+    expect(mode).toBe("test");
+  });
+
   test("typing in search bar shows results", async ({ page }) => {
     const input = searchInput(page);
     await input.fill("term");
@@ -78,7 +83,7 @@ test.describe("Flint Simulator - Agent Mode", () => {
     await page.keyboard.press("Enter");
 
     // Wait for the simulated streaming response
-    await expect(page.getByText("Flint simulator", { exact: false })).toBeVisible({
+    await expect(page.getByText("Second Brain Doctor", { exact: false })).toBeVisible({
       timeout: 5000,
     });
   });
@@ -247,6 +252,134 @@ test.describe("Flint Simulator - Tool Calls", () => {
   });
 });
 
+test.describe("Flint Simulator - Sprint01 Chat Regressions", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+    await waitForSimReady(page);
+    await page.keyboard.press("Tab");
+    await page.waitForTimeout(300);
+  });
+
+  test("send shows waiting indicator then stream content", async ({ page }) => {
+    const input = searchInput(page);
+    await input.fill("hello");
+    await page.keyboard.press("Enter");
+
+    await expect(page.getByLabel("Thinking")).toBeVisible({ timeout: 3000 });
+    await expect(page.getByText("Second Brain Doctor", { exact: false })).toBeVisible({
+      timeout: 8000,
+    });
+  });
+
+  test("escape during streaming aborts response but keeps messages", async ({ page }) => {
+    const input = searchInput(page);
+
+    await input.fill("hello");
+    await page.keyboard.press("Enter");
+    // Wait for streaming to start (thinking indicator)
+    await expect(page.getByLabel("Thinking")).toBeVisible({ timeout: 3000 });
+
+    // Press Escape while streaming — should abort but keep conversation
+    await page.keyboard.press("Escape");
+
+    // Streaming stopped — messages should still be visible (user message at minimum)
+    await expect(page.getByLabel("Thinking")).not.toBeVisible({ timeout: 3000 });
+    // The "New chat" button proves messages are still present
+    await expect(page.getByRole("button", { name: "New chat" })).toBeVisible({ timeout: 3000 });
+  });
+
+  test("New chat button clears chat and starts fresh backend session", async ({ page }) => {
+    const input = searchInput(page);
+
+    await input.fill("hello");
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("button", { name: "New chat" })).toBeVisible({ timeout: 5000 });
+
+    const beforeSession = await page.evaluate(
+      () => (window as any).__sim.state.chatStatus.session_id,
+    );
+    await page.getByRole("button", { name: "New chat" }).click();
+
+    await expect(page.getByText("Second Brain Doctor", { exact: true })).toBeVisible();
+    const afterSession = await page.evaluate(
+      () => (window as any).__sim.state.chatStatus.session_id,
+    );
+    expect(afterSession).not.toBe(beforeSession);
+  });
+
+  test("required model picker blocks leaving agent mode until default selected", async ({
+    page,
+  }) => {
+    await page.evaluate(() => {
+      (window as any).__sim.setHasModel(false);
+    });
+    await page.reload();
+    await waitForSimReady(page);
+    await page.keyboard.press("Tab");
+
+    await expect(page.getByRole("listbox", { name: "Models" })).toBeVisible();
+
+    // Tab should be blocked while required model picker is open.
+    await page.keyboard.press("Tab");
+    await expect(page.getByRole("listbox", { name: "Models" })).toBeVisible();
+
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("listbox", { name: "Models" })).not.toBeVisible();
+    await page.waitForTimeout(200);
+
+    await page.keyboard.press("Tab");
+    await searchInput(page).fill("term");
+    await expect(page.getByText("Terminal", { exact: true })).toBeVisible({ timeout: 3000 });
+  });
+
+  test("disconnect shows retry and reconnect flow", async ({ page }) => {
+    await page.evaluate(() => {
+      (window as any).__sim.setConnected(false);
+      (window as any).__sim.setAutoReconnectOnInit(false);
+    });
+    await page.reload();
+    await waitForSimReady(page);
+    await page.keyboard.press("Tab");
+
+    await expect(page.getByText("OpenCode is disconnected", { exact: false })).toBeVisible();
+    await page.getByRole("button", { name: "Retry" }).click();
+    await expect(page.getByText("Reconnect failed", { exact: false })).toBeVisible();
+
+    await page.evaluate(() => {
+      (window as any).__sim.setAutoReconnectOnInit(true);
+    });
+    await page.getByRole("button", { name: "Retry" }).click();
+    await expect(page.getByTitle("Connected")).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText("OpenCode is disconnected", { exact: false })).not.toBeVisible();
+  });
+
+  test("repeated init path does not duplicate streamed artifacts", async ({ page }) => {
+    await page.evaluate(async () => {
+      const invoke = (window as any).__TAURI_INTERNALS__.invoke as (
+        command: string,
+        args?: Record<string, unknown>,
+      ) => Promise<unknown>;
+      await invoke("init_opencode");
+      await invoke("init_opencode");
+      await invoke("init_opencode");
+    });
+
+    const probe = "flint-stream-dup-check";
+    const input = searchInput(page);
+    await input.fill(probe);
+    await page.keyboard.press("Enter");
+
+    await expect(page.getByText("I searched your second brain", { exact: false })).toBeVisible({
+      timeout: 8000,
+    });
+    await expect(page.getByLabel("Thinking")).not.toBeVisible({ timeout: 5000 });
+
+    const assistantText = await page.locator('[class*="assistantMessage"]').last().innerText();
+    const probeOccurrences = assistantText.split(probe).length - 1;
+    expect(probeOccurrences).toBe(1);
+  });
+});
+
 test.describe("Flint Simulator - New Chat", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
@@ -262,7 +395,7 @@ test.describe("Flint Simulator - New Chat", () => {
     await page.keyboard.press("Enter");
 
     // Wait for response
-    await expect(page.getByText("Flint simulator", { exact: false })).toBeVisible({
+    await expect(page.getByText("Second Brain Doctor", { exact: false })).toBeVisible({
       timeout: 5000,
     });
 
@@ -271,6 +404,6 @@ test.describe("Flint Simulator - New Chat", () => {
     await page.waitForTimeout(300);
 
     // Messages should be cleared, empty state should show
-    await expect(page.getByText("Ask anything about your second brain")).toBeVisible();
+    await expect(page.getByText("Ask anything about your notes", { exact: false })).toBeVisible();
   });
 });

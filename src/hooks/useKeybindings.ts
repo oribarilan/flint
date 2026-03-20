@@ -1,7 +1,13 @@
 import { useEffect } from "react";
 import { useSearchStore } from "../stores/searchStore";
 import { useChatStore } from "../stores/chatStore";
-import { hideWindow, openSettings } from "../lib/commands";
+import {
+  hideWindow,
+  openSettings,
+  clearChat as clearBackendChat,
+  abortChat,
+  getChatStatus,
+} from "../lib/commands";
 import { suppressNextBlurHide } from "../lib/focus";
 import { isMac } from "../lib/platform";
 
@@ -31,6 +37,49 @@ function redispatchAsArrow(original: KeyboardEvent, arrowKey: string): void {
 /** Check whether the platform meta-key (Cmd on Mac, Ctrl elsewhere) is held. */
 function isCmdOrCtrl(e: KeyboardEvent): boolean {
   return isMac() ? e.metaKey : e.ctrlKey;
+}
+
+async function syncChatStatusFromBackend(): Promise<void> {
+  try {
+    const status = await getChatStatus();
+    useChatStore.getState().setChatStatus({
+      connected: status.connected,
+      sessionId: status.session_id,
+      repoPath: status.repo_path,
+    });
+  } catch {
+    // Best-effort sync only.
+  }
+}
+
+async function clearBackendChatWithRetry(): Promise<void> {
+  try {
+    await clearBackendChat();
+    await syncChatStatusFromBackend();
+    return;
+  } catch {
+    useChatStore.getState().setNotice({
+      level: "warning",
+      message: "Chat reset failed. Retrying…",
+    });
+  }
+
+  await new Promise<void>((resolve) => {
+    window.setTimeout(() => {
+      resolve();
+    }, 200);
+  });
+
+  try {
+    await clearBackendChat();
+    await syncChatStatusFromBackend();
+    useChatStore.getState().clearNotice();
+  } catch {
+    useChatStore.getState().setNotice({
+      level: "warning",
+      message: "Backend session may still contain old context. You can continue safely.",
+    });
+  }
 }
 
 interface KeybindingActions {
@@ -98,15 +147,11 @@ export function useKeybindings(actions: KeybindingActions): void {
         return;
       }
 
-      // ── CmdOrCtrl+N → New session ─────────────────────────
+      // ── CmdOrCtrl+N → New session (clear chat + reset backend) ──
       if (isCmdOrCtrl(e) && e.key.toLowerCase() === "n") {
         e.preventDefault();
         useChatStore.getState().clearChat();
-        void import("../lib/commands").then(({ clearChat }) => {
-          clearChat().catch(() => {
-            // best effort
-          });
-        });
+        void clearBackendChatWithRetry();
         actions.onFocusSearchBar();
         return;
       }
@@ -125,10 +170,11 @@ export function useKeybindings(actions: KeybindingActions): void {
       if (e.key === "Tab" && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
 
-        // Required model selection gate: do not allow leaving Agent flow
-        // until a project default model has been explicitly chosen.
+        // Block Tab while model picker is open.
+        // Required mode: user must pick a default before leaving agent flow.
+        // Session mode: closing the picker first avoids stale UI in search mode.
         const chat = useChatStore.getState();
-        if (chat.modelPickerOpen && chat.modelPickerMode === "default_required") {
+        if (chat.modelPickerOpen) {
           actions.onFocusSearchBar();
           return;
         }
@@ -195,9 +241,12 @@ export function useKeybindings(actions: KeybindingActions): void {
           return;
         }
 
-        // Layer 3: clear chat (stay in current mode)
-        if (useChatStore.getState().messages.length > 0) {
-          useChatStore.getState().clearChat();
+        // Layer 3: abort streaming (keep conversation history)
+        if (useChatStore.getState().isStreaming) {
+          useChatStore.getState().finishResponse();
+          abortChat().catch(() => {
+            // Abort is best-effort
+          });
           actions.onFocusSearchBar();
           return;
         }

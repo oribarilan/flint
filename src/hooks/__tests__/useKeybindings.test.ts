@@ -8,6 +8,11 @@ vi.mock("../../lib/commands", () => ({
   hideWindow: vi.fn(() => Promise.resolve()),
   openFile: vi.fn(() => Promise.resolve()),
   openSettings: vi.fn(() => Promise.resolve()),
+  clearChat: vi.fn(() => Promise.resolve()),
+  abortChat: vi.fn(() => Promise.resolve()),
+  getChatStatus: vi.fn(() =>
+    Promise.resolve({ connected: true, session_id: "session-2", repo_path: "/brain" }),
+  ),
 }));
 
 vi.mock("../../lib/platform", () => ({
@@ -65,6 +70,7 @@ beforeEach(() => {
     modelPickerActionPanelOpen: false,
     slashMenuOpen: false,
     slashMenuDismissed: false,
+    notice: null,
     chatStatus: { connected: false, sessionId: null, repoPath: null },
   });
   vi.clearAllMocks();
@@ -82,6 +88,19 @@ describe("useKeybindings", () => {
     fireKey("Tab");
 
     expect(actions.onToggleMode).toHaveBeenCalledTimes(1);
+  });
+
+  it("Tab is blocked while model picker is open (session mode)", () => {
+    useChatStore.setState({ modelPickerOpen: true, modelPickerMode: "session" });
+    const actions = createActions();
+    renderHook(() => {
+      useKeybindings(actions);
+    });
+
+    fireKey("Tab");
+
+    expect(actions.onToggleMode).not.toHaveBeenCalled();
+    expect(actions.onFocusSearchBar).toHaveBeenCalledTimes(1);
   });
 
   it("Tab with modifier keys does not toggle mode", () => {
@@ -143,10 +162,12 @@ describe("useKeybindings", () => {
     expect(useSearchStore.getState().mode).toBe("agent");
   });
 
-  it("Escape layer 2: clears chat and stays in current mode", () => {
+  it("Escape layer 2: aborts streaming but keeps conversation", () => {
     useSearchStore.setState({ query: "", mode: "agent" });
     useChatStore.setState({
       messages: [{ role: "user", content: "hi" }],
+      isStreaming: true,
+      currentResponse: "partial response",
     });
     const actions = createActions();
     renderHook(() => {
@@ -155,13 +176,15 @@ describe("useKeybindings", () => {
 
     fireKey("Escape");
 
-    expect(useChatStore.getState().messages).toEqual([]);
-    expect(useSearchStore.getState().mode).toBe("agent");
+    // Streaming aborted, but messages preserved (partial response finalized)
+    expect(useChatStore.getState().isStreaming).toBe(false);
+    expect(useChatStore.getState().messages).toHaveLength(2); // user + finalized assistant
+    expect(commands.abortChat).toHaveBeenCalledTimes(1);
     expect(actions.onFocusSearchBar).toHaveBeenCalledTimes(1);
   });
 
-  it("Escape layer 2: clears stale chat messages while in search mode", () => {
-    useSearchStore.setState({ query: "", mode: "search" });
+  it("Escape with idle messages skips to hide window (Cmd+N clears chat)", () => {
+    useSearchStore.setState({ query: "", mode: "agent" });
     useChatStore.setState({
       messages: [
         { role: "user", content: "hello" },
@@ -175,9 +198,10 @@ describe("useKeybindings", () => {
 
     fireKey("Escape");
 
-    expect(useChatStore.getState().messages).toEqual([]);
-    expect(useSearchStore.getState().mode).toBe("search");
-    expect(commands.hideWindow).not.toHaveBeenCalled();
+    // Messages NOT cleared — Escape skips to hide window
+    expect(useChatStore.getState().messages).toHaveLength(2);
+    expect(commands.hideWindow).toHaveBeenCalledTimes(1);
+    expect(commands.clearChat).not.toHaveBeenCalled();
   });
 
   it("Escape layer 3: dismisses window", () => {

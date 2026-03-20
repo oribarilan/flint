@@ -13,6 +13,19 @@ export default defineConfig(() => ({
     globals: true,
     setupFiles: ["./src/test-setup.ts"],
     exclude: ["**/node_modules/**", "**/simulator/**"],
+    coverage: {
+      provider: "v8" as const,
+      reporter: ["text", "json-summary", "lcov"],
+      reportsDirectory: "./coverage/frontend",
+      exclude: ["**/node_modules/**", "**/simulator/**", "src/test-setup.ts"],
+      include: ["src/**/*.{ts,tsx}"],
+      thresholds: {
+        lines: 50,
+        functions: 50,
+        branches: 50,
+        statements: 50,
+      },
+    },
   },
 
   // Vite options tailored for Tauri development

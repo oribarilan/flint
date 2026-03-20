@@ -12,6 +12,9 @@ import {
   getProjectModelConfigStatus,
   setProjectDefaultModel,
   openSettings,
+  initOpencode,
+  getChatStatus,
+  clearChat,
 } from "../lib/commands";
 import { renderMarkdown } from "../lib/markdown";
 import styles from "./ChatPanel.module.css";
@@ -334,17 +337,52 @@ export default function ChatPanel() {
   const isStreaming = useChatStore((s) => s.isStreaming);
   const currentResponse = useChatStore((s) => s.currentResponse);
   const activeToolCalls = useChatStore((s) => s.activeToolCalls);
+  const notice = useChatStore((s) => s.notice);
   const chatStatus = useChatStore((s) => s.chatStatus);
   const statusChecked = useChatStore((s) => s.statusChecked);
   const modelPickerOpen = useChatStore((s) => s.modelPickerOpen);
   const slashMenuOpen = useChatStore((s) => s.slashMenuOpen);
   const selectedModel = useChatStore((s) => s.selectedModel);
   const [completedTools, setCompletedTools] = useState<string[]>([]);
+  const [isRetryingConnection, setIsRetryingConnection] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const shouldAutoScrollRef = useRef(true);
+  const wasConnectedRef = useRef(false);
+  const lastHydratedSessionIdRef = useRef<string | null>(null);
 
   const isConfigured = chatStatus.repoPath !== null;
 
-  // Fetch models and session history on mount (only when connected)
+  const updateChatStatusFromBackend = async (): Promise<void> => {
+    const status = await getChatStatus();
+    useChatStore.getState().setChatStatus({
+      connected: status.connected,
+      sessionId: status.session_id,
+      repoPath: status.repo_path,
+    });
+  };
+
+  const fetchSessionMessagesWithRetry = async (): Promise<ChatMessage[]> => {
+    const mapHistory = (history: Awaited<ReturnType<typeof getSessionMessages>>): ChatMessage[] =>
+      history.map((m) => ({
+        role: m.role as ChatMessage["role"],
+        content: m.content,
+      }));
+
+    try {
+      const history = await getSessionMessages();
+      return mapHistory(history);
+    } catch {
+      await new Promise<void>((resolve) => {
+        window.setTimeout(() => {
+          resolve();
+        }, 200);
+      });
+      const retryHistory = await getSessionMessages();
+      return mapHistory(retryHistory);
+    }
+  };
+
+  // Fetch models/config when connected.
   useEffect(() => {
     if (!chatStatus.connected) return;
 
@@ -392,24 +430,62 @@ export default function ChatPanel() {
     };
 
     void loadModelsAndProjectDefault();
+  }, [chatStatus.connected]);
 
-    // Hydrate chat with existing session history (if any).
-    if (useChatStore.getState().messages.length === 0) {
-      void getSessionMessages()
-        .then((history) => {
-          if (history.length > 0) {
-            useChatStore.getState().setMessages(
-              history.map((m) => ({
-                role: m.role as ChatMessage["role"],
-                content: m.content,
-              })),
-            );
-          }
-        })
-        .catch(() => {
-          // History unavailable — non-critical, start fresh.
-        });
+  // Hydrate local timeline from current OpenCode session.
+  useEffect(() => {
+    if (!chatStatus.connected || chatStatus.sessionId === null) {
+      wasConnectedRef.current = false;
+      return;
     }
+
+    const justReconnected = !wasConnectedRef.current;
+    const sessionChanged = chatStatus.sessionId !== lastHydratedSessionIdRef.current;
+    const localMessages = useChatStore.getState().messages;
+    const shouldHydrate = justReconnected || sessionChanged || localMessages.length === 0;
+    const hadLocalMessagesAtHydrateStart = localMessages.length > 0;
+
+    wasConnectedRef.current = true;
+
+    if (!shouldHydrate) {
+      return;
+    }
+
+    let cancelled = false;
+    void fetchSessionMessagesWithRetry()
+      .then((hydrated) => {
+        if (cancelled) return;
+
+        const currentMessages = useChatStore.getState().messages;
+        const shouldReplaceTimeline = sessionChanged
+          ? hydrated.length > 0 || hadLocalMessagesAtHydrateStart || currentMessages.length === 0
+          : hydrated.length > 0 || currentMessages.length === 0;
+
+        if (shouldReplaceTimeline) {
+          useChatStore.getState().setMessages(hydrated);
+        }
+
+        lastHydratedSessionIdRef.current = chatStatus.sessionId;
+        useChatStore.getState().clearNotice();
+      })
+      .catch(() => {
+        if (cancelled) return;
+        useChatStore.getState().setNotice({
+          level: "warning",
+          message: "Couldn’t sync conversation history. Keeping the current timeline.",
+        });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [chatStatus.connected, chatStatus.sessionId]);
+
+  // When disconnected, clear transient stream/tool UI state.
+  useEffect(() => {
+    if (chatStatus.connected) return;
+    useChatStore.getState().resetTransientState();
+    setCompletedTools([]);
   }, [chatStatus.connected]);
 
   // Track completed tool calls
@@ -431,24 +507,101 @@ export default function ChatPanel() {
     prevToolsRef.current = currentNames;
   }, [activeToolCalls]);
 
-  // Auto-scroll on new content
+  // Track whether user is near bottom; if they scroll up, pause autoscroll.
   useEffect(() => {
     const el = containerRef.current;
-    if (el) {
-      el.scrollTop = el.scrollHeight;
-    }
-  }, [messages, currentResponse, activeToolCalls]);
+    if (!el) return;
+
+    const updateShouldAutoScroll = () => {
+      const distanceFromBottom = el.scrollHeight - (el.scrollTop + el.clientHeight);
+      shouldAutoScrollRef.current = distanceFromBottom <= 40;
+    };
+
+    updateShouldAutoScroll();
+    el.addEventListener("scroll", updateShouldAutoScroll, { passive: true });
+
+    return () => {
+      el.removeEventListener("scroll", updateShouldAutoScroll);
+    };
+  }, [modelPickerOpen, slashMenuOpen]);
+
+  // Auto-scroll on message-boundary / state transitions (not per token).
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || !shouldAutoScrollRef.current) return;
+    el.scrollTop = el.scrollHeight;
+  }, [messages, activeToolCalls, isStreaming]);
 
   const hasContent = messages.length > 0 || isStreaming;
+  const showConnectionNotice = isConfigured && (!chatStatus.connected || notice !== null);
+  const noticeRole = notice?.level === "error" ? "alert" : "status";
+  const noticeText = !chatStatus.connected
+    ? (notice?.message ?? "OpenCode is disconnected. Retry to restore chat.")
+    : notice?.message;
+
+  const clearBackendSessionWithRetry = async (): Promise<void> => {
+    try {
+      await clearChat();
+      await updateChatStatusFromBackend();
+      useChatStore.getState().clearNotice();
+      return;
+    } catch {
+      useChatStore.getState().setNotice({
+        level: "warning",
+        message: "Chat reset failed. Retrying…",
+      });
+    }
+
+    await new Promise<void>((resolve) => {
+      window.setTimeout(() => {
+        resolve();
+      }, 200);
+    });
+
+    try {
+      await clearChat();
+      await updateChatStatusFromBackend();
+      useChatStore.getState().clearNotice();
+    } catch {
+      useChatStore.getState().setNotice({
+        level: "warning",
+        message: "Backend session may still contain old context. You can continue safely.",
+      });
+    }
+  };
+
+  const handleRetryConnection = () => {
+    if (isRetryingConnection) return;
+
+    setIsRetryingConnection(true);
+    useChatStore.getState().setNotice({
+      level: "info",
+      message: "Reconnecting to OpenCode…",
+    });
+    useChatStore.getState().resetTransientState();
+    setCompletedTools([]);
+
+    void initOpencode()
+      .then(async () => {
+        await updateChatStatusFromBackend();
+        useChatStore.getState().clearNotice();
+      })
+      .catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : String(err);
+        useChatStore.getState().setNotice({
+          level: "error",
+          message: `Reconnect failed: ${message}`,
+        });
+      })
+      .finally(() => {
+        setIsRetryingConnection(false);
+      });
+  };
 
   const handleNewChat = () => {
     useChatStore.getState().clearChat();
     setCompletedTools([]);
-    void import("../lib/commands").then(({ clearChat }) => {
-      clearChat().catch(() => {
-        // Clear failed — non-critical.
-      });
-    });
+    void clearBackendSessionWithRetry();
   };
 
   const handleSuggestion = (text: string) => {
@@ -516,6 +669,43 @@ export default function ChatPanel() {
           {chatStatus.connected && <span className={styles.statusDot} title="Connected" />}
         </div>
       </div>
+
+      {showConnectionNotice && (
+        <div className={styles.connectionNotice} role={noticeRole}>
+          <span
+            className={
+              notice?.level === "error" || !chatStatus.connected
+                ? styles.noticeTextError
+                : notice?.level === "warning"
+                  ? styles.noticeTextWarning
+                  : styles.noticeText
+            }
+          >
+            {noticeText}
+          </span>
+          <div className={styles.noticeActions}>
+            {!chatStatus.connected && (
+              <button
+                className={styles.noticeButton}
+                onClick={handleRetryConnection}
+                disabled={isRetryingConnection}
+              >
+                {isRetryingConnection ? "Retrying…" : "Retry"}
+              </button>
+            )}
+            {notice !== null && (
+              <button
+                className={styles.noticeButtonGhost}
+                onClick={() => {
+                  useChatStore.getState().clearNotice();
+                }}
+              >
+                Dismiss
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Menus OR messages area */}
       {modelPickerOpen ? (

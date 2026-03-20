@@ -10,6 +10,11 @@ export interface ActiveToolCall {
   toolName: string;
 }
 
+export interface ChatNotice {
+  level: "info" | "warning" | "error";
+  message: string;
+}
+
 export type ModelPickerMode = "session" | "default_required";
 
 export interface SlashCommand {
@@ -69,6 +74,7 @@ interface ChatState {
   isStreaming: boolean;
   currentResponse: string;
   activeToolCalls: ActiveToolCall[];
+  notice: ChatNotice | null;
   chatStatus: { connected: boolean; sessionId: string | null; repoPath: string | null };
   /** Whether `setChatStatus` has been called at least once (avoids flash of "not configured"). */
   statusChecked: boolean;
@@ -90,6 +96,8 @@ interface ChatState {
   appendToken: (token: string) => void;
   finishResponse: () => void;
   setError: (error: string) => void;
+  setNotice: (notice: ChatNotice | null) => void;
+  clearNotice: () => void;
   setStreaming: (streaming: boolean) => void;
   setChatStatus: (status: {
     connected: boolean;
@@ -113,6 +121,7 @@ interface ChatState {
   setSlashMenuDismissed: (dismissed: boolean) => void;
   addToolCall: (call: ActiveToolCall) => void;
   removeToolCall: (toolName: string) => void;
+  resetTransientState: () => void;
   setMessages: (messages: ChatMessage[]) => void;
   clearChat: () => void;
 }
@@ -122,6 +131,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   isStreaming: false,
   currentResponse: "",
   activeToolCalls: [],
+  notice: null,
   chatStatus: { connected: false, sessionId: null, repoPath: null },
   statusChecked: false,
   selectedModel: null,
@@ -143,6 +153,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       messages: [...state.messages, { role: "user", content }],
       isStreaming: true,
       currentResponse: "",
+      notice: null,
     }));
   },
 
@@ -154,11 +165,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   finishResponse: () => {
     const { currentResponse } = get();
-    if (currentResponse.length === 0) return;
+    if (currentResponse.length === 0) {
+      set({ isStreaming: false, activeToolCalls: [] });
+      return;
+    }
     set((state) => ({
       messages: [...state.messages, { role: "assistant", content: currentResponse }],
       currentResponse: "",
       isStreaming: false,
+      activeToolCalls: [],
     }));
   },
 
@@ -167,7 +182,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
       messages: [...state.messages, { role: "error", content: error }],
       currentResponse: "",
       isStreaming: false,
+      activeToolCalls: [],
     }));
+  },
+
+  setNotice: (notice) => {
+    set({ notice });
+  },
+
+  clearNotice: () => {
+    set({ notice: null });
   },
 
   setStreaming: (streaming) => {
@@ -262,6 +286,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set((state) => ({
       activeToolCalls: state.activeToolCalls.filter((tc) => tc.toolName !== toolName),
     }));
+  },
+
+  resetTransientState: () => {
+    set({ isStreaming: false, currentResponse: "", activeToolCalls: [] });
   },
 
   setMessages: (messages) => {

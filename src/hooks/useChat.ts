@@ -2,6 +2,74 @@ import { useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { useChatStore } from "../stores/chatStore";
 
+interface ListenerRegistryState {
+  refCount: number;
+  setupPromise: Promise<void> | null;
+  unlisteners: (() => void)[] | null;
+  tokenEventCount: number;
+  setupGeneration: number;
+}
+
+const listenerRegistry: ListenerRegistryState = {
+  refCount: 0,
+  setupPromise: null,
+  unlisteners: null,
+  tokenEventCount: 0,
+  setupGeneration: 0,
+};
+
+function logDevDiagnostic(message: string): void {
+  if (!import.meta.env.DEV) return;
+  console.debug(`[chat-diag] ${message}`);
+}
+
+async function setupListeners(generation: number): Promise<void> {
+  const tokenUn = await listen<string>("chat:token", (event) => {
+    listenerRegistry.tokenEventCount += 1;
+    if (import.meta.env.DEV) {
+      const count = listenerRegistry.tokenEventCount;
+      if (count <= 3 || count % 50 === 0) {
+        logDevDiagnostic(`token event #${String(count)}`);
+      }
+    }
+    useChatStore.getState().appendToken(event.payload);
+  });
+  const doneUn = await listen("chat:done", () => {
+    useChatStore.getState().finishResponse();
+  });
+  const errorUn = await listen<string>("chat:error", (event) => {
+    useChatStore.getState().setError(event.payload);
+  });
+  const toolStartUn = await listen<string>("chat:tool_start", (event) => {
+    useChatStore.getState().addToolCall({ kitId: null, toolName: event.payload });
+  });
+  const toolEndUn = await listen<string>("chat:tool_end", (event) => {
+    useChatStore.getState().removeToolCall(event.payload);
+  });
+
+  const unlisteners = [tokenUn, doneUn, errorUn, toolStartUn, toolEndUn];
+  if (listenerRegistry.refCount === 0 || listenerRegistry.setupGeneration !== generation) {
+    unlisteners.forEach((fn) => {
+      fn();
+    });
+    return;
+  }
+
+  listenerRegistry.unlisteners = unlisteners;
+  logDevDiagnostic("listeners registered (count=5)");
+}
+
+function teardownListeners(): void {
+  const current = listenerRegistry.unlisteners;
+  if (!current) return;
+  current.forEach((fn) => {
+    fn();
+  });
+  listenerRegistry.unlisteners = null;
+  listenerRegistry.tokenEventCount = 0;
+  logDevDiagnostic("listeners removed");
+}
+
 /**
  * Subscribes to Tauri chat events and forwards them to the chat store.
  *
@@ -18,45 +86,25 @@ import { useChatStore } from "../stores/chatStore";
  */
 export function useChat(): void {
   useEffect(() => {
-    let cancelled = false;
-    const unlisteners: (() => void)[] = [];
+    listenerRegistry.refCount += 1;
 
-    const setup = async () => {
-      const tokenUn = await listen<string>("chat:token", (event) => {
-        useChatStore.getState().appendToken(event.payload);
-      });
-      const doneUn = await listen("chat:done", () => {
-        useChatStore.getState().finishResponse();
-      });
-      const errorUn = await listen<string>("chat:error", (event) => {
-        useChatStore.getState().setError(event.payload);
-      });
-      const toolStartUn = await listen<string>("chat:tool_start", (event) => {
-        useChatStore.getState().addToolCall({ kitId: null, toolName: event.payload });
-      });
-      const toolEndUn = await listen<string>("chat:tool_end", (event) => {
-        useChatStore.getState().removeToolCall(event.payload);
-      });
+    if (listenerRegistry.unlisteners === null && listenerRegistry.setupPromise === null) {
+      listenerRegistry.setupGeneration += 1;
+      const generation = listenerRegistry.setupGeneration;
+      listenerRegistry.setupPromise = setupListeners(generation)
+        .catch((err: unknown) => {
+          console.error("Failed to setup chat listeners:", err);
+        })
+        .finally(() => {
+          listenerRegistry.setupPromise = null;
+        });
+    }
 
-      if (cancelled) {
-        tokenUn();
-        doneUn();
-        errorUn();
-        toolStartUn();
-        toolEndUn();
-      } else {
-        unlisteners.push(tokenUn, doneUn, errorUn, toolStartUn, toolEndUn);
-      }
-    };
-
-    void setup().catch((err: unknown) => {
-      console.error("Failed to setup chat listeners:", err);
-    });
     return () => {
-      cancelled = true;
-      unlisteners.forEach((fn) => {
-        fn();
-      });
+      listenerRegistry.refCount = Math.max(0, listenerRegistry.refCount - 1);
+      if (listenerRegistry.refCount === 0) {
+        teardownListeners();
+      }
     };
   }, []);
 }

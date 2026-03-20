@@ -73,6 +73,73 @@
   background: var(--color-success);
 }
 
+.connectionNotice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-xs) var(--space-xl);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+}
+
+.noticeText,
+.noticeTextWarning,
+.noticeTextError {
+  font-size: var(--font-sm);
+}
+
+.noticeText {
+  color: var(--text-secondary);
+}
+
+.noticeTextWarning {
+  color: var(--text-secondary);
+}
+
+.noticeTextError {
+  color: var(--color-error);
+}
+
+.noticeActions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.noticeButton,
+.noticeButtonGhost {
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-sm);
+  font-family: var(--font-sans);
+  cursor: pointer;
+  border: 1px solid var(--border-subtle);
+}
+
+.noticeButton {
+  background: var(--bg-accent-subtle);
+  color: var(--accent);
+}
+
+.noticeButton:hover {
+  border-color: var(--border-hover);
+}
+
+.noticeButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.noticeButtonGhost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.noticeButtonGhost:hover {
+  color: var(--text-primary);
+}
+
 /* ── Model selector ────────────────────────────────────────── */
 
 .modelButton,

@@ -69,6 +69,19 @@ describe("useChat", () => {
     expect(mockListeners.has("chat:token")).toBe(true);
     expect(mockListeners.has("chat:done")).toBe(true);
     expect(mockListeners.has("chat:error")).toBe(true);
+    expect(mockListeners.get("chat:token")?.length).toBe(1);
+    expect(mockListeners.get("chat:done")?.length).toBe(1);
+  });
+
+  it("keeps one listener set across StrictMode-like remount", async () => {
+    const first = await renderChatHook();
+    expect(mockListeners.get("chat:token")?.length).toBe(1);
+
+    first.unmount();
+    expect(mockListeners.has("chat:token")).toBe(false);
+
+    await renderChatHook();
+    expect(mockListeners.get("chat:token")?.length).toBe(1);
   });
 
   it("chat:token event calls appendToken exactly once", async () => {

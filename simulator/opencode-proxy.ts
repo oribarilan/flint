@@ -344,10 +344,17 @@ export function createProxyHandlers(emit: EmitFn): CommandHandlerMap {
         if (proxyState.connected) {
           startSSEBridge(emit);
           await ensureSession();
+          return;
         }
+
+        // Keep disconnected state explicit when health check reports down.
+        stopSSEBridge();
+        proxyState.sessionId = null;
       } catch (e) {
         console.warn("[proxy] init_opencode failed — is the OpenCode server running?", e);
+        stopSSEBridge();
         proxyState.connected = false;
+        proxyState.sessionId = null;
       }
     },
 
