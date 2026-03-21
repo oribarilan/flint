@@ -31,6 +31,23 @@ Key diagnostics extracted from failed jobs:
   - `src-tauri/src/kits/window_management.rs:338` — `clippy::unused_async`
 - Actions warning: Node 20 deprecation for `actions/checkout@v4`, `actions/setup-node@v4`.
 
+### Current Status Snapshot (2026-03-21)
+
+- Ticket 1: **Implemented locally; partially verified in CI**
+  - Rust/Clippy failure class resolved locally (`just lint-rust`, `just check` pass).
+  - Representative run `23342082444` shows Ubuntu/macOS check green; Windows failed on frontend formatting (`format-frontend`), not Clippy.
+- Ticket 2: **Done**
+  - `icons.rs` lifecycle decision finalized: active macOS-only feature + platform gating boundary.
+  - Added macOS call-site unit coverage in `commands/files.rs`.
+- Ticket 3: **In progress**
+  - Workflow upgraded to Node 24-compatible action majors (`checkout@v6`, `setup-node@v6`).
+  - Pending representative CI run evidence post-change.
+- Ticket 4: **Done**
+  - CI triage + runtime observability guidance documented in `CONTRIBUTE.md`.
+
+- Additional stabilization in this sprint:
+  - Added repository `.gitattributes` to normalize LF line endings and reduce cross-platform Prettier churn.
+
 ## Implementation
 
 ### Ticket Plan
@@ -50,6 +67,18 @@ Key diagnostics extracted from failed jobs:
 ## Definition of Done (Sprint)
 
 - [ ] `check` workflow matrix is green (macOS, Ubuntu, Windows) for representative PR runs.
-- [ ] `sprint01-chat-e2e` remains <= 8 minutes and continues passing.
+- [x] `sprint01-chat-e2e` remains <= 8 minutes and continues passing.
 - [ ] Node 20 deprecation risk is mitigated or explicitly pinned with documented contingency.
-- [ ] CI failure triage is documented with reproducible local commands and log mapping.
+- [x] CI failure triage is documented with reproducible local commands and log mapping.
+
+## Finalization Decision
+
+- 2026-03-21: Finalized by explicit user request **without waiting on additional `check.yml` representative CI evidence**.
+- Remaining deferred validation:
+  - post-change representative matrix run proving all `check` legs green,
+  - post-change CI log confirmation that Node 20 action deprecation warning no longer appears.
+- Local verification completed before finalization:
+  - `just check` ✅
+  - `just lint-rust` ✅
+  - `just test-rust` ✅
+  - `npm run format:check` ✅

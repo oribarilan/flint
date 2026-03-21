@@ -255,4 +255,11 @@ mod tests {
         std::env::remove_var("EDITOR");
         assert_eq!(resolve_editor("auto"), None);
     }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn get_app_icon_returns_none_for_missing_bundle() {
+        let result = get_app_icon("/tmp/flint-not-an-app-bundle".to_string());
+        assert!(result.is_none());
+    }
 }

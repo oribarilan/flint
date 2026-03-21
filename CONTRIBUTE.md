@@ -86,3 +86,58 @@ just check
 ```
 
 This runs linting (Clippy + ESLint), formatting (rustfmt + Prettier), tests (Rust + frontend), and a full build.
+
+## CI Triage & Runtime Observability
+
+Use this flow to debug failing GitHub Actions runs quickly.
+
+### 1) Find recent runs
+
+```bash
+gh run list --workflow "Check" --limit 10
+```
+
+### 2) Inspect job-level status and IDs
+
+```bash
+gh run view <run-id> --json jobs,status,conclusion,url
+```
+
+### 3) Pull only failure logs
+
+```bash
+gh run view <run-id> --log-failed
+```
+
+### 4) Reproduce locally with matching commands
+
+- Matrix `check` job:
+
+```bash
+just check
+```
+
+- Focused simulator regression job:
+
+```bash
+npx playwright test simulator/tests/smoke.spec.ts -g "Sprint01 Chat Regressions"
+```
+
+### Runtime evidence convention
+
+When updating CI or runtime-sensitive checks, record representative run evidence in the relevant sprint/task file:
+
+- run URL and job URL
+- observed duration (start/end or total)
+- budget result (PASS/FAIL vs target)
+
+Current focused E2E budget target remains **<= 8 minutes** on `ubuntu-latest`.
+
+### Node runtime deprecation note
+
+The workflow uses Node 24-compatible action majors:
+
+- `actions/checkout@v6`
+- `actions/setup-node@v6`
+
+If GitHub Actions runtime policy changes again, prefer upgrading action major versions rather than adding bypass flags.

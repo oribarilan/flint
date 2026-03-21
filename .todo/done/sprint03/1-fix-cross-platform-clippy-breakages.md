@@ -48,3 +48,8 @@ just check
   - `just lint-rust` ✅
   - `just check` ✅
 - Remaining acceptance item requires a representative PR run to confirm Ubuntu/Windows matrix green.
+- Additional CI diagnosis (run `23342082444`):
+  - `check (ubuntu-latest)` ✅
+  - `check (macos-latest)` ✅
+  - `check (windows-latest)` ❌ due to `format-frontend`/Prettier line-ending diffs (not Rust/Clippy).
+  - This ticket’s Clippy failures are functionally resolved; remaining matrix instability moved to Sprint03 CI/runtime hygiene work.

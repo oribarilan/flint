@@ -23,9 +23,9 @@ Current dead-code failures include:
 
 ## Acceptance Criteria
 
-- [ ] No dead-code errors from `src-tauri/src/icons.rs` in `just lint-rust`.
-- [ ] Decision is documented (integrated now vs deferred with explicit boundary).
-- [ ] Any call-site integration is covered by unit tests.
+- [x] No dead-code errors from `src-tauri/src/icons.rs` in `just lint-rust`.
+- [x] Decision is documented (integrated now vs deferred with explicit boundary).
+- [x] Any call-site integration is covered by unit tests.
 
 ## Verification Commands
 
@@ -33,3 +33,14 @@ Current dead-code failures include:
 just lint-rust
 just test-rust
 ```
+
+## Progress / Notes
+
+- 2026-03-21: Confirmed icon extraction is an **active macOS-only feature** (not deferred):
+  - `get_app_icon` command calls `crate::icons::extract_app_icon` on macOS.
+  - `mod icons;` is gated behind `#[cfg(target_os = "macos")]` in `src-tauri/src/lib.rs` so non-macOS targets do not lint/build dead code for this module.
+- Added macOS unit test coverage for call-site behavior:
+  - `src-tauri/src/commands/files.rs` → `get_app_icon_returns_none_for_missing_bundle` (`#[cfg(target_os = "macos")]`).
+- Local verification:
+  - `just lint-rust` ✅
+  - `just test-rust` ✅ (includes `icons::tests::*` + new `get_app_icon` command test on macOS).

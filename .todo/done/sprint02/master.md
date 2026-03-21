@@ -133,7 +133,7 @@ just test-e2e
 - [x] Coverage enforcement and quick test paths are both available and validated.
 - [x] `commands.rs` and `kits/registry.rs` are split into focused modules.
 - [x] CI includes actionable failures (artifacts/logs) and avoids unnecessary runtime bloat.
-- [ ] No degradation introduced to overlay-ready or result-processing critical paths.
+- [x] No degradation introduced to overlay-ready or result-processing critical paths.
 
 ## Risks
 

@@ -12,7 +12,7 @@ jobs:
         os: [macos-latest, ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Rust (stable)
         uses: dtolnay/rust-toolchain@stable
@@ -23,7 +23,7 @@ jobs:
           workspaces: src-tauri
 
       - name: Install Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: npm
@@ -57,10 +57,10 @@ jobs:
     # Runtime budget guardrail: keep focused simulator regression <= 8 minutes.
     timeout-minutes: 8
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: npm
