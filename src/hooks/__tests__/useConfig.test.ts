@@ -20,6 +20,7 @@ const DEFAULT_CONFIG: FlintConfig = {
   search: { directories: ["/Users/test"] },
   chat: { default_model: "gpt-4o" },
   second_brain: { repo_path: null },
+  monitor: { discovery_mode: "hybrid", max_recent_sessions: 50 },
   kits: {},
   monitored_servers: [],
 };
@@ -106,6 +107,7 @@ describe("useConfig", () => {
       search: { directories: ["~/Desktop"] },
       chat: { default_model: "gpt-4.1" },
       second_brain: { repo_path: null },
+      monitor: { discovery_mode: "hybrid", max_recent_sessions: 50 },
       kits: {},
       monitored_servers: [],
     };

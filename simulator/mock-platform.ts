@@ -28,6 +28,7 @@ export const DEFAULT_CONFIG: FlintConfig = {
   search: { directories: ["~"] },
   chat: { default_model: "anthropic/claude-sonnet-4" },
   second_brain: { repo_path: null },
+  monitor: { discovery_mode: "hybrid", max_recent_sessions: 50 },
   kits: {},
   monitored_servers: [],
 };

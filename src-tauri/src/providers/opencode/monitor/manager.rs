@@ -3,6 +3,7 @@
 //! Owns all running per-server bridges so Flint can shut them down cleanly.
 
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 
 use crate::config::MonitoredServerConfig;
@@ -50,6 +51,35 @@ impl MonitorBridgeManager {
                 continue;
             }
 
+            let bridge = MonitorBridge::start(server, registry.clone(), app.clone());
+            self.bridges.insert(server.id.clone(), bridge);
+        }
+    }
+
+    /// Reconcile running bridges with desired server configs.
+    ///
+    /// Starts bridges for missing servers and stops bridges for stale ones.
+    pub fn reconcile(
+        &mut self,
+        desired: &[MonitoredServerConfig],
+        registry: &ServerRegistryState,
+        app: &tauri::AppHandle,
+    ) {
+        let desired_ids: HashSet<&str> = desired.iter().map(|s| s.id.as_str()).collect();
+
+        let stale: Vec<String> =
+            self.bridges.keys().filter(|id| !desired_ids.contains(id.as_str())).cloned().collect();
+
+        for id in stale {
+            if let Some(bridge) = self.bridges.remove(&id) {
+                bridge.stop();
+            }
+        }
+
+        for server in desired {
+            if self.bridges.contains_key(&server.id) {
+                continue;
+            }
             let bridge = MonitorBridge::start(server, registry.clone(), app.clone());
             self.bridges.insert(server.id.clone(), bridge);
         }

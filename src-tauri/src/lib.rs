@@ -28,6 +28,9 @@ use tracing_subscriber::EnvFilter;
 
 use indexer::AppIndex;
 use kits::{CommandMode, KitContextBase, KitIcon, KitRegistry, KitRegistryState};
+use providers::opencode::monitor::discovery::{
+    apply_monitor_topology, reconcile_discovery_loop, MonitorDiscoveryState,
+};
 use providers::opencode::monitor::manager::MonitorBridgeManagerState;
 use providers::opencode::monitor::ServerRegistryState;
 use providers::opencode::{OpenCodeProvider, OpenCodeProviderState};
@@ -147,42 +150,43 @@ pub fn run() {
             let bridge_manager_state = MonitorBridgeManagerState::new();
             app.manage(bridge_manager_state.clone());
 
-            // Keep monitor registry in sync with runtime config updates by
-            // sanitizing startup config before seeding state.
-            let sanitized_monitored_servers =
-                config::sanitize_monitored_servers(&kit_config.monitored_servers);
+            let discovery_state = MonitorDiscoveryState::new();
+            app.manage(discovery_state.clone());
+
+            // Seed monitor topology and start optional discovery loop.
             {
-                let mut srv_reg = server_registry_state.0.blocking_write();
-                srv_reg.replace_config(&sanitized_monitored_servers);
-            }
+                let mut startup_cfg = kit_config.clone();
+                startup_cfg.monitored_servers =
+                    config::sanitize_monitored_servers(&startup_cfg.monitored_servers);
+                startup_cfg.monitor.max_recent_sessions =
+                    config::clamp_monitor_recent_sessions(startup_cfg.monitor.max_recent_sessions);
 
-            // Spawn SSE monitor bridges for each configured server.
-            // Bridges run concurrently in background tasks — no overlay-ready path impact.
-            if !sanitized_monitored_servers.is_empty() {
-                use config::validate_monitored_servers;
+                let app_handle = app.handle().clone();
+                let server_registry_for_task = server_registry_state.clone();
+                let bridge_manager_for_task = bridge_manager_state.clone();
+                tauri::async_runtime::spawn(async move {
+                    apply_monitor_topology(
+                        &app_handle,
+                        &startup_cfg,
+                        &server_registry_for_task,
+                        &bridge_manager_for_task,
+                    )
+                    .await;
 
-                let valid_servers: Vec<_> = {
-                    let errs = validate_monitored_servers(&kit_config.monitored_servers);
-                    if !errs.is_empty() {
-                        for e in &errs {
-                            tracing::warn!(error = %e, "invalid monitored server config — skipping");
-                        }
-                    }
+                    tracing::info!("monitor topology initialized");
+                });
 
-                    sanitized_monitored_servers
-                };
-
-                if let Ok(mut manager) = bridge_manager_state.0.lock() {
-                    manager.start_all(&valid_servers, &server_registry_state, &app.handle().clone());
-                } else {
-                    tracing::warn!("monitor bridge manager lock poisoned; skipping bridge startup");
-                }
-
-                tracing::info!(
-                    count = valid_servers.len(),
-                    "monitor bridges spawned"
+                let mut loop_cfg = app_config.get();
+                loop_cfg.monitor.max_recent_sessions =
+                    config::clamp_monitor_recent_sessions(loop_cfg.monitor.max_recent_sessions);
+                reconcile_discovery_loop(
+                    &app.handle().clone(),
+                    &loop_cfg,
+                    &discovery_state,
+                    &server_registry_state,
+                    &bridge_manager_state,
+                    &app_config,
                 );
-
             }
 
             // Initialise kit registry and register built-in kits.
@@ -248,6 +252,11 @@ pub fn run() {
                     if let Some(manager_state) = app.try_state::<MonitorBridgeManagerState>() {
                         if let Ok(mut manager) = manager_state.0.lock() {
                             manager.stop_all();
+                        }
+                    }
+                    if let Some(discovery_state) = app.try_state::<MonitorDiscoveryState>() {
+                        if let Ok(mut discovery) = discovery_state.0.lock() {
+                            discovery.stop();
                         }
                     }
                 }

@@ -12,6 +12,7 @@
 //! The settings UI adds/removes servers via `ServerRegistry::replace_config`.
 
 pub mod bridge;
+pub mod discovery;
 pub mod manager;
 
 use std::collections::HashMap;
@@ -160,19 +161,37 @@ pub struct MonitoredServer {
     pub port: u16,
     /// Current health status.
     pub health: ServerHealthStatus,
+    /// Whether this server was configured manually or discovered automatically.
+    pub source: ServerSource,
     /// All known sessions on this server.
     pub sessions: HashMap<String, MonitoredSession>,
 }
 
+/// Provenance of a monitored server.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ServerSource {
+    /// Server was explicitly configured in Settings.
+    Config,
+    /// Server was auto-discovered from local running processes.
+    Discovered,
+}
+
 impl MonitoredServer {
     /// Create from config, starting in `Unknown` health.
-    pub fn new(server_id: String, label: String, host: String, port: u16) -> Self {
+    pub fn new(
+        server_id: String,
+        label: String,
+        host: String,
+        port: u16,
+        source: ServerSource,
+    ) -> Self {
         Self {
             server_id,
             label,
             host,
             port,
             health: ServerHealthStatus::Unknown,
+            source,
             sessions: HashMap::new(),
         }
     }
@@ -189,6 +208,7 @@ impl MonitoredServer {
 /// `Vec` — no locks held during the caller's iteration.
 pub struct ServerRegistry {
     pub(super) servers: HashMap<String, MonitoredServer>,
+    max_recent_sessions: usize,
 }
 
 /// Maximum sessions tracked per server (oldest are pruned).
@@ -200,7 +220,12 @@ pub const STALE_SESSION_MAX_AGE_SECS: u64 = 24 * 60 * 60;
 impl ServerRegistry {
     /// Create an empty registry.
     pub fn new() -> Self {
-        Self { servers: HashMap::new() }
+        Self { servers: HashMap::new(), max_recent_sessions: 50 }
+    }
+
+    /// Set the global cap for recent sessions returned by [`Self::sessions_snapshot`].
+    pub fn set_max_recent_sessions(&mut self, max_recent_sessions: usize) {
+        self.max_recent_sessions = max_recent_sessions.max(1);
     }
 
     /// Replace all servers with entries derived from config.
@@ -218,6 +243,11 @@ impl ServerRegistry {
                     host: cfg.host.clone(),
                     port: cfg.port,
                     health: existing.health,
+                    source: if cfg.id.starts_with("discovered:") {
+                        ServerSource::Discovered
+                    } else {
+                        ServerSource::Config
+                    },
                     sessions: existing.sessions,
                 }
             } else {
@@ -226,6 +256,11 @@ impl ServerRegistry {
                     cfg.label.clone().unwrap_or_else(|| cfg.host.clone()),
                     cfg.host.clone(),
                     cfg.port,
+                    if cfg.id.starts_with("discovered:") {
+                        ServerSource::Discovered
+                    } else {
+                        ServerSource::Config
+                    },
                 )
             };
             next.insert(cfg.id.clone(), entry);
@@ -276,6 +311,9 @@ impl ServerRegistry {
             .collect();
 
         out.sort_unstable_by_key(|s| s.age_seconds);
+        if out.len() > self.max_recent_sessions {
+            out.truncate(self.max_recent_sessions);
+        }
         out
     }
 
@@ -393,6 +431,7 @@ mod tests {
         let mut reg = ServerRegistry::new();
         reg.replace_config(&[cfg("s1", "my-host", 14096)]);
         assert_eq!(reg.servers["s1"].label, "my-host");
+        assert_eq!(reg.servers["s1"].source, ServerSource::Config);
     }
 
     #[test]
@@ -405,6 +444,20 @@ mod tests {
             label: Some("Work brain".to_string()),
         }]);
         assert_eq!(reg.servers["s1"].label, "Work brain");
+        assert_eq!(reg.servers["s1"].source, ServerSource::Config);
+    }
+
+    #[test]
+    fn discovered_id_marks_discovered_source() {
+        let mut reg = ServerRegistry::new();
+        reg.replace_config(&[MonitoredServerConfig {
+            id: "discovered:127.0.0.1:14096".to_string(),
+            host: "127.0.0.1".to_string(),
+            port: 14096,
+            label: Some("Auto".to_string()),
+        }]);
+
+        assert_eq!(reg.servers["discovered:127.0.0.1:14096"].source, ServerSource::Discovered);
     }
 
     #[test]
@@ -541,5 +594,23 @@ mod tests {
         reg.prune_stale_sessions(STALE_SESSION_MAX_AGE_SECS);
         assert_eq!(reg.session_count(), 1);
         assert!(reg.servers["s1"].sessions.contains_key("recent"));
+    }
+
+    #[test]
+    fn sessions_snapshot_respects_global_recent_limit() {
+        let mut reg = ServerRegistry::new();
+        reg.set_max_recent_sessions(3);
+        reg.replace_config(&[cfg("s1", "localhost", 14096)]);
+
+        for i in 0..10 {
+            reg.update_session(MonitoredSession::new(
+                format!("sess-{i}"),
+                "s1".to_string(),
+                format!("Session {i}"),
+            ));
+        }
+
+        let snapshot = reg.sessions_snapshot();
+        assert_eq!(snapshot.len(), 3);
     }
 }

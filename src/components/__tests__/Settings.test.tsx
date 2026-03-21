@@ -54,6 +54,7 @@ const BASE_CONFIG: FlintConfig = {
   search: { directories: [] },
   chat: { default_model: "gpt-4o" },
   second_brain: { repo_path: null },
+  monitor: { discovery_mode: "hybrid", max_recent_sessions: 50 },
   kits: {},
   monitored_servers: [],
 };

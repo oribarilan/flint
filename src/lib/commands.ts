@@ -137,6 +137,13 @@ export interface MonitoredServerConfig {
   label?: string | null;
 }
 
+export type MonitorDiscoveryMode = "manual" | "auto_local" | "hybrid";
+
+export interface MonitorConfig {
+  discovery_mode: MonitorDiscoveryMode;
+  max_recent_sessions: number;
+}
+
 export interface CommandConfigEntry {
   enabled?: boolean;
   prefix?: string;
@@ -155,6 +162,7 @@ export interface FlintConfig {
   search: SearchConfig;
   chat: ChatConfig;
   second_brain: SecondBrainConfig;
+  monitor: MonitorConfig;
   kits: Record<string, KitConfig>;
   monitored_servers: MonitoredServerConfig[];
 }

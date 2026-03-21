@@ -9,13 +9,14 @@ pub mod events;
 pub mod monitor;
 pub mod process;
 
+pub use client::OpenCodeClient;
+
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use tauri::AppHandle;
 use tokio::sync::RwLock;
 
-use client::OpenCodeClient;
 use events::EventBridge;
 use process::OpenCodeProcess;
 

@@ -3,9 +3,13 @@
 use tauri::{AppHandle, State};
 
 use crate::config::{
-    sanitize_monitored_servers, validate_monitored_servers, AppConfig, FlintConfig,
+    clamp_monitor_recent_sessions, sanitize_monitored_servers, validate_monitored_servers,
+    AppConfig, FlintConfig,
 };
 use crate::kits::{KitInfo, KitRegistryState};
+use crate::providers::opencode::monitor::discovery::{
+    apply_monitor_topology, reconcile_discovery_loop, MonitorDiscoveryState,
+};
 use crate::providers::opencode::monitor::manager::MonitorBridgeManagerState;
 use crate::providers::opencode::monitor::ServerRegistryState;
 
@@ -30,6 +34,7 @@ pub async fn update_config(
     config: State<'_, AppConfig>,
     server_registry: State<'_, ServerRegistryState>,
     monitor_manager: State<'_, MonitorBridgeManagerState>,
+    monitor_discovery: State<'_, MonitorDiscoveryState>,
     new_config: FlintConfig,
 ) -> Result<(), String> {
     // Validate monitored server input to keep backend state authoritative.
@@ -42,21 +47,27 @@ pub async fn update_config(
 
     config.update(new_config.clone()).map_err(|e| e.to_string())?;
 
-    let sanitized_servers = sanitize_monitored_servers(&new_config.monitored_servers);
+    let mut normalized_config = new_config;
+    normalized_config.monitored_servers =
+        sanitize_monitored_servers(&normalized_config.monitored_servers);
+    normalized_config.monitor.max_recent_sessions =
+        clamp_monitor_recent_sessions(normalized_config.monitor.max_recent_sessions);
 
-    {
-        let mut registry = server_registry.0.write().await;
-        registry.replace_config(&sanitized_servers);
-    }
-
-    {
-        let mut manager = monitor_manager
-            .0
-            .lock()
-            .map_err(|_| "monitor bridge manager lock poisoned".to_string())?;
-        manager.stop_all();
-        manager.start_all(&sanitized_servers, server_registry.inner(), &app);
-    }
+    apply_monitor_topology(
+        &app,
+        &normalized_config,
+        server_registry.inner(),
+        monitor_manager.inner(),
+    )
+    .await;
+    reconcile_discovery_loop(
+        &app,
+        &normalized_config,
+        monitor_discovery.inner(),
+        server_registry.inner(),
+        monitor_manager.inner(),
+        config.inner(),
+    );
 
     Ok(())
 }

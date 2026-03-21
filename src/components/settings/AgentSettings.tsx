@@ -8,6 +8,7 @@ import {
   type ChatStatus,
   type AvailableModel,
   type MonitoredServerConfig,
+  type MonitorDiscoveryMode,
 } from "../../lib/commands";
 import ResetSection from "./ResetSection";
 import styles from "./settings.module.css";
@@ -246,6 +247,33 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
   const handleResetDefaults = async () => {
     await onResetSection("chat");
     await onResetSection("second_brain");
+    await onResetSection("monitor");
+  };
+
+  const handleDiscoveryModeChange = (mode: MonitorDiscoveryMode) => {
+    if (!["manual", "auto_local", "hybrid"].includes(mode)) {
+      return;
+    }
+    void onUpdate({
+      ...config,
+      monitor: {
+        ...config.monitor,
+        discovery_mode: mode,
+      },
+    });
+  };
+
+  const handleMaxRecentSessionsChange = (value: string) => {
+    const parsed = Number(value);
+    if (!Number.isInteger(parsed)) return;
+    const clamped = Math.min(500, Math.max(1, parsed));
+    void onUpdate({
+      ...config,
+      monitor: {
+        ...config.monitor,
+        max_recent_sessions: clamped,
+      },
+    });
   };
 
   // ── Monitored server handlers ─────────────────────────────
@@ -437,6 +465,50 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
           )}
         </div>
 
+        <div className={styles.row}>
+          <span className={styles.label}>
+            Server discovery
+            <span className={styles.sublabel}>
+              How Flint finds OpenCode servers on this machine
+            </span>
+          </span>
+          <div className={styles.selectWrap}>
+            <select
+              className={styles.select}
+              aria-label="Server discovery mode"
+              value={config.monitor.discovery_mode}
+              onChange={(e) => {
+                handleDiscoveryModeChange(e.target.value as MonitorDiscoveryMode);
+              }}
+            >
+              <option value="manual">Manual only</option>
+              <option value="auto_local">Auto (local)</option>
+              <option value="hybrid">Hybrid</option>
+            </select>
+          </div>
+        </div>
+
+        <div className={styles.row}>
+          <span className={styles.label}>
+            Last sessions limit
+            <span className={styles.sublabel}>
+              Show at most this many recent sessions in the Sessions kit
+            </span>
+          </span>
+          <input
+            className={styles.input}
+            style={{ maxWidth: "120px" }}
+            aria-label="Max recent sessions"
+            type="number"
+            min={1}
+            max={500}
+            value={String(config.monitor.max_recent_sessions)}
+            onChange={(e) => {
+              handleMaxRecentSessionsChange(e.target.value);
+            }}
+          />
+        </div>
+
         {/* Existing server list */}
         {servers.length === 0 && !addingNew ? (
           <p className={styles.fieldHint} style={{ paddingTop: "var(--space-sm)" }}>
@@ -524,6 +596,7 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
             <div className={styles.selectWrap}>
               <select
                 className={styles.select}
+                aria-label="Model"
                 value={config.chat.default_model}
                 onChange={handleModelChange}
               >

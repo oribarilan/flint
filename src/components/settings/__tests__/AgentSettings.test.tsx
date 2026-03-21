@@ -35,6 +35,7 @@ function makeConfig(
     search: { directories: [] },
     chat: { default_model: overrides.default_model ?? "anthropic/claude-sonnet-4" },
     second_brain: { repo_path: overrides.repo_path ?? null },
+    monitor: { discovery_mode: "hybrid", max_recent_sessions: 50 },
     kits: {},
     monitored_servers: [],
   };
@@ -174,7 +175,7 @@ describe("AgentSettings", () => {
       />,
     );
 
-    const select = await screen.findByRole("combobox");
+    const select = await screen.findByLabelText("Model");
     act(() => {
       fireEvent.change(select, { target: { value: "openai/gpt-4o" } });
     });
@@ -213,6 +214,47 @@ function makeConfigWithServers(servers: MonitoredServerConfig[]): FlintConfig {
 }
 
 describe("AgentSettings — Monitored Servers", () => {
+  it("renders monitor discovery controls", async () => {
+    render(<AgentSettings config={makeConfig()} onUpdate={noop} onResetSection={noop} />);
+
+    expect(await screen.findByLabelText("Server discovery mode")).toBeTruthy();
+    expect(screen.getByLabelText("Max recent sessions")).toBeTruthy();
+  });
+
+  it("updates discovery mode via onUpdate", async () => {
+    const onUpdate = vi.fn(() => Promise.resolve(undefined));
+    render(<AgentSettings config={makeConfig()} onUpdate={onUpdate} onResetSection={noop} />);
+
+    fireEvent.change(await screen.findByLabelText("Server discovery mode"), {
+      target: { value: "hybrid" },
+    });
+
+    await waitFor(() => {
+      expect(onUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          monitor: expect.objectContaining({ discovery_mode: "hybrid" }) as object,
+        }),
+      );
+    });
+  });
+
+  it("updates max recent sessions via onUpdate", async () => {
+    const onUpdate = vi.fn(() => Promise.resolve(undefined));
+    render(<AgentSettings config={makeConfig()} onUpdate={onUpdate} onResetSection={noop} />);
+
+    fireEvent.change(await screen.findByLabelText("Max recent sessions"), {
+      target: { value: "120" },
+    });
+
+    await waitFor(() => {
+      expect(onUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          monitor: expect.objectContaining({ max_recent_sessions: 120 }) as object,
+        }),
+      );
+    });
+  });
+
   it("shows empty hint when no servers configured", async () => {
     render(<AgentSettings config={makeConfig()} onUpdate={noop} onResetSection={noop} />);
     expect(await screen.findByText(/No servers configured/i)).toBeTruthy();

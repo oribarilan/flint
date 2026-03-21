@@ -40,7 +40,7 @@ test.describe("Settings - Agent", () => {
 
   test("shows default model picker", async ({ page }) => {
     await expect(page.getByText("Default Model")).toBeVisible();
-    const select = page.getByRole("combobox");
+    const select = page.getByLabel("Model");
     await expect(select).toBeVisible();
     // Default model from mock is anthropic/claude-sonnet-4
     await expect(select).toContainText("Claude Sonnet 4");

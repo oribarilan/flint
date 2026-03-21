@@ -22,11 +22,42 @@ pub struct FlintConfig {
     pub search: SearchConfig,
     pub chat: ChatConfig,
     pub second_brain: SecondBrainConfig,
+    /// Session monitor behavior (discovery mode, list limits).
+    pub monitor: MonitorConfig,
     /// Per-kit configuration sections. Key = kit id.
     pub kits: HashMap<String, KitConfig>,
     /// List of `OpenCode` servers to monitor for session status.
     #[serde(default)]
     pub monitored_servers: Vec<MonitoredServerConfig>,
+}
+
+/// Session-monitor configuration.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct MonitorConfig {
+    /// Server discovery mode.
+    pub discovery_mode: MonitorDiscoveryMode,
+    /// Global cap for session results shown by Sessions kit.
+    pub max_recent_sessions: usize,
+}
+
+/// Server discovery mode for monitor subsystem.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum MonitorDiscoveryMode {
+    /// Only user-configured servers are monitored.
+    Manual,
+    /// Only auto-discovered local servers are monitored.
+    AutoLocal,
+    /// User-configured + auto-discovered local servers (merged).
+    #[default]
+    Hybrid,
+}
+
+impl Default for MonitorConfig {
+    fn default() -> Self {
+        Self { discovery_mode: MonitorDiscoveryMode::Hybrid, max_recent_sessions: 50 }
+    }
 }
 
 /// General application settings.
@@ -141,6 +172,15 @@ pub enum MonitoredServerConfigError {
 
 /// Hard cap for monitored servers in runtime configuration.
 pub const MAX_MONITORED_SERVERS: usize = 10;
+/// Lowest allowed global recent-sessions limit.
+pub const MIN_MONITOR_RECENT_SESSIONS: usize = 1;
+/// Highest allowed global recent-sessions limit.
+pub const MAX_MONITOR_RECENT_SESSIONS: usize = 500;
+
+/// Clamp a user-provided recent-sessions limit into safe bounds.
+pub fn clamp_monitor_recent_sessions(value: usize) -> usize {
+    value.clamp(MIN_MONITOR_RECENT_SESSIONS, MAX_MONITOR_RECENT_SESSIONS)
+}
 
 /// Return a sanitized server list suitable for runtime monitor startup.
 ///
@@ -197,8 +237,8 @@ pub fn validate_monitored_servers(
     use std::collections::HashSet;
 
     let mut errors = Vec::new();
-    let mut seen_ids: HashSet<&str> = HashSet::new();
-    let mut seen_host_ports: HashSet<(&str, u16)> = HashSet::new();
+    let mut seen_ids: HashSet<String> = HashSet::new();
+    let mut seen_host_ports: HashSet<(String, u16)> = HashSet::new();
 
     if servers.len() > MAX_MONITORED_SERVERS {
         errors.push(MonitoredServerConfigError::TooManyServers {
@@ -208,33 +248,36 @@ pub fn validate_monitored_servers(
     }
 
     for (index, server) in servers.iter().enumerate() {
+        let id = server.id.trim().to_string();
+        let host = server.host.trim().to_string();
+
         // Blank / whitespace-only ID
-        if server.id.trim().is_empty() {
+        if id.is_empty() {
             errors.push(MonitoredServerConfigError::EmptyId { index });
             continue; // skip further checks — we have no valid ID to key on
         }
 
         // Duplicate ID
-        if !seen_ids.insert(server.id.as_str()) {
-            errors.push(MonitoredServerConfigError::DuplicateId { id: server.id.clone() });
+        if !seen_ids.insert(id.clone()) {
+            errors.push(MonitoredServerConfigError::DuplicateId { id: id.clone() });
         }
 
         // Zero port (port = 0 is reserved / invalid for a real server)
         if server.port == 0 {
-            errors.push(MonitoredServerConfigError::ZeroPort { id: server.id.clone() });
+            errors.push(MonitoredServerConfigError::ZeroPort { id: id.clone() });
         }
 
         // Empty host
-        if server.host.trim().is_empty() {
-            errors.push(MonitoredServerConfigError::EmptyHost { id: server.id.clone() });
+        if host.is_empty() {
+            errors.push(MonitoredServerConfigError::EmptyHost { id: id.clone() });
         }
 
         // Duplicate host+port (only when both fields are otherwise valid)
-        if server.port != 0 && !server.host.trim().is_empty() {
-            let key = (server.host.as_str(), server.port);
+        if server.port != 0 && !host.is_empty() {
+            let key = (host.clone(), server.port);
             if !seen_host_ports.insert(key) {
                 errors.push(MonitoredServerConfigError::DuplicateHostPort {
-                    host: server.host.clone(),
+                    host,
                     port: server.port,
                 });
             }
@@ -621,6 +664,10 @@ hotkey = "Alt+Space"
     #[test]
     fn should_parse_monitored_servers_config() {
         let toml_str = r#"
+[monitor]
+discovery_mode = "manual"
+max_recent_sessions = 50
+
 [[monitored_servers]]
 id = "local"
 host = "127.0.0.1"
@@ -640,6 +687,14 @@ port = 14098
         assert_eq!(config.monitored_servers[0].port, 14097);
         assert_eq!(config.monitored_servers[0].label.as_deref(), Some("Work"));
         assert_eq!(config.monitored_servers[1].label, None);
+        assert_eq!(config.monitor.discovery_mode, MonitorDiscoveryMode::Manual);
+        assert_eq!(config.monitor.max_recent_sessions, 50);
+    }
+
+    #[test]
+    fn monitor_config_defaults_to_hybrid() {
+        let config = FlintConfig::default();
+        assert_eq!(config.monitor.discovery_mode, MonitorDiscoveryMode::Hybrid);
     }
 
     #[test]
@@ -773,5 +828,38 @@ port = 14098
 
         let sanitized = sanitize_monitored_servers(&servers);
         assert_eq!(sanitized.len(), MAX_MONITORED_SERVERS);
+    }
+
+    #[test]
+    fn validate_monitored_servers_treats_trimmed_ids_as_duplicates() {
+        let servers = vec![
+            MonitoredServerConfig {
+                id: "s1".to_string(),
+                host: "127.0.0.1".to_string(),
+                port: 14097,
+                label: None,
+            },
+            MonitoredServerConfig {
+                id: " s1 ".to_string(),
+                host: "127.0.0.1".to_string(),
+                port: 14098,
+                label: None,
+            },
+        ];
+
+        let errors = validate_monitored_servers(&servers);
+        assert!(errors
+            .iter()
+            .any(|e| matches!(e, MonitoredServerConfigError::DuplicateId { id } if id == "s1")));
+    }
+
+    #[test]
+    fn clamp_monitor_recent_sessions_enforces_bounds() {
+        assert_eq!(clamp_monitor_recent_sessions(0), MIN_MONITOR_RECENT_SESSIONS);
+        assert_eq!(clamp_monitor_recent_sessions(50), 50);
+        assert_eq!(
+            clamp_monitor_recent_sessions(MAX_MONITOR_RECENT_SESSIONS + 100),
+            MAX_MONITOR_RECENT_SESSIONS
+        );
     }
 }

@@ -38,9 +38,6 @@ pub const SESSIONS_PREFIX: &str = "s ";
 
 const COMMAND_ID: &str = "sessions";
 
-/// Maximum number of session results to return on any query.
-const MAX_RESULTS: usize = 20;
-
 // ---------------------------------------------------------------------------
 // Kit
 // ---------------------------------------------------------------------------
@@ -114,7 +111,6 @@ impl Kit for SessionsKit {
                     || s.title.to_lowercase().contains(&needle)
                     || s.server_label.to_lowercase().contains(&needle)
             })
-            .take(MAX_RESULTS)
             .map(|s| {
                 let status_color = s.status.badge_color();
                 let status_label = s.status.label();
@@ -352,8 +348,12 @@ mod tests {
             }
         }
         let kit = SessionsKit::new(registry);
+        {
+            let mut reg = kit.registry.blocking_write();
+            reg.set_max_recent_sessions(12);
+        }
         let results = kit.search(COMMAND_ID, "");
-        assert!(results.len() <= MAX_RESULTS);
+        assert_eq!(results.len(), 12);
     }
 
     // ── accessories ──────────────────────────────────────────────

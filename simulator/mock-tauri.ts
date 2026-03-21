@@ -194,6 +194,7 @@ if (state.monitoredServers.length > 0) {
     port: s.port,
     label: s.label ?? null,
   }));
+  state.config.monitor.discovery_mode = "hybrid";
 }
 
 const persistedOverrides = readSimOverrides();
