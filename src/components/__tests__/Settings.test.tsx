@@ -55,6 +55,7 @@ const BASE_CONFIG: FlintConfig = {
   chat: { default_model: "gpt-4o" },
   second_brain: { repo_path: null },
   kits: {},
+  monitored_servers: [],
 };
 
 const noop = vi.fn(() => Promise.resolve());

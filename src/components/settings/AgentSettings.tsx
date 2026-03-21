@@ -7,6 +7,7 @@ import {
   type FlintConfig,
   type ChatStatus,
   type AvailableModel,
+  type MonitoredServerConfig,
 } from "../../lib/commands";
 import ResetSection from "./ResetSection";
 import styles from "./settings.module.css";
@@ -22,6 +23,65 @@ interface ProjectModelStatus {
   model: string | null;
 }
 
+// Blank form state for a new or editing server entry.
+const EMPTY_SERVER_FORM: MonitoredServerConfig = {
+  id: "",
+  host: "127.0.0.1",
+  port: 14097,
+  label: null,
+};
+
+// ---------------------------------------------------------------------------
+// Validation
+// ---------------------------------------------------------------------------
+
+interface ServerFormErrors {
+  id?: string;
+  host?: string;
+  port?: string;
+  duplicate?: string;
+}
+
+function validateServerForm(
+  form: MonitoredServerConfig,
+  existing: MonitoredServerConfig[],
+  editingId: string | null,
+): ServerFormErrors {
+  const errors: ServerFormErrors = {};
+
+  if (!form.id.trim()) {
+    errors.id = "ID is required.";
+  }
+
+  if (!form.host.trim()) {
+    errors.host = "Host is required.";
+  }
+
+  const portNum = form.port;
+  if (!Number.isInteger(portNum) || portNum < 1 || portNum > 65535) {
+    errors.port = "Port must be 1–65535.";
+  }
+
+  // Check duplicates (skip the entry being edited).
+  const others = existing.filter((s) => s.id !== editingId);
+  if (form.id.trim() && others.some((s) => s.id === form.id.trim())) {
+    errors.id = `ID "${form.id}" is already in use.`;
+  }
+  if (
+    !errors.host &&
+    !errors.port &&
+    others.some((s) => s.host === form.host.trim() && s.port === portNum)
+  ) {
+    errors.duplicate = `A server at ${form.host}:${String(portNum)} already exists.`;
+  }
+
+  return errors;
+}
+
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
+
 export default function AgentSettings({ config, onUpdate, onResetSection }: AgentSettingsProps) {
   const [chatStatus, setChatStatus] = useState<ChatStatus>({
     connected: false,
@@ -35,6 +95,16 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
   const [repoPathDraft, setRepoPathDraft] = useState(config.second_brain.repo_path ?? "");
   const [repoPathError, setRepoPathError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // ── Monitored servers form state ──────────────────────────
+  // `editingId` is the ID of the server being edited (null = not editing).
+  // `addingNew` = add-form is open.
+  const [addingNew, setAddingNew] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [serverForm, setServerForm] = useState<MonitoredServerConfig>(EMPTY_SERVER_FORM);
+  const [serverFormErrors, setServerFormErrors] = useState<ServerFormErrors>({});
+
+  const servers: MonitoredServerConfig[] = config.monitored_servers;
 
   const refreshStatus = useCallback(() => {
     getChatStatus()
@@ -178,6 +248,75 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
     await onResetSection("second_brain");
   };
 
+  // ── Monitored server handlers ─────────────────────────────
+
+  const openAddForm = () => {
+    setServerForm(EMPTY_SERVER_FORM);
+    setServerFormErrors({});
+    setEditingId(null);
+    setAddingNew(true);
+  };
+
+  const openEditForm = (server: MonitoredServerConfig) => {
+    setServerForm({ ...server });
+    setServerFormErrors({});
+    setEditingId(server.id);
+    setAddingNew(false);
+  };
+
+  const cancelServerForm = () => {
+    setAddingNew(false);
+    setEditingId(null);
+    setServerFormErrors({});
+  };
+
+  const handleServerFormChange = (field: keyof MonitoredServerConfig, value: string) => {
+    setServerForm((prev) => ({
+      ...prev,
+      [field]: field === "port" ? Number(value) : value,
+    }));
+    // Clear field error on change.
+    if (field in serverFormErrors) {
+      setServerFormErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
+  };
+
+  const handleSaveServer = async () => {
+    const trimmedForm: MonitoredServerConfig = {
+      ...serverForm,
+      id: serverForm.id.trim(),
+      host: serverForm.host.trim(),
+      label: serverForm.label?.trim() ? serverForm.label.trim() : null,
+    };
+
+    const errors = validateServerForm(trimmedForm, servers, editingId);
+    if (Object.keys(errors).length > 0) {
+      setServerFormErrors(errors);
+      return;
+    }
+
+    let nextServers: MonitoredServerConfig[];
+    if (editingId !== null) {
+      // Replace the edited entry.
+      nextServers = servers.map((s) => (s.id === editingId ? trimmedForm : s));
+    } else {
+      // Append new entry.
+      nextServers = [...servers, trimmedForm];
+    }
+
+    await onUpdate({ ...config, monitored_servers: nextServers });
+    cancelServerForm();
+  };
+
+  const handleDeleteServer = async (id: string) => {
+    const nextServers = servers.filter((s) => s.id !== id);
+    await onUpdate({ ...config, monitored_servers: nextServers });
+    // If we were editing the deleted server, cancel the form.
+    if (editingId === id) {
+      cancelServerForm();
+    }
+  };
+
   const hasRepoPath = Boolean((config.second_brain.repo_path ?? "").trim());
   const currentModelName =
     models.find((m) => m.id === config.chat.default_model)?.name ?? config.chat.default_model;
@@ -280,6 +419,95 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
         )}
       </section>
 
+      {/* ── Monitored Servers ────────────────────────────── */}
+      <section className={styles.section}>
+        <div className={styles.providerHeader}>
+          <div className={styles.providerInfo}>
+            <div>
+              <span className={styles.providerName}>Monitored Servers</span>
+              <span className={styles.providerDesc}>
+                OpenCode servers tracked by the Sessions kit (prefix: <code>s </code>)
+              </span>
+            </div>
+          </div>
+          {!addingNew && editingId === null && (
+            <button className={styles.buttonSmall} onClick={openAddForm} aria-label="Add server">
+              Add
+            </button>
+          )}
+        </div>
+
+        {/* Existing server list */}
+        {servers.length === 0 && !addingNew ? (
+          <p className={styles.fieldHint} style={{ paddingTop: "var(--space-sm)" }}>
+            No servers configured. Add one to start monitoring OpenCode sessions.
+          </p>
+        ) : (
+          servers.map((server) => (
+            <div key={server.id} className={styles.row}>
+              {editingId === server.id ? (
+                /* Inline edit form */
+                <ServerForm
+                  form={serverForm}
+                  errors={serverFormErrors}
+                  onChange={handleServerFormChange}
+                  onSave={() => {
+                    void handleSaveServer();
+                  }}
+                  onCancel={cancelServerForm}
+                  isEdit
+                />
+              ) : (
+                <>
+                  <span className={styles.label}>
+                    {server.label ?? `${server.host}:${String(server.port)}`}
+                    <span className={styles.sublabel}>
+                      {server.id} — {server.host}:{String(server.port)}
+                    </span>
+                  </span>
+                  <div className={styles.providerControl}>
+                    <button
+                      className={styles.buttonSmallGhost}
+                      onClick={() => {
+                        openEditForm(server);
+                      }}
+                      aria-label={`Edit server ${server.id}`}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className={styles.buttonSmallGhost}
+                      onClick={() => {
+                        void handleDeleteServer(server.id);
+                      }}
+                      aria-label={`Remove server ${server.id}`}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ))
+        )}
+
+        {/* Add-new form */}
+        {addingNew && (
+          <div className={styles.row}>
+            <ServerForm
+              form={serverForm}
+              errors={serverFormErrors}
+              onChange={handleServerFormChange}
+              onSave={() => {
+                void handleSaveServer();
+              }}
+              onCancel={cancelServerForm}
+              isEdit={false}
+            />
+          </div>
+        )}
+      </section>
+
       {/* ── Default Model ────────────────────────────────── */}
       <section className={styles.section}>
         <div className={styles.providerHeader}>
@@ -315,6 +543,96 @@ export default function AgentSettings({ config, onUpdate, onResetSection }: Agen
       </section>
 
       <ResetSection label="Reset agent settings to defaults?" onReset={handleResetDefaults} />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ServerForm — inline add/edit form for a single monitored server entry.
+// ---------------------------------------------------------------------------
+
+interface ServerFormProps {
+  form: MonitoredServerConfig;
+  errors: ServerFormErrors;
+  onChange: (field: keyof MonitoredServerConfig, value: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  isEdit: boolean;
+}
+
+function ServerForm({ form, errors, onChange, onSave, onCancel, isEdit }: ServerFormProps) {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      onSave();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      onCancel();
+    }
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)", flex: 1 }}>
+      <div className={styles.pathRow}>
+        <input
+          className={[styles.input, errors.id ? styles.inputError : ""].filter(Boolean).join(" ")}
+          value={form.id}
+          onChange={(e) => {
+            onChange("id", e.target.value);
+          }}
+          onKeyDown={handleKeyDown}
+          placeholder="server-id"
+          aria-label="Server ID"
+          style={{ maxWidth: "140px" }}
+        />
+        <input
+          className={[styles.input, errors.host ? styles.inputError : ""].filter(Boolean).join(" ")}
+          value={form.host}
+          onChange={(e) => {
+            onChange("host", e.target.value);
+          }}
+          onKeyDown={handleKeyDown}
+          placeholder="127.0.0.1"
+          aria-label="Server host"
+          style={{ maxWidth: "160px" }}
+        />
+        <input
+          className={[styles.input, errors.port ? styles.inputError : ""].filter(Boolean).join(" ")}
+          value={String(form.port)}
+          onChange={(e) => {
+            onChange("port", e.target.value);
+          }}
+          onKeyDown={handleKeyDown}
+          placeholder="14097"
+          aria-label="Server port"
+          type="number"
+          min={1}
+          max={65535}
+          style={{ maxWidth: "90px" }}
+        />
+        <input
+          className={styles.input}
+          value={form.label ?? ""}
+          onChange={(e) => {
+            onChange("label", e.target.value);
+          }}
+          onKeyDown={handleKeyDown}
+          placeholder="Label (optional)"
+          aria-label="Server label"
+          style={{ maxWidth: "160px" }}
+        />
+        <button className={styles.buttonSmall} onClick={onSave}>
+          {isEdit ? "Save" : "Add"}
+        </button>
+        <button className={styles.buttonSmallGhost} onClick={onCancel} aria-label="Cancel">
+          Cancel
+        </button>
+      </div>
+      {(errors.id ?? errors.host ?? errors.port ?? errors.duplicate) != null && (
+        <p className={styles.error} style={{ marginTop: 0 }}>
+          {errors.id ?? errors.host ?? errors.port ?? errors.duplicate}
+        </p>
+      )}
     </div>
   );
 }

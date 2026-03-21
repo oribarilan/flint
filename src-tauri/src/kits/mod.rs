@@ -10,6 +10,7 @@
 mod calculator;
 mod clipboard;
 mod registry;
+mod sessions;
 mod window_management;
 
 pub use calculator::CalculatorKit;
@@ -17,6 +18,7 @@ pub use clipboard::ClipboardKit;
 pub use registry::{
     CommandHotkeyEntry, CommandInfo, KitInfo, KitRegistry, KitRegistryState, KitState,
 };
+pub use sessions::SessionsKit;
 pub use window_management::WindowManagementKit;
 
 use std::path::PathBuf;

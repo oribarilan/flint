@@ -21,6 +21,7 @@ const DEFAULT_CONFIG: FlintConfig = {
   chat: { default_model: "gpt-4o" },
   second_brain: { repo_path: null },
   kits: {},
+  monitored_servers: [],
 };
 
 beforeEach(() => {
@@ -106,6 +107,7 @@ describe("useConfig", () => {
       chat: { default_model: "gpt-4.1" },
       second_brain: { repo_path: null },
       kits: {},
+      monitored_servers: [],
     };
     mockGetDefaultConfig.mockResolvedValue(DEFAULTS);
 

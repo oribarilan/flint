@@ -6,6 +6,7 @@
 
 pub mod client;
 pub mod events;
+pub mod monitor;
 pub mod process;
 
 use std::path::{Path, PathBuf};

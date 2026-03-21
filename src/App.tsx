@@ -19,6 +19,7 @@ import { useChat } from "./hooks/useChat";
 import { useCommandActivation } from "./hooks/useCommandActivation";
 import { useKeybindings } from "./hooks/useKeybindings";
 import { useActionPanelDebug } from "./hooks/useActionPanelDebug";
+import { useSessionMonitor } from "./hooks/useSessionMonitor";
 import styles from "./App.module.css";
 
 export default function App() {
@@ -27,6 +28,7 @@ export default function App() {
   useChat();
   useCommandActivation();
   useActionPanelDebug();
+  useSessionMonitor();
 
   const query = useSearchStore((s) => s.query);
   const mode = useSearchStore((s) => s.mode);

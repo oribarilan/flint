@@ -29,6 +29,7 @@ export const DEFAULT_CONFIG: FlintConfig = {
   chat: { default_model: "anthropic/claude-sonnet-4" },
   second_brain: { repo_path: null },
   kits: {},
+  monitored_servers: [],
 };
 
 // ---------------------------------------------------------------------------
@@ -39,17 +40,46 @@ function makeMockResults(query: string): KitSearchResult[] {
   if (!query || query.length < 2) return [];
 
   const items = [
-    { title: "README.md", subtitle: "~/projects/flint/README.md", kind: "File" },
-    { title: "package.json", subtitle: "~/projects/flint/package.json", kind: "File" },
+    {
+      title: "README.md",
+      subtitle: "~/projects/flint/README.md",
+      kind: { type: "File" } as const,
+    },
+    {
+      title: "package.json",
+      subtitle: "~/projects/flint/package.json",
+      kind: { type: "File" } as const,
+    },
     {
       title: "Visual Studio Code",
       subtitle: "/Applications/Visual Studio Code.app",
-      kind: "Application",
+      kind: { type: "Application" } as const,
     },
-    { title: "Terminal", subtitle: "/Applications/Utilities/Terminal.app", kind: "Application" },
-    { title: "Safari", subtitle: "/Applications/Safari.app", kind: "Application" },
-    { title: "Notes", subtitle: "/Applications/Notes.app", kind: "Application" },
-    { title: "Calculator", subtitle: "Kit command", kind: "Command" },
+    {
+      title: "Terminal",
+      subtitle: "/Applications/Utilities/Terminal.app",
+      kind: { type: "Application" } as const,
+    },
+    {
+      title: "Safari",
+      subtitle: "/Applications/Safari.app",
+      kind: { type: "Application" } as const,
+    },
+    {
+      title: "Notes",
+      subtitle: "/Applications/Notes.app",
+      kind: { type: "Application" } as const,
+    },
+    {
+      title: "Calculator",
+      subtitle: "Kit command",
+      kind: {
+        type: "Command",
+        kit_id: "calculator",
+        command_id: "calculate",
+        mode: "InputResults",
+      } as const,
+    },
   ];
 
   const lower = query.toLowerCase();
@@ -60,10 +90,66 @@ function makeMockResults(query: string): KitSearchResult[] {
       id: `sim-${i}`,
       title: item.title,
       subtitle: item.subtitle,
-      kind: item.kind as KitSearchResult["kind"],
-      actions: [{ type: "Open" as const }, { type: "RevealInFileManager" as const }],
+      kind: item.kind,
+      actions:
+        item.kind.type === "Command"
+          ? [{ type: "ActivateCommand" as const, kit_id: "calculator", command_id: "calculate" }]
+          : [
+              { type: "Open" as const, target: item.subtitle },
+              { type: "RevealInFileManager" as const, target: item.subtitle },
+            ],
       score: 100 - i * 10,
     }));
+}
+
+function makeSessionResults(state: SimState, query: string): KitSearchResult[] {
+  const needle = query.trim().toLowerCase();
+  const out: KitSearchResult[] = [];
+
+  for (const server of state.monitoredServers) {
+    for (const session of server.sessions) {
+      if (
+        needle.length > 0 &&
+        !session.title.toLowerCase().includes(needle) &&
+        !(server.label ?? server.id).toLowerCase().includes(needle)
+      ) {
+        continue;
+      }
+
+      out.push({
+        kitId: "sessions",
+        kitName: "Sessions",
+        id: `session:${server.id}:${session.sessionId}`,
+        title: session.title,
+        subtitle: server.label ?? `${server.host}:${String(server.port)}`,
+        kind: { type: "File" },
+        accessories: [
+          {
+            type: "Badge",
+            text: session.status[0]?.toUpperCase() + session.status.slice(1),
+            color:
+              session.status === "working"
+                ? "var(--color-success)"
+                : session.status === "waiting"
+                  ? "var(--color-warning)"
+                  : session.status === "error"
+                    ? "var(--color-error)"
+                    : "var(--text-placeholder)",
+          },
+        ],
+        actions: [
+          {
+            type: "Copy",
+            text: `${session.title} — ${server.label ?? server.id}`,
+            label: "Copy summary",
+          },
+        ],
+        score: 100,
+      });
+    }
+  }
+
+  return out.slice(0, 20);
 }
 
 // ---------------------------------------------------------------------------
@@ -87,7 +173,14 @@ export function createPlatformHandlers(state: SimState): CommandHandlerMap {
 
     search_files: () => [],
     search_all: (args) => makeMockResults((args?.query as string) ?? ""),
-    search_command: () => [],
+    search_command: (args) => {
+      const kitId = (args?.kitId as string) ?? "";
+      const query = (args?.query as string) ?? "";
+      if (kitId === "sessions") {
+        return makeSessionResults(state, query);
+      }
+      return [];
+    },
 
     get_config: () => structuredClone(state.config),
     get_default_config: () => structuredClone(DEFAULT_CONFIG),
@@ -114,7 +207,28 @@ export function createPlatformHandlers(state: SimState): CommandHandlerMap {
 
     get_app_icon: () => null,
 
-    get_kit_manifests: () => [] satisfies KitManifestInfo[],
+    get_kit_manifests: () =>
+      [
+        {
+          id: "sessions",
+          name: "Sessions",
+          description: "Monitor OpenCode sessions across servers",
+          icon: { type: "Emoji", value: "🗂️" },
+          enabled: true,
+          commands: [
+            {
+              id: "sessions",
+              name: "Sessions",
+              description: "Monitor OpenCode sessions",
+              mode: "InputResults",
+              enabled: true,
+              default_prefix: "s ",
+              effective_prefix: "s ",
+              effective_hotkey: null,
+            },
+          ],
+        },
+      ] satisfies KitManifestInfo[],
     execute_command: () => ({ type: "Done" }),
     handle_custom_action: () => null,
   };

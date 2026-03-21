@@ -45,6 +45,19 @@ test.describe("Settings - Agent", () => {
     // Default model from mock is anthropic/claude-sonnet-4
     await expect(select).toContainText("Claude Sonnet 4");
   });
+
+  test("can add and remove monitored server", async ({ page }) => {
+    await page.getByRole("button", { name: "Add server" }).click();
+    await page.getByLabel("Server ID").fill("sim-extra");
+    await page.getByLabel("Server host").fill("127.0.0.1");
+    await page.getByLabel("Server port").fill("14111");
+    await page.getByRole("button", { name: "Add" }).click();
+
+    await expect(page.getByRole("button", { name: "Edit server sim-extra" })).toBeVisible();
+
+    await page.getByRole("button", { name: "Remove server sim-extra" }).click();
+    await expect(page.getByRole("button", { name: "Edit server sim-extra" })).toHaveCount(0);
+  });
 });
 
 test.describe("Settings - Agent Repository", () => {

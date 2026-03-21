@@ -54,9 +54,12 @@ export function usePrefixDetection(): void {
     if (activeCommand || prefixes.length === 0) return;
 
     for (const entry of prefixes) {
-      const prefixWithSpace = entry.prefix + " ";
-      if (query.startsWith(prefixWithSpace)) {
-        const remainder = query.slice(prefixWithSpace.length);
+      // Prefixes may already include a trailing delimiter space (e.g. "s "),
+      // while symbol prefixes (e.g. "=") require appending one for chip activation.
+      const activationPrefix = entry.prefix.endsWith(" ") ? entry.prefix : `${entry.prefix} `;
+
+      if (query.startsWith(activationPrefix)) {
+        const remainder = query.slice(activationPrefix.length);
         const cmd: ActiveCommand = {
           kitId: entry.kitId,
           commandId: entry.commandId,

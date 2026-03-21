@@ -33,6 +33,26 @@ const mockManifests = [
   },
 ];
 
+const sessionsManifest = {
+  id: "sessions",
+  name: "Sessions",
+  description: "Monitor sessions",
+  icon: { type: "Emoji" as const, value: "🗂️" },
+  enabled: true,
+  commands: [
+    {
+      id: "sessions",
+      name: "Sessions",
+      description: "Monitor OpenCode sessions",
+      mode: "InputResults" as const,
+      enabled: true,
+      default_prefix: "s ",
+      effective_prefix: "s ",
+      effective_hotkey: null,
+    },
+  ],
+};
+
 beforeEach(() => {
   useSearchStore.setState({
     mode: "search",
@@ -201,6 +221,66 @@ describe("usePrefixDetection", () => {
 
     act(() => {
       useSearchStore.setState({ query: "= 2+3" });
+    });
+
+    expect(useSearchStore.getState().activeCommand).toBeNull();
+  });
+
+  it("activates command for trailing-space prefix without requiring double space", async () => {
+    mockedGetKitManifests.mockResolvedValue([sessionsManifest]);
+
+    renderHook(() => {
+      usePrefixDetection();
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    act(() => {
+      useSearchStore.setState({ query: "s alpha" });
+    });
+
+    const state = useSearchStore.getState();
+    expect(state.activeCommand).toEqual({
+      kitId: "sessions",
+      commandId: "sessions",
+      name: "Sessions",
+    });
+    expect(state.query).toBe("alpha");
+  });
+
+  it("does not activate trailing-space prefix for bare letter input", async () => {
+    mockedGetKitManifests.mockResolvedValue([sessionsManifest]);
+
+    renderHook(() => {
+      usePrefixDetection();
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    act(() => {
+      useSearchStore.setState({ query: "s" });
+    });
+
+    expect(useSearchStore.getState().activeCommand).toBeNull();
+  });
+
+  it("does not activate trailing-space prefix for normal words", async () => {
+    mockedGetKitManifests.mockResolvedValue([sessionsManifest]);
+
+    renderHook(() => {
+      usePrefixDetection();
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    act(() => {
+      useSearchStore.setState({ query: "safari" });
     });
 
     expect(useSearchStore.getState().activeCommand).toBeNull();

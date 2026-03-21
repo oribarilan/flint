@@ -554,3 +554,82 @@ fn from_kit_result_preserves_fields() {
     assert_eq!(converted.id, "r1");
     assert_eq!(converted.title, "Hello");
 }
+
+// ── Delimiter-safe prefix routing (letter-based prefixes) ────────────────
+
+/// A command whose prefix is `"s "` (letter + space), mimicking the Sessions kit.
+pub(super) fn sessions_command() -> CommandDef {
+    CommandDef {
+        id: "sessions",
+        name: "Sessions",
+        description: "Monitor sessions",
+        icon: KitIcon::Emoji("📋".to_string()),
+        mode: CommandMode::InputResults,
+        default_prefix: Some("s "),
+        default_hotkey: None,
+    }
+}
+
+#[test]
+fn sessions_prefix_matches_exact_prefix() {
+    let kit = MockKit::new("sess", vec![sessions_command()])
+        .with_results(vec![make_result("r1", "Session A")]);
+    let mut registry = reg_with(kit);
+    registry.states.insert("sess".to_string(), KitState::Ready);
+
+    // "s " with a sub-query must match.
+    let result = registry.search_by_prefix("s foo");
+    assert!(result.is_some(), "\"s foo\" should activate sessions kit");
+    let (kit_id, cmd_id, _) = result.unwrap();
+    assert_eq!(kit_id, "sess");
+    assert_eq!(cmd_id, "sessions");
+}
+
+#[test]
+fn sessions_prefix_bare_s_does_not_match() {
+    let kit = MockKit::new("sess", vec![sessions_command()]);
+    let registry = reg_with(kit);
+
+    // Plain "s" does NOT start with "s " → must not activate.
+    assert!(registry.search_by_prefix("s").is_none(), "bare \"s\" must not activate sessions kit");
+}
+
+#[test]
+fn sessions_prefix_safari_does_not_match() {
+    let kit = MockKit::new("sess", vec![sessions_command()]);
+    let registry = reg_with(kit);
+
+    // "safari" starts with 's' but NOT "s " → must not activate.
+    assert!(
+        registry.search_by_prefix("safari").is_none(),
+        "\"safari\" must not activate sessions kit"
+    );
+}
+
+#[test]
+fn sessions_prefix_strips_prefix_but_not_extra_space() {
+    // The space is already consumed as part of the "s " prefix — no double-strip.
+    let kit = MockKit::new("sess", vec![sessions_command()])
+        .with_results(vec![make_result("r1", "Alpha")]);
+    let mut registry = reg_with(kit);
+    registry.states.insert("sess".to_string(), KitState::Ready);
+
+    // Query "s alpha" → after stripping "s " the effective query should be "alpha".
+    let result = registry.search_by_prefix("s alpha");
+    assert!(result.is_some());
+    // The kit's search() is called — results confirm it was reached.
+    let (_, _, results) = result.unwrap();
+    assert_eq!(results.len(), 1, "kit results must be returned for \"s alpha\"");
+}
+
+#[test]
+fn sessions_prefix_empty_subquery_returns_results() {
+    // "s " with nothing after the space is valid — shows all sessions.
+    let kit = MockKit::new("sess", vec![sessions_command()])
+        .with_results(vec![make_result("r1", "Alpha")]);
+    let mut registry = reg_with(kit);
+    registry.states.insert("sess".to_string(), KitState::Ready);
+
+    let result = registry.search_by_prefix("s ");
+    assert!(result.is_some(), "\"s \" (prefix only) must activate sessions kit");
+}

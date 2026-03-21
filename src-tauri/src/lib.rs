@@ -28,6 +28,8 @@ use tracing_subscriber::EnvFilter;
 
 use indexer::AppIndex;
 use kits::{CommandMode, KitContextBase, KitIcon, KitRegistry, KitRegistryState};
+use providers::opencode::monitor::manager::MonitorBridgeManagerState;
+use providers::opencode::monitor::ServerRegistryState;
 use providers::opencode::{OpenCodeProvider, OpenCodeProviderState};
 
 /// Payload emitted to the frontend when a global command hotkey is pressed
@@ -138,6 +140,51 @@ pub fn run() {
             let kit_config = app_config.get();
             app.manage(app_config.clone());
 
+            // Initialise the server monitor registry and seed it from config.
+            let server_registry_state = ServerRegistryState::new();
+            app.manage(server_registry_state.clone());
+
+            let bridge_manager_state = MonitorBridgeManagerState::new();
+            app.manage(bridge_manager_state.clone());
+
+            // Keep monitor registry in sync with runtime config updates by
+            // sanitizing startup config before seeding state.
+            let sanitized_monitored_servers =
+                config::sanitize_monitored_servers(&kit_config.monitored_servers);
+            {
+                let mut srv_reg = server_registry_state.0.blocking_write();
+                srv_reg.replace_config(&sanitized_monitored_servers);
+            }
+
+            // Spawn SSE monitor bridges for each configured server.
+            // Bridges run concurrently in background tasks — no overlay-ready path impact.
+            if !sanitized_monitored_servers.is_empty() {
+                use config::validate_monitored_servers;
+
+                let valid_servers: Vec<_> = {
+                    let errs = validate_monitored_servers(&kit_config.monitored_servers);
+                    if !errs.is_empty() {
+                        for e in &errs {
+                            tracing::warn!(error = %e, "invalid monitored server config — skipping");
+                        }
+                    }
+
+                    sanitized_monitored_servers
+                };
+
+                if let Ok(mut manager) = bridge_manager_state.0.lock() {
+                    manager.start_all(&valid_servers, &server_registry_state, &app.handle().clone());
+                } else {
+                    tracing::warn!("monitor bridge manager lock poisoned; skipping bridge startup");
+                }
+
+                tracing::info!(
+                    count = valid_servers.len(),
+                    "monitor bridges spawned"
+                );
+
+            }
+
             // Initialise kit registry and register built-in kits.
             let kit_ctx_base = KitContextBase {
                 app: app.handle().clone(),
@@ -152,6 +199,10 @@ pub fn run() {
             registry.register(Box::new(kits::CalculatorKit::new()), &kit_config);
             registry.register(Box::new(kits::WindowManagementKit::new()), &kit_config);
             registry.register(Box::new(kits::ClipboardKit::new(&kit_config)), &kit_config);
+            registry.register(
+                Box::new(kits::SessionsKit::new(Arc::clone(&server_registry_state.0))),
+                &kit_config,
+            );
 
             // Eagerly init kits that run background tasks (e.g., clipboard watcher).
             let eager_ids = registry.eager_init_kit_ids();
@@ -187,6 +238,20 @@ pub fn run() {
             app.manage(AppIndex(apps));
 
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            if matches!(event, tauri::WindowEvent::Destroyed) {
+                // Best-effort cleanup: when main window is destroyed during app shutdown,
+                // stop monitor bridges.
+                if window.label() == "main" {
+                    let app = window.app_handle();
+                    if let Some(manager_state) = app.try_state::<MonitorBridgeManagerState>() {
+                        if let Ok(mut manager) = manager_state.0.lock() {
+                            manager.stop_all();
+                        }
+                    }
+                }
+            }
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

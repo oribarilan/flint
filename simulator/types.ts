@@ -4,6 +4,23 @@
 
 import type { FlintConfig, ChatStatus } from "../src/lib/commands";
 
+export type MonitorSessionStatus = "idle" | "working" | "waiting" | "error";
+
+export interface MonitorSession {
+  sessionId: string;
+  title: string;
+  status: MonitorSessionStatus;
+  updatedAt: number;
+}
+
+export interface MonitoredServerState {
+  id: string;
+  host: string;
+  port: number;
+  label?: string | null;
+  sessions: MonitorSession[];
+}
+
 export interface SimState {
   config: FlintConfig;
   chatStatus: ChatStatus;
@@ -18,6 +35,7 @@ export interface SimState {
     model: string | null;
     path: string;
   };
+  monitoredServers: MonitoredServerState[];
 }
 
 export type EmitFn = (event: string, payload: unknown) => void;

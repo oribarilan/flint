@@ -52,6 +52,30 @@ test.describe("Flint Simulator - Smoke Tests", () => {
     const results = page.locator('[class*="resultItem"]');
     await expect(results).toHaveCount(0);
   });
+
+  test("sessions prefix activates sessions command", async ({ page }) => {
+    const input = searchInput(page);
+    await input.fill("s ");
+
+    await expect(page.getByText("Flint planning", { exact: true })).toBeVisible({ timeout: 3000 });
+    await expect(page.getByRole("option", { name: /Flint planning Local Working/i })).toBeVisible({
+      timeout: 3000,
+    });
+  });
+
+  test("monitor session update is reflected while sessions command is active", async ({ page }) => {
+    const input = searchInput(page);
+    await input.fill("s ");
+    await expect(page.getByText("Flint planning", { exact: true })).toBeVisible({ timeout: 3000 });
+
+    await page.evaluate(() => {
+      (window as any).__sim.setSessionStatus("local", "sess-local-1", "error");
+    });
+
+    // re-query to trigger refresh fallback path in simulator flow
+    await input.fill("flint");
+    await expect(page.getByText("Error", { exact: true })).toBeVisible({ timeout: 3000 });
+  });
 });
 
 test.describe("Flint Simulator - Agent Mode", () => {

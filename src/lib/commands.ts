@@ -130,6 +130,13 @@ export interface SecondBrainConfig {
   repo_path: string | null;
 }
 
+export interface MonitoredServerConfig {
+  id: string;
+  host: string;
+  port: number;
+  label?: string | null;
+}
+
 export interface CommandConfigEntry {
   enabled?: boolean;
   prefix?: string;
@@ -149,6 +156,7 @@ export interface FlintConfig {
   chat: ChatConfig;
   second_brain: SecondBrainConfig;
   kits: Record<string, KitConfig>;
+  monitored_servers: MonitoredServerConfig[];
 }
 
 export async function getConfig(): Promise<FlintConfig> {

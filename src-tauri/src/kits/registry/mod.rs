@@ -153,6 +153,20 @@ impl KitRegistry {
     ///
     /// Returns `None` if no prefix matches (caller falls back to core search).
     /// When a prefix matches but the kit isn't ready, returns empty results.
+    ///
+    /// ## Delimiter-safe matching
+    ///
+    /// Kits that use a single-character prefix (e.g., `"="` for Calculator) are
+    /// safe because the prefix is a symbol that would not otherwise start a normal
+    /// search term.
+    ///
+    /// Kits that use a letter-based prefix **must** include a trailing space
+    /// in their `default_prefix` (e.g., `"s "` for Sessions). This ensures that
+    /// a user typing `"safari"` does **not** inadvertently activate the Sessions
+    /// kit — `"safari".starts_with("s ")` is `false`. The trailing space acts as
+    /// the required word-delimiter. The stripping logic below correctly handles
+    /// this: after stripping the `"s "` prefix the remaining query is already
+    /// the bare sub-query with no extra space to strip.
     pub fn search_by_prefix(&self, query: &str) -> Option<(String, String, Vec<KitResult>)> {
         let matched = self.commands.iter().find(|ic| {
             ic.enabled
@@ -168,9 +182,20 @@ impl KitRegistry {
             return Some((kit_id.clone(), command_id.to_string(), vec![]));
         }
 
-        // Strip prefix and optional following space.
+        // Strip the prefix.
+        // For space-terminated prefixes (e.g. `"s "`), the space is already
+        // consumed as part of `prefix_len` — there is no extra space to strip.
+        // For symbol prefixes without a trailing space (e.g. `"="`), we strip
+        // an optional following space so `"= 2+3"` and `"=2+3"` both work.
         let after_prefix = &query[prefix_len..];
-        let effective_query = after_prefix.strip_prefix(' ').unwrap_or(after_prefix);
+        let effective_query = if matched.effective_prefix.as_ref().is_some_and(|p| p.ends_with(' '))
+        {
+            // Space-terminated prefix — sub-query starts immediately.
+            after_prefix
+        } else {
+            // Symbol prefix — strip optional space for ergonomics.
+            after_prefix.strip_prefix(' ').unwrap_or(after_prefix)
+        };
 
         let kit = &self.kits[kit_id];
         let results = kit.search(command_id, effective_query);

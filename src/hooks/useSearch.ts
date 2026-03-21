@@ -26,7 +26,17 @@ export function useSearch(): void {
 
       searchPromise
         .then((results) => {
-          if (useSearchStore.getState().query === query) {
+          const state = useSearchStore.getState();
+          const stateCmd = state.activeCommand;
+          const localCmd = activeCommand;
+          const sameCommand =
+            (stateCmd === null && localCmd === null) ||
+            (stateCmd !== null &&
+              localCmd !== null &&
+              stateCmd.kitId === localCmd.kitId &&
+              stateCmd.commandId === localCmd.commandId);
+
+          if (state.query === query && sameCommand) {
             setResults(results);
           }
         })

@@ -41,6 +41,12 @@ interface SimulatorGlobal {
     setAutoReconnectOnInit: (enabled: boolean) => void;
     setHasModel: (hasModel: boolean) => void;
     setRepoPath: (path: string) => void;
+    setMonitoredServers: (servers: SimState["monitoredServers"]) => void;
+    setSessionStatus: (
+      serverId: string,
+      sessionId: string,
+      status: "idle" | "working" | "waiting" | "error",
+    ) => void;
     shutdown: typeof shutdownProxy;
     mode: "dev" | "test";
   };
@@ -140,7 +146,55 @@ const state: SimState = {
     model: SIM_MODE === "test" ? DEFAULT_PROJECT_MODEL : null,
     path: SIM_MODE === "test" ? "/mock/second-brain/opencode.jsonc" : "",
   },
+  monitoredServers:
+    SIM_MODE === "test"
+      ? [
+          {
+            id: "local",
+            host: "127.0.0.1",
+            port: 14097,
+            label: "Local",
+            sessions: [
+              {
+                sessionId: "sess-local-1",
+                title: "Flint planning",
+                status: "working",
+                updatedAt: Date.now(),
+              },
+              {
+                sessionId: "sess-local-2",
+                title: "Docs cleanup",
+                status: "idle",
+                updatedAt: Date.now() - 1000 * 60 * 5,
+              },
+            ],
+          },
+          {
+            id: "remote",
+            host: "192.168.1.10",
+            port: 14099,
+            label: "Remote",
+            sessions: [
+              {
+                sessionId: "sess-remote-1",
+                title: "CI triage",
+                status: "waiting",
+                updatedAt: Date.now() - 1000 * 60,
+              },
+            ],
+          },
+        ]
+      : [],
 };
+
+if (state.monitoredServers.length > 0) {
+  state.config.monitored_servers = state.monitoredServers.map((s) => ({
+    id: s.id,
+    host: s.host,
+    port: s.port,
+    label: s.label ?? null,
+  }));
+}
 
 const persistedOverrides = readSimOverrides();
 
@@ -279,6 +333,24 @@ export function installSimulator(): void {
       state.config.second_brain.repo_path = path;
       state.chatStatus.repo_path = path;
       writeSimOverrides({ repoPath: path });
+    },
+    setMonitoredServers: (servers) => {
+      state.monitoredServers = structuredClone(servers);
+      state.config.monitored_servers = state.monitoredServers.map((s) => ({
+        id: s.id,
+        host: s.host,
+        port: s.port,
+        label: s.label ?? null,
+      }));
+    },
+    setSessionStatus: (serverId, sessionId, status) => {
+      const server = state.monitoredServers.find((s) => s.id === serverId);
+      const session = server?.sessions.find((s) => s.sessionId === sessionId);
+      if (!session) return;
+
+      session.status = status;
+      session.updatedAt = Date.now();
+      emitToListeners("monitor:session_update", { serverId, sessionId, status });
     },
     shutdown: shutdownProxy,
     mode: SIM_MODE,
