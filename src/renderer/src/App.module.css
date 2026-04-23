@@ -1,42 +1,39 @@
-.launcher {
-  position: absolute;
-  top: 35%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(680px, 90%);
-  max-height: 65%;
+/* ── App root layout ────────────────────────────────────────── */
 
+.root {
   display: flex;
   flex-direction: column;
-
-  background: var(--bg-primary);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  overflow: hidden;
-
-  animation: fadeIn var(--transition-normal);
+  height: 100vh;
 }
 
-/* In agent mode, fill the window — chat needs vertical room. */
-.agentMode {
-  top: var(--space-sm);
-  bottom: var(--space-sm);
-  max-height: none;
+.header {
+  padding: var(--space-md) var(--space-lg) 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
 }
 
-html[data-backdrop-blur="true"] .launcher {
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+.headerIcon {
+  font-size: var(--font-md);
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) scale(1);
-  }
+.headerLabel {
+  color: var(--text-secondary);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.statusMessage {
+  padding: var(--space-3xl) var(--space-lg);
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: var(--font-sm);
+}
+
+.divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 0 var(--space-lg);
+  flex-shrink: 0;
 }

@@ -1,302 +1,37 @@
-import { create } from "zustand";
+import { create } from 'zustand'
 
 export interface ChatMessage {
-  role: "user" | "assistant" | "error";
-  content: string;
-}
-
-export interface ActiveToolCall {
-  kitId: string | null;
-  toolName: string;
-}
-
-export interface ChatNotice {
-  level: "info" | "warning" | "error";
-  message: string;
-}
-
-export type ModelPickerMode = "session" | "default_required";
-
-export interface SlashCommand {
-  id: string;
-  name: string;
-  icon: "command";
-}
-
-export const SLASH_COMMANDS: SlashCommand[] = [{ id: "models", name: "Models", icon: "command" }];
-
-export interface SelectedModel {
-  providerId: string;
-  modelId: string;
-  displayName: string;
-}
-
-export interface AvailableModelEntry {
-  id: string;
-  name: string;
-  providerId: string;
-  providerName: string;
-}
-
-/**
- * Filter and sort model entries for picker display.
- * Sort order: configured default model first, then alphabetical by name.
- */
-export function filterAndSortModels(
-  models: AvailableModelEntry[],
-  query: string,
-  defaultModelId: string | null,
-): AvailableModelEntry[] {
-  const lower = query.trim().toLowerCase();
-  const filtered =
-    lower.length === 0
-      ? models
-      : models.filter(
-          (m) =>
-            m.name.toLowerCase().includes(lower) ||
-            m.providerName.toLowerCase().includes(lower) ||
-            m.id.toLowerCase().includes(lower),
-        );
-
-  return [...filtered].sort((a, b) => {
-    const aIsDefault = defaultModelId !== null && a.id === defaultModelId;
-    const bIsDefault = defaultModelId !== null && b.id === defaultModelId;
-
-    if (aIsDefault && !bIsDefault) return -1;
-    if (!aIsDefault && bIsDefault) return 1;
-
-    return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
-  });
+  role: 'user' | 'assistant'
+  content: string
 }
 
 interface ChatState {
-  messages: ChatMessage[];
-  isStreaming: boolean;
-  currentResponse: string;
-  activeToolCalls: ActiveToolCall[];
-  notice: ChatNotice | null;
-  chatStatus: { connected: boolean; sessionId: string | null; repoPath: string | null };
-  /** Whether `setChatStatus` has been called at least once (avoids flash of "not configured"). */
-  statusChecked: boolean;
-  selectedModel: SelectedModel | null;
-  modelPickerOpen: boolean;
-  modelPickerMode: ModelPickerMode;
-  availableModels: AvailableModelEntry[];
-  defaultModelId: string | null;
-  hasProjectDefaultModel: boolean;
-  modelPickerQuery: string;
-  modelPickerIndex: number;
-  modelPickerActionPanelOpen: boolean;
-  modelPickerActionIndex: number;
-  slashMenuOpen: boolean;
-  slashMenuIndex: number;
-  slashMenuDismissed: boolean;
-
-  addUserMessage: (content: string) => void;
-  appendToken: (token: string) => void;
-  finishResponse: () => void;
-  setError: (error: string) => void;
-  setNotice: (notice: ChatNotice | null) => void;
-  clearNotice: () => void;
-  setStreaming: (streaming: boolean) => void;
-  setChatStatus: (status: {
-    connected: boolean;
-    sessionId: string | null;
-    repoPath: string | null;
-  }) => void;
-  setSelectedModel: (model: SelectedModel | null) => void;
-  openModelPicker: (mode?: ModelPickerMode) => void;
-  closeModelPicker: () => void;
-  setAvailableModels: (models: AvailableModelEntry[]) => void;
-  setDefaultModelId: (id: string | null) => void;
-  setHasProjectDefaultModel: (hasDefault: boolean) => void;
-  setModelPickerQuery: (query: string) => void;
-  setModelPickerIndex: (index: number) => void;
-  openModelPickerActionPanel: () => void;
-  closeModelPickerActionPanel: () => void;
-  setModelPickerActionIndex: (index: number) => void;
-  openSlashMenu: () => void;
-  closeSlashMenu: () => void;
-  setSlashMenuIndex: (index: number) => void;
-  setSlashMenuDismissed: (dismissed: boolean) => void;
-  addToolCall: (call: ActiveToolCall) => void;
-  removeToolCall: (toolName: string) => void;
-  resetTransientState: () => void;
-  setMessages: (messages: ChatMessage[]) => void;
-  clearChat: () => void;
+  messages: ChatMessage[]
+  streamingContent: string
+  isStreaming: boolean
+  addUserMessage: (content: string) => void
+  appendDelta: (delta: string) => void
+  finishStreaming: () => void
+  clearMessages: () => void
 }
 
-export const useChatStore = create<ChatState>((set, get) => ({
+export const useChatStore = create<ChatState>((set) => ({
   messages: [],
+  streamingContent: '',
   isStreaming: false,
-  currentResponse: "",
-  activeToolCalls: [],
-  notice: null,
-  chatStatus: { connected: false, sessionId: null, repoPath: null },
-  statusChecked: false,
-  selectedModel: null,
-  modelPickerOpen: false,
-  modelPickerMode: "session",
-  availableModels: [],
-  defaultModelId: null,
-  hasProjectDefaultModel: true,
-  modelPickerQuery: "",
-  modelPickerIndex: 0,
-  modelPickerActionPanelOpen: false,
-  modelPickerActionIndex: 0,
-  slashMenuOpen: false,
-  slashMenuIndex: 0,
-  slashMenuDismissed: false,
-
-  addUserMessage: (content) => {
+  addUserMessage: (content) =>
     set((state) => ({
-      messages: [...state.messages, { role: "user", content }],
+      messages: [...state.messages, { role: 'user', content }],
+      streamingContent: '',
       isStreaming: true,
-      currentResponse: "",
-      notice: null,
-    }));
-  },
-
-  appendToken: (token) => {
+    })),
+  appendDelta: (delta) =>
+    set((state) => ({ streamingContent: state.streamingContent + delta })),
+  finishStreaming: () =>
     set((state) => ({
-      currentResponse: state.currentResponse + token,
-    }));
-  },
-
-  finishResponse: () => {
-    const { currentResponse } = get();
-    if (currentResponse.length === 0) {
-      set({ isStreaming: false, activeToolCalls: [] });
-      return;
-    }
-    set((state) => ({
-      messages: [...state.messages, { role: "assistant", content: currentResponse }],
-      currentResponse: "",
+      messages: [...state.messages, { role: 'assistant', content: state.streamingContent }],
+      streamingContent: '',
       isStreaming: false,
-      activeToolCalls: [],
-    }));
-  },
-
-  setError: (error) => {
-    set((state) => ({
-      messages: [...state.messages, { role: "error", content: error }],
-      currentResponse: "",
-      isStreaming: false,
-      activeToolCalls: [],
-    }));
-  },
-
-  setNotice: (notice) => {
-    set({ notice });
-  },
-
-  clearNotice: () => {
-    set({ notice: null });
-  },
-
-  setStreaming: (streaming) => {
-    set({ isStreaming: streaming });
-  },
-
-  setChatStatus: (status) => {
-    set({ chatStatus: status, statusChecked: true });
-  },
-
-  setSelectedModel: (model) => {
-    set({ selectedModel: model });
-  },
-
-  openModelPicker: (mode = "session") => {
-    set({
-      modelPickerOpen: true,
-      modelPickerMode: mode,
-      modelPickerQuery: "",
-      modelPickerIndex: 0,
-      modelPickerActionPanelOpen: false,
-      modelPickerActionIndex: 0,
-    });
-  },
-
-  closeModelPicker: () => {
-    set({
-      modelPickerOpen: false,
-      modelPickerMode: "session",
-      modelPickerQuery: "",
-      modelPickerIndex: 0,
-      modelPickerActionPanelOpen: false,
-      modelPickerActionIndex: 0,
-    });
-  },
-
-  setAvailableModels: (models) => {
-    set({ availableModels: models });
-  },
-
-  setDefaultModelId: (id) => {
-    set({ defaultModelId: id });
-  },
-
-  setHasProjectDefaultModel: (hasDefault) => {
-    set({ hasProjectDefaultModel: hasDefault });
-  },
-
-  setModelPickerQuery: (query) => {
-    set({ modelPickerQuery: query, modelPickerIndex: 0 });
-  },
-
-  setModelPickerIndex: (index) => {
-    set({ modelPickerIndex: index });
-  },
-
-  openModelPickerActionPanel: () => {
-    set({ modelPickerActionPanelOpen: true, modelPickerActionIndex: 0 });
-  },
-
-  closeModelPickerActionPanel: () => {
-    set({ modelPickerActionPanelOpen: false, modelPickerActionIndex: 0 });
-  },
-
-  setModelPickerActionIndex: (index) => {
-    set({ modelPickerActionIndex: index });
-  },
-
-  openSlashMenu: () => {
-    set({ slashMenuOpen: true, slashMenuIndex: 0 });
-  },
-
-  closeSlashMenu: () => {
-    set({ slashMenuOpen: false });
-  },
-
-  setSlashMenuIndex: (index) => {
-    set({ slashMenuIndex: index });
-  },
-
-  setSlashMenuDismissed: (dismissed) => {
-    set({ slashMenuDismissed: dismissed });
-  },
-
-  addToolCall: (call) => {
-    set((state) => ({
-      activeToolCalls: [...state.activeToolCalls, call],
-    }));
-  },
-
-  removeToolCall: (toolName) => {
-    set((state) => ({
-      activeToolCalls: state.activeToolCalls.filter((tc) => tc.toolName !== toolName),
-    }));
-  },
-
-  resetTransientState: () => {
-    set({ isStreaming: false, currentResponse: "", activeToolCalls: [] });
-  },
-
-  setMessages: (messages) => {
-    set({ messages, isStreaming: false, currentResponse: "", activeToolCalls: [] });
-  },
-
-  clearChat: () => {
-    set({ messages: [], isStreaming: false, currentResponse: "", activeToolCalls: [] });
-  },
-}));
+    })),
+  clearMessages: () => set({ messages: [], streamingContent: '', isStreaming: false }),
+}))
