@@ -1,5 +1,62 @@
-import { contextBridge } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
 
-contextBridge.exposeInMainWorld('flint', {
-  platform: process.platform
-})
+const flintAPI = {
+  platform: process.platform,
+
+  chatSend: (prompt: string): void => {
+    ipcRenderer.send('chat:send', prompt)
+  },
+  onChatDelta: (callback: (delta: string) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, delta: string): void => {
+      callback(delta)
+    }
+    ipcRenderer.on('chat:delta', handler)
+    return () => {
+      ipcRenderer.removeListener('chat:delta', handler)
+    }
+  },
+  onChatDone: (callback: () => void): (() => void) => {
+    const handler = (): void => {
+      callback()
+    }
+    ipcRenderer.on('chat:done', handler)
+    return () => {
+      ipcRenderer.removeListener('chat:done', handler)
+    }
+  },
+
+  getMeetings: (): Promise<unknown[]> => ipcRenderer.invoke('meetings:get'),
+  joinMeeting: (joinUrl: string): void => {
+    ipcRenderer.send('meeting:join', joinUrl)
+  },
+  onMeetingsUpdate: (callback: (meetings: unknown[]) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, meetings: unknown[]): void => {
+      callback(meetings)
+    }
+    ipcRenderer.on('meetings:update', handler)
+    return () => {
+      ipcRenderer.removeListener('meetings:update', handler)
+    }
+  },
+
+  getConfig: (): Promise<unknown> => ipcRenderer.invoke('config:get'),
+  setConfig: (partial: Record<string, unknown>): void => {
+    ipcRenderer.send('config:set', partial)
+  },
+
+  hideOverlay: (): void => {
+    ipcRenderer.send('overlay:hide')
+  },
+
+  onConnectionStatus: (callback: (status: string) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, status: string): void => {
+      callback(status)
+    }
+    ipcRenderer.on('connection:status', handler)
+    return () => {
+      ipcRenderer.removeListener('connection:status', handler)
+    }
+  },
+}
+
+contextBridge.exposeInMainWorld('flint', flintAPI)

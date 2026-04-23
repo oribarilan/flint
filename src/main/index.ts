@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
+import { registerIpcHandlers } from './ipc/handlers'
 
 let overlayWindow: BrowserWindow | null = null
 
@@ -32,6 +33,7 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
+  registerIpcHandlers()
   createWindow()
 })
 
