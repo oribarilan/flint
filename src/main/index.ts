@@ -104,6 +104,6 @@ app.on('will-quit', async () => {
   await copilotManager.stop()
 })
 
-app.on('window-all-closed', (e: Event) => {
-  e.preventDefault()
+app.on('window-all-closed', () => {
+  // Keep app running in tray — don't quit on window close (macOS pattern)
 })

@@ -23,7 +23,11 @@ export function createConfigStore(): ConfigStore {
     },
 
     update(partial: Partial<FlintConfig>): void {
-      store.set(partial as Record<string, unknown>)
+      for (const [key, value] of Object.entries(partial)) {
+        if (value !== undefined) {
+          store.set(key as keyof FlintConfig, value as FlintConfig[keyof FlintConfig])
+        }
+      }
     },
   }
 }
