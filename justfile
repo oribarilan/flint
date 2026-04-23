@@ -8,25 +8,13 @@ default:
 check: lint format test build
 
 # Run all tests
-test: test-rust test-frontend
+test: test-frontend
 
-# Run a fast, non-coverage local test loop (best-effort)
-test-quick: test-rust-quick test-frontend-quick
+# Run a fast, non-coverage local test loop
+test-quick: test-frontend-quick
 
-# Run coverage-gated test suites (Rust + frontend)
-test-gated: test-rust-gated test-frontend-gated
-
-# Run Rust tests
-test-rust:
-    cargo test --manifest-path src-tauri/Cargo.toml --all-features
-
-# Run Rust tests quickly (same behavior as test-rust for now)
-test-rust-quick:
-    cargo test --manifest-path src-tauri/Cargo.toml --all-features
-
-# Run Rust tests with coverage gates
-test-rust-gated:
-    cargo llvm-cov --manifest-path src-tauri/Cargo.toml --all-features --workspace --fail-under-lines 35 --summary-only
+# Run coverage-gated test suite
+test-gated: test-frontend-gated
 
 # Run frontend tests
 test-frontend:
@@ -40,55 +28,35 @@ test-frontend-quick:
 test-frontend-gated:
     npm run test:coverage
 
-# Install optional local tooling used by gated paths
-setup-test-tools:
-    cargo install cargo-llvm-cov
-
 # Run all linting
-lint: lint-rust lint-frontend
-
-# Run Rust linting (Clippy)
-lint-rust:
-    cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings
+lint: lint-frontend
 
 # Run frontend linting (ESLint)
 lint-frontend:
     npm run lint
 
 # Run all formatting checks
-format: format-rust format-frontend
-
-# Check Rust formatting
-format-rust:
-    cargo fmt --manifest-path src-tauri/Cargo.toml --check
+format: format-frontend
 
 # Check frontend formatting (Prettier)
 format-frontend:
     npm run format:check
 
-# Build everything
-build: build-frontend build-rust
+# Build everything (electron-vite)
+build: build-frontend
 
-# Build frontend (TypeScript + Vite)
+# Build frontend + main + preload via electron-vite
 build-frontend:
     npm run build
 
-# Build Rust backend
-build-rust:
-    cargo build --manifest-path src-tauri/Cargo.toml
-
-# Full Tauri app build
+# Full Electron app build for macOS
 build-app:
-    npm run tauri build
+    npm run build:mac
 
 # Dev mode with hot reload
 dev:
-    npm run tauri dev
+    npm run dev
 
-# Run UI simulator in browser (no Tauri needed)
-sim:
-    npm run sim
-
-# Run E2E tests against the simulator
-test-e2e:
-    npm run test:e2e
+# Typecheck all layers
+typecheck:
+    npm run typecheck

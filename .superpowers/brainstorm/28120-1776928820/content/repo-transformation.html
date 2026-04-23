@@ -1,0 +1,158 @@
+<h2>Repo Transformation</h2>
+<p class="subtitle">What stays, what goes, what's new</p>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
+
+  <!-- REMOVE -->
+  <div style="border: 1px solid rgba(251,113,133,0.3); border-radius: 10px; padding: 16px;">
+    <div style="color: #fb7185; font-weight: bold; font-size: 14px; margin-bottom: 12px;">🗑 Remove</div>
+    <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+      <div style="color: #f87171; font-weight: 600; margin-top: 4px;">Entire Rust backend</div>
+      <div style="color: #64748b; padding-left: 8px;">src-tauri/ — Tauri shell, all commands, all providers</div>
+      
+      <div style="color: #f87171; font-weight: 600; margin-top: 8px;">Search system</div>
+      <div style="color: #64748b; padding-left: 8px;">SearchBar, ResultsList, useSearch, searchStore</div>
+      <div style="color: #64748b; padding-left: 8px;">nucleo fuzzy matching, Spotlight indexer</div>
+      
+      <div style="color: #f87171; font-weight: 600; margin-top: 8px;">Kit system</div>
+      <div style="color: #64748b; padding-left: 8px;">Calculator, Clipboard, Window Management kits</div>
+      <div style="color: #64748b; padding-left: 8px;">Kit registry, prefix detection, command chips</div>
+      
+      <div style="color: #f87171; font-weight: 600; margin-top: 8px;">OpenCode provider</div>
+      <div style="color: #64748b; padding-left: 8px;">process.rs, client.rs, events.rs, monitor/</div>
+      
+      <div style="color: #f87171; font-weight: 600; margin-top: 8px;">Tauri-specific frontend</div>
+      <div style="color: #64748b; padding-left: 8px;">lib/commands.ts (Tauri IPC wrappers)</div>
+      <div style="color: #64748b; padding-left: 8px;">ActionPanel, HintBar, KindIcon, ResultMeta</div>
+      
+      <div style="color: #f87171; font-weight: 600; margin-top: 8px;">Specs & config</div>
+      <div style="color: #64748b; padding-left: 8px;">tauri.conf.json, Cargo.toml, rustfmt.toml</div>
+      <div style="color: #64748b; padding-left: 8px;">spec.md, kits.md, action-panel.md, keybindings.md</div>
+      <div style="color: #64748b; padding-left: 8px;">.claude/skills/crossplatform, debug, tauri</div>
+    </div>
+  </div>
+
+  <!-- KEEP / ADAPT -->
+  <div style="border: 1px solid rgba(250,204,21,0.3); border-radius: 10px; padding: 16px;">
+    <div style="color: #facc15; font-weight: bold; font-size: 14px; margin-bottom: 12px;">♻️ Keep & Adapt</div>
+    <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+      <div style="color: #fbbf24; font-weight: 600; margin-top: 4px;">Design tokens</div>
+      <div style="color: #64748b; padding-left: 8px;">src/styles/global.css — semantic variables</div>
+      <div style="color: #64748b; padding-left: 8px;">src/styles/themes.css — dark theme</div>
+      <div style="color: #64748b; padding-left: 8px;">Flint identity (Spark × Strike)</div>
+      
+      <div style="color: #fbbf24; font-weight: 600; margin-top: 8px;">React + Zustand patterns</div>
+      <div style="color: #64748b; padding-left: 8px;">Component structure, hook patterns</div>
+      <div style="color: #64748b; padding-left: 8px;">chatStore → adapt for Copilot SDK events</div>
+      <div style="color: #64748b; padding-left: 8px;">useChat → rewrite for Electron IPC</div>
+      
+      <div style="color: #fbbf24; font-weight: 600; margin-top: 8px;">Chat panel</div>
+      <div style="color: #64748b; padding-left: 8px;">ChatPanel.tsx — adapt for Copilot responses</div>
+      <div style="color: #64748b; padding-left: 8px;">Streaming text rendering, markdown parsing</div>
+      
+      <div style="color: #fbbf24; font-weight: 600; margin-top: 8px;">Settings UI shell</div>
+      <div style="color: #64748b; padding-left: 8px;">Settings.tsx — restructure panels</div>
+      <div style="color: #64748b; padding-left: 8px;">HotkeyRecorder.tsx — adapt for Electron</div>
+      
+      <div style="color: #fbbf24; font-weight: 600; margin-top: 8px;">Build & test tooling</div>
+      <div style="color: #64748b; padding-left: 8px;">Vite, TypeScript config, ESLint, Prettier</div>
+      <div style="color: #64748b; padding-left: 8px;">Vitest setup, test patterns</div>
+      <div style="color: #64748b; padding-left: 8px;">Playwright (adapt simulator for Electron)</div>
+      
+      <div style="color: #fbbf24; font-weight: 600; margin-top: 8px;">Project infrastructure</div>
+      <div style="color: #64748b; padding-left: 8px;">Git history, .github/ CI, justfile (adapt)</div>
+      <div style="color: #64748b; padding-left: 8px;">AGENTS.md (rewrite for new architecture)</div>
+    </div>
+  </div>
+
+  <!-- ADD NEW -->
+  <div style="border: 1px solid rgba(52,211,153,0.3); border-radius: 10px; padding: 16px;">
+    <div style="color: #34d399; font-weight: bold; font-size: 14px; margin-bottom: 12px;">✨ Add New</div>
+    <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+      <div style="color: #34d399; font-weight: 600; margin-top: 4px;">Electron main process</div>
+      <div style="color: #64748b; padding-left: 8px;">main.ts — app entry, window creation</div>
+      <div style="color: #64748b; padding-left: 8px;">preload.ts — IPC bridge to renderer</div>
+      <div style="color: #64748b; padding-left: 8px;">electron-builder config</div>
+      
+      <div style="color: #34d399; font-weight: 600; margin-top: 8px;">Copilot integration</div>
+      <div style="color: #64748b; padding-left: 8px;">copilot/client.ts — CopilotClient wrapper</div>
+      <div style="color: #64748b; padding-left: 8px;">copilot/session.ts — session management</div>
+      <div style="color: #64748b; padding-left: 8px;">copilot/tools.ts — custom Electron tools</div>
+      
+      <div style="color: #34d399; font-weight: 600; margin-top: 8px;">Meeting system</div>
+      <div style="color: #64748b; padding-left: 8px;">meetings/monitor.ts — background poller</div>
+      <div style="color: #64748b; padding-left: 8px;">meetings/cache.ts — meeting data cache</div>
+      <div style="color: #64748b; padding-left: 8px;">meetings/notifications.ts — OS notification triggers</div>
+      
+      <div style="color: #34d399; font-weight: 600; margin-top: 8px;">Window management</div>
+      <div style="color: #64748b; padding-left: 8px;">window/overlay.ts — frameless overlay window</div>
+      <div style="color: #64748b; padding-left: 8px;">window/tray.ts — system tray + menu</div>
+      <div style="color: #64748b; padding-left: 8px;">window/hotkey.ts — global shortcut registration</div>
+      
+      <div style="color: #34d399; font-weight: 600; margin-top: 8px;">UI components</div>
+      <div style="color: #64748b; padding-left: 8px;">MeetingCard.tsx — meeting list item</div>
+      <div style="color: #64748b; padding-left: 8px;">MeetingDetail.tsx — expanded meeting view</div>
+      <div style="color: #64748b; padding-left: 8px;">meetingStore.ts — Zustand store</div>
+      
+      <div style="color: #34d399; font-weight: 600; margin-top: 8px;">Config</div>
+      <div style="color: #64748b; padding-left: 8px;">electron-store for preferences</div>
+      <div style="color: #64748b; padding-left: 8px;">Alert timing, hotkey, theme settings</div>
+    </div>
+  </div>
+</div>
+
+<!-- New directory structure -->
+<div style="margin-top: 24px;">
+  <div class="mockup">
+    <div class="mockup-header">New Project Structure</div>
+    <div class="mockup-body" style="padding: 20px; font-family: monospace; font-size: 12px; line-height: 1.8; color: #94a3b8;">
+<span style="color: #e2e8f0;">flint/</span>
+├── <span style="color: #60a5fa;">electron/</span>                    <span style="color: #475569;"># Electron main process</span>
+│   ├── main.ts                  <span style="color: #475569;"># App entry, window creation, tray</span>
+│   ├── preload.ts               <span style="color: #475569;"># contextBridge IPC exposure</span>
+│   ├── <span style="color: #34d399;">copilot/</span>                <span style="color: #475569;"># Copilot SDK integration</span>
+│   │   ├── client.ts            <span style="color: #475569;"># CopilotClient lifecycle</span>
+│   │   ├── session.ts           <span style="color: #475569;"># Session management (chat + background)</span>
+│   │   └── tools.ts             <span style="color: #475569;"># Custom tools (notify, join, overlay)</span>
+│   ├── <span style="color: #f59e0b;">meetings/</span>               <span style="color: #475569;"># Meeting monitor</span>
+│   │   ├── monitor.ts           <span style="color: #475569;"># Background polling loop</span>
+│   │   ├── cache.ts             <span style="color: #475569;"># In-memory meeting cache</span>
+│   │   └── notifications.ts     <span style="color: #475569;"># Native notification triggers</span>
+│   ├── <span style="color: #a78bfa;">window/</span>                 <span style="color: #475569;"># Window management</span>
+│   │   ├── overlay.ts           <span style="color: #475569;"># Frameless overlay BrowserWindow</span>
+│   │   ├── tray.ts              <span style="color: #475569;"># System tray icon + menu</span>
+│   │   └── hotkey.ts            <span style="color: #475569;"># Global shortcut registration</span>
+│   └── config.ts                <span style="color: #475569;"># electron-store preferences</span>
+│
+├── <span style="color: #a78bfa;">src/</span>                         <span style="color: #475569;"># React renderer (overlay UI)</span>
+│   ├── main.tsx                 <span style="color: #475569;"># React entry</span>
+│   ├── App.tsx                  <span style="color: #475569;"># Root (meetings view ↔ meeting detail ↔ chat)</span>
+│   ├── <span style="color: #34d399;">components/</span>
+│   │   ├── MeetingCards.tsx      <span style="color: #475569;"># Upcoming meetings list</span>
+│   │   ├── MeetingDetail.tsx     <span style="color: #475569;"># Expanded meeting context view</span>
+│   │   ├── ChatPanel.tsx         <span style="color: #475569;"># Conversational agent (adapted)</span>
+│   │   ├── ChatInput.tsx         <span style="color: #475569;"># Input field with submit</span>
+│   │   └── Settings.tsx          <span style="color: #475569;"># Settings overlay (adapted)</span>
+│   ├── <span style="color: #34d399;">hooks/</span>
+│   │   ├── useChat.ts            <span style="color: #475569;"># Copilot chat via Electron IPC</span>
+│   │   ├── useMeetings.ts        <span style="color: #475569;"># Meeting data from main process</span>
+│   │   └── useConfig.ts          <span style="color: #475569;"># Config read/write via IPC</span>
+│   ├── <span style="color: #34d399;">stores/</span>
+│   │   ├── chatStore.ts          <span style="color: #475569;"># Chat state (adapted)</span>
+│   │   └── meetingStore.ts       <span style="color: #475569;"># Meeting cards state</span>
+│   ├── <span style="color: #34d399;">lib/</span>
+│   │   ├── ipc.ts                <span style="color: #475569;"># Typed IPC wrappers (replaces commands.ts)</span>
+│   │   └── markdown.ts           <span style="color: #475569;"># Markdown rendering (kept)</span>
+│   └── <span style="color: #34d399;">styles/</span>
+│       ├── global.css            <span style="color: #475569;"># Design tokens (kept)</span>
+│       └── themes.css            <span style="color: #475569;"># Dark theme (kept)</span>
+│
+├── package.json                  <span style="color: #475569;"># +electron, +@github/copilot-sdk, +@microsoft/workiq</span>
+├── vite.config.ts                <span style="color: #475569;"># Vite for renderer (adapted)</span>
+├── electron-builder.yml          <span style="color: #475569;"># Distribution config</span>
+├── tsconfig.json                 <span style="color: #475569;"># Shared TS config</span>
+├── tsconfig.electron.json        <span style="color: #475569;"># Main process TS config</span>
+└── justfile                      <span style="color: #475569;"># Adapted: dev, build, test, package</span>
+    </div>
+  </div>
+</div>

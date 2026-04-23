@@ -1,0 +1,7 @@
+{"type":"server-started","port":62928,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:62928","screen_dir":"/Users/orbarila/repos/personal/flint/.superpowers/brainstorm/28120-1776928820/content","state_dir":"/Users/orbarila/repos/personal/flint/.superpowers/brainstorm/28120-1776928820/state"}
+{"type":"screen-added","file":"/Users/orbarila/repos/personal/flint/.superpowers/brainstorm/28120-1776928820/content/architecture.html"}
+{"type":"screen-added","file":"/Users/orbarila/repos/personal/flint/.superpowers/brainstorm/28120-1776928820/content/integration.html"}
+{"type":"screen-added","file":"/Users/orbarila/repos/personal/flint/.superpowers/brainstorm/28120-1776928820/content/alerts-and-ui.html"}
+{"type":"screen-added","file":"/Users/orbarila/repos/personal/flint/.superpowers/brainstorm/28120-1776928820/content/repo-transformation.html"}
+{"type":"screen-added","file":"/Users/orbarila/repos/personal/flint/.superpowers/brainstorm/28120-1776928820/content/waiting.html"}
+{"type":"server-stopped","reason":"idle timeout"}

@@ -1,0 +1,160 @@
+<h2>Meeting Alerts & Overlay UI</h2>
+<p class="subtitle">Background monitoring, notifications, and the overlay experience</p>
+
+<!-- Meeting Monitor -->
+<div class="mockup">
+  <div class="mockup-header">Meeting Monitor — Background Loop</div>
+  <div class="mockup-body" style="padding: 24px; font-family: monospace; font-size: 13px; line-height: 1.8;">
+    <div style="display: flex; flex-direction: column; gap: 2px;">
+      <div style="color: #64748b;">// Runs in Electron main process, always active while app is in tray</div>
+      <div>&nbsp;</div>
+      <div style="color: #60a5fa; font-weight: bold;">EVERY 15 MINUTES:</div>
+      <div>&nbsp;&nbsp;├─ Send to background Copilot session:</div>
+      <div>&nbsp;&nbsp;│&nbsp;&nbsp;<span style="color: #a3e635;">"List my meetings for the next 3 hours with times, titles, attendees, and join links."</span></div>
+      <div>&nbsp;&nbsp;├─ Parse structured response → cache as Meeting[] in memory</div>
+      <div>&nbsp;&nbsp;└─ Update tray icon badge (number of upcoming meetings)</div>
+      <div>&nbsp;</div>
+      <div style="color: #f59e0b; font-weight: bold;">EVERY 60 SECONDS (tick against cache):</div>
+      <div>&nbsp;&nbsp;├─ For each cached meeting:</div>
+      <div>&nbsp;&nbsp;│&nbsp;&nbsp;├─ If starts in ≤ <span style="color: #34d399;">alertMinutes</span> (default 5) AND not yet alerted:</div>
+      <div>&nbsp;&nbsp;│&nbsp;&nbsp;│&nbsp;&nbsp;├─ Fire native OS notification</div>
+      <div>&nbsp;&nbsp;│&nbsp;&nbsp;│&nbsp;&nbsp;│&nbsp;&nbsp;├─ Title: "Meeting in 5 min"</div>
+      <div>&nbsp;&nbsp;│&nbsp;&nbsp;│&nbsp;&nbsp;│&nbsp;&nbsp;├─ Body: "Q4 Planning — with Sarah, Mike, Lisa"</div>
+      <div>&nbsp;&nbsp;│&nbsp;&nbsp;│&nbsp;&nbsp;│&nbsp;&nbsp;└─ Action: click → show overlay with meeting context</div>
+      <div>&nbsp;&nbsp;│&nbsp;&nbsp;│&nbsp;&nbsp;└─ Mark meeting as "alerted" in cache</div>
+      <div>&nbsp;&nbsp;│&nbsp;&nbsp;└─ If started and passed → remove from cache</div>
+      <div>&nbsp;&nbsp;└─ If overlay is open → push updated meeting cards to renderer</div>
+    </div>
+  </div>
+</div>
+
+<!-- Overlay UI Mockup -->
+<div style="margin-top: 24px;">
+  <div class="mockup">
+    <div class="mockup-header">Overlay — Default View (hotkey activated)</div>
+    <div class="mockup-body" style="padding: 0; background: #0f0f14; border-radius: 0 0 8px 8px;">
+      <!-- Window chrome -->
+      <div style="padding: 12px 16px 0; display: flex; align-items: center; gap: 8px;">
+        <div style="width: 20px; height: 20px; background: linear-gradient(135deg, #f59e0b, #fb923c); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold;">⚡</div>
+        <span style="color: #64748b; font-size: 12px; font-weight: 600; letter-spacing: 0.5px;">FLINT</span>
+        <div style="flex:1;"></div>
+        <span style="color: #475569; font-size: 11px;">⌘ ,  settings</span>
+      </div>
+
+      <!-- Meeting cards -->
+      <div style="padding: 12px 16px;">
+        <div style="color: #64748b; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 8px;">UPCOMING</div>
+        
+        <!-- Meeting 1 - imminent -->
+        <div style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); border-radius: 8px; padding: 10px 12px; margin-bottom: 6px; display: flex; align-items: center; gap: 12px;">
+          <div style="min-width: 44px; text-align: center;">
+            <div style="color: #f59e0b; font-size: 13px; font-weight: 700;">2:00</div>
+            <div style="color: #f59e0b; font-size: 10px; opacity: 0.7;">in 4 min</div>
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="color: #e2e8f0; font-size: 13px; font-weight: 500;">Q4 Planning Review</div>
+            <div style="color: #64748b; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Sarah Chen, Mike Ross, Lisa Park</div>
+          </div>
+          <div style="background: #f59e0b; color: #0f0f14; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap;">Join ↗</div>
+        </div>
+
+        <!-- Meeting 2 - later -->
+        <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 10px 12px; margin-bottom: 6px; display: flex; align-items: center; gap: 12px;">
+          <div style="min-width: 44px; text-align: center;">
+            <div style="color: #94a3b8; font-size: 13px; font-weight: 700;">3:30</div>
+            <div style="color: #64748b; font-size: 10px;">1h 34m</div>
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="color: #cbd5e1; font-size: 13px; font-weight: 500;">1:1 with Jordan</div>
+            <div style="color: #64748b; font-size: 11px;">Jordan Williams</div>
+          </div>
+        </div>
+
+        <!-- Meeting 3 - further out -->
+        <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 10px 12px; display: flex; align-items: center; gap: 12px;">
+          <div style="min-width: 44px; text-align: center;">
+            <div style="color: #94a3b8; font-size: 13px; font-weight: 700;">5:00</div>
+            <div style="color: #64748b; font-size: 10px;">3h 4m</div>
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="color: #cbd5e1; font-size: 13px; font-weight: 500;">Sprint Retro</div>
+            <div style="color: #64748b; font-size: 11px;">Engineering team (12)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Divider -->
+      <div style="height: 1px; background: rgba(255,255,255,0.06); margin: 4px 16px;"></div>
+
+      <!-- Chat input -->
+      <div style="padding: 12px 16px 14px;">
+        <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; gap: 8px;">
+          <span style="color: #475569; font-size: 13px;">Ask about your schedule, meetings, or work...</span>
+          <div style="flex: 1;"></div>
+          <span style="color: #334155; font-size: 11px;">⏎</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Notification click view -->
+<div style="margin-top: 24px;">
+  <div class="mockup">
+    <div class="mockup-header">Overlay — Meeting Context (after notification click)</div>
+    <div class="mockup-body" style="padding: 0; background: #0f0f14; border-radius: 0 0 8px 8px;">
+      <!-- Window chrome -->
+      <div style="padding: 12px 16px 0; display: flex; align-items: center; gap: 8px;">
+        <div style="width: 20px; height: 20px; background: linear-gradient(135deg, #f59e0b, #fb923c); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold;">⚡</div>
+        <span style="color: #64748b; font-size: 12px; font-weight: 600; letter-spacing: 0.5px;">FLINT</span>
+        <div style="flex:1;"></div>
+        <span style="color: #475569; font-size: 11px; cursor: pointer;">← back</span>
+      </div>
+
+      <!-- Meeting detail -->
+      <div style="padding: 16px;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+          <div style="width: 8px; height: 8px; border-radius: 50%; background: #f59e0b; animation: pulse 2s infinite;"></div>
+          <div style="color: #f59e0b; font-size: 12px; font-weight: 600;">STARTING NOW</div>
+        </div>
+        
+        <div style="color: #f1f5f9; font-size: 16px; font-weight: 600; margin-bottom: 4px;">Q4 Planning Review</div>
+        <div style="color: #64748b; font-size: 12px; margin-bottom: 16px;">2:00 PM – 3:00 PM · Teams</div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+          <div>
+            <div style="color: #475569; font-size: 11px; font-weight: 600; margin-bottom: 6px;">ATTENDEES</div>
+            <div style="color: #94a3b8; font-size: 12px; line-height: 1.6;">Sarah Chen (organizer)<br>Mike Ross<br>Lisa Park<br>You</div>
+          </div>
+          <div>
+            <div style="color: #475569; font-size: 11px; font-weight: 600; margin-bottom: 6px;">AGENDA</div>
+            <div style="color: #94a3b8; font-size: 12px; line-height: 1.6;">Review Q4 targets<br>Budget allocation<br>Team assignments</div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px;">
+          <div style="background: #f59e0b; color: #0f0f14; padding: 8px 20px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; flex: 1; text-align: center;">Join Meeting ↗</div>
+        </div>
+      </div>
+
+      <!-- Divider -->
+      <div style="height: 1px; background: rgba(255,255,255,0.06); margin: 0 16px;"></div>
+
+      <!-- Chat for this meeting -->
+      <div style="padding: 12px 16px 14px;">
+        <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; gap: 8px;">
+          <span style="color: #475569; font-size: 13px;">Ask about this meeting...</span>
+          <div style="flex: 1;"></div>
+          <span style="color: #334155; font-size: 11px;">⏎</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+</style>

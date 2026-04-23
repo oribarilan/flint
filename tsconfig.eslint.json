@@ -7,9 +7,6 @@
   "include": [
     "src/**/*.ts",
     "src/**/*.tsx",
-    "simulator/**/*.ts",
-    "playwright.config.ts",
-    "vite.config.ts",
-    "vite.config.simulator.ts"
+    "electron.vite.config.ts"
   ]
 }

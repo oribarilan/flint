@@ -1,0 +1,129 @@
+<h2>Copilot SDK + Work IQ Integration</h2>
+<p class="subtitle">How the pieces connect in Electron main process</p>
+
+<div class="mockup">
+  <div class="mockup-header">Initialization Flow</div>
+  <div class="mockup-body" style="padding: 24px; font-family: monospace; font-size: 13px;">
+    <div style="display: flex; flex-direction: column; gap: 4px; line-height: 1.7;">
+      <div style="color: #64748b;">// ── Electron main process (main.ts) ──</div>
+      <div>&nbsp;</div>
+      <div style="color: #64748b;">// 1. Create client (bundles + manages CLI binary automatically)</div>
+      <div><span style="color: #c084fc;">const</span> client = <span style="color: #c084fc;">new</span> <span style="color: #60a5fa;">CopilotClient</span>({</div>
+      <div>&nbsp;&nbsp;cliPath: path.join(app.isPackaged ? process.resourcesPath : __dirname, <span style="color: #a3e635;">"copilot"</span>),</div>
+      <div>});</div>
+      <div>&nbsp;</div>
+      <div style="color: #64748b;">// 2. Create session with Work IQ MCP + custom tools</div>
+      <div><span style="color: #c084fc;">const</span> session = <span style="color: #c084fc;">await</span> client.<span style="color: #60a5fa;">createSession</span>({</div>
+      <div>&nbsp;&nbsp;model: <span style="color: #a3e635;">"gpt-4.1"</span>,</div>
+      <div>&nbsp;&nbsp;streaming: <span style="color: #f59e0b;">true</span>,</div>
+      <div>&nbsp;&nbsp;systemMessage: {</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;content: <span style="color: #a3e635;">"You are Flint, a personal work assistant. Help the user</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #a3e635;">manage their calendar, meetings, and work communications.</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #a3e635;">Be concise and actionable."</span>,</div>
+      <div>&nbsp;&nbsp;},</div>
+      <div>&nbsp;&nbsp;<span style="color: #34d399;">mcpServers</span>: {</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #a3e635;">"work-iq"</span>: {</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: <span style="color: #a3e635;">"local"</span>,</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;command: <span style="color: #a3e635;">"npx"</span>,</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;args: [<span style="color: #a3e635;">"-y"</span>, <span style="color: #a3e635;">"@microsoft/workiq"</span>, <span style="color: #a3e635;">"mcp"</span>],</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tools: [<span style="color: #a3e635;">"*"</span>],</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;},</div>
+      <div>&nbsp;&nbsp;},</div>
+      <div>&nbsp;&nbsp;tools: [showNotification, joinMeeting],  <span style="color: #64748b;">// custom Electron tools</span></div>
+      <div>});</div>
+      <div>&nbsp;</div>
+      <div style="color: #64748b;">// 3. Stream responses to renderer via IPC</div>
+      <div>session.on(<span style="color: #a3e635;">"assistant.message_delta"</span>, (event) => {</div>
+      <div>&nbsp;&nbsp;overlayWindow.webContents.send(<span style="color: #a3e635;">"chat:delta"</span>, event.data.deltaContent);</div>
+      <div>});</div>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top: 24px;">
+  <div class="mockup">
+    <div class="mockup-header">Data Flow: User Query → Response</div>
+    <div class="mockup-body" style="padding: 24px; font-size: 13px;">
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <!-- Step 1 -->
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="min-width: 32px; height: 32px; border-radius: 50%; background: #a78bfa; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;">1</div>
+          <div style="flex: 1; background: rgba(167,139,250,0.1); padding: 10px 14px; border-radius: 8px;">
+            <span style="color: #a78bfa; font-weight: bold;">Renderer</span>
+            <span style="color: #94a3b8;"> → ipcRenderer.send("chat:send", "What meetings do I have tomorrow?")</span>
+          </div>
+        </div>
+        <!-- Step 2 -->
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="min-width: 32px; height: 32px; border-radius: 50%; background: #60a5fa; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;">2</div>
+          <div style="flex: 1; background: rgba(96,165,250,0.1); padding: 10px 14px; border-radius: 8px;">
+            <span style="color: #60a5fa; font-weight: bold;">Main</span>
+            <span style="color: #94a3b8;"> → session.sendAndWait({ prompt }) — SDK sends to Copilot CLI via JSON-RPC</span>
+          </div>
+        </div>
+        <!-- Step 3 -->
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="min-width: 32px; height: 32px; border-radius: 50%; background: #f59e0b; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;">3</div>
+          <div style="flex: 1; background: rgba(245,158,11,0.1); padding: 10px 14px; border-radius: 8px;">
+            <span style="color: #f59e0b; font-weight: bold;">Copilot CLI</span>
+            <span style="color: #94a3b8;"> → Agent decides to call Work IQ MCP tool <code style="color:#34d399">ask_work_iq</code></span>
+          </div>
+        </div>
+        <!-- Step 4 -->
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="min-width: 32px; height: 32px; border-radius: 50%; background: #34d399; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;">4</div>
+          <div style="flex: 1; background: rgba(52,211,153,0.1); padding: 10px 14px; border-radius: 8px;">
+            <span style="color: #34d399; font-weight: bold;">Work IQ</span>
+            <span style="color: #94a3b8;"> → Queries M365 Copilot Chat API → returns meeting data as structured response</span>
+          </div>
+        </div>
+        <!-- Step 5 -->
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="min-width: 32px; height: 32px; border-radius: 50%; background: #f59e0b; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;">5</div>
+          <div style="flex: 1; background: rgba(245,158,11,0.1); padding: 10px 14px; border-radius: 8px;">
+            <span style="color: #f59e0b; font-weight: bold;">Copilot CLI</span>
+            <span style="color: #94a3b8;"> → Agent formats meeting data into natural language response, streams back</span>
+          </div>
+        </div>
+        <!-- Step 6 -->
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="min-width: 32px; height: 32px; border-radius: 50%; background: #60a5fa; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;">6</div>
+          <div style="flex: 1; background: rgba(96,165,250,0.1); padding: 10px 14px; border-radius: 8px;">
+            <span style="color: #60a5fa; font-weight: bold;">Main</span>
+            <span style="color: #94a3b8;"> → Receives streaming deltas → forwards via ipcMain to renderer</span>
+          </div>
+        </div>
+        <!-- Step 7 -->
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="min-width: 32px; height: 32px; border-radius: 50%; background: #a78bfa; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;">7</div>
+          <div style="flex: 1; background: rgba(167,139,250,0.1); padding: 10px 14px; border-radius: 8px;">
+            <span style="color: #a78bfa; font-weight: bold;">Renderer</span>
+            <span style="color: #94a3b8;"> → React state updates → streaming text renders in chat panel</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top: 24px;">
+  <h3>Key Integration Details</h3>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px;">
+    <div style="background: rgba(255,255,255,0.03); border-radius: 8px; padding: 16px;">
+      <div style="color: #34d399; font-weight: bold; font-size: 13px; margin-bottom: 8px;">Work IQ as Local MCP</div>
+      <p style="color: #94a3b8; font-size: 13px; margin: 0;">Work IQ runs as a stdio MCP server via <code>npx @microsoft/workiq mcp</code>. The SDK spawns it as a child process alongside the Copilot CLI. No separate setup — just declare it in the session config. Auth uses the user's signed-in M365 credentials.</p>
+    </div>
+    <div style="background: rgba(255,255,255,0.03); border-radius: 8px; padding: 16px;">
+      <div style="color: #c084fc; font-weight: bold; font-size: 13px; margin-bottom: 8px;">Session Persistence</div>
+      <p style="color: #94a3b8; font-size: 13px; margin: 0;">SDK supports named sessions (<code>sessionId: "flint-main"</code>) that persist to <code>~/.copilot/session-state/</code>. Conversations survive app restarts. The meeting monitor can share session context with the user's chat — or use a separate background session.</p>
+    </div>
+    <div style="background: rgba(255,255,255,0.03); border-radius: 8px; padding: 16px;">
+      <div style="color: #f59e0b; font-weight: bold; font-size: 13px; margin-bottom: 8px;">Custom Tools (Electron actions)</div>
+      <p style="color: #94a3b8; font-size: 13px; margin: 0;">Register Electron actions as Copilot tools: <code>showNotification</code>, <code>joinMeeting</code> (opens URL), <code>showOverlay</code>. The agent can autonomously trigger these — e.g., "remind me 5 minutes before" → agent calls showNotification tool with a timer.</p>
+    </div>
+    <div style="background: rgba(255,255,255,0.03); border-radius: 8px; padding: 16px;">
+      <div style="color: #fb7185; font-weight: bold; font-size: 13px; margin-bottom: 8px;">Auth Model</div>
+      <p style="color: #94a3b8; font-size: 13px; margin: 0;">Two auth chains: (1) GitHub Copilot — CLI handles auth via system keychain, user signs in once. (2) M365/Work IQ — Work IQ CLI handles M365 OAuth, user signs in once via <code>workiq accept-eula</code>. Both persist across restarts.</p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,108 @@
+<h2>System Architecture</h2>
+<p class="subtitle">Flint — Desktop Personal Assistant (Electron + Copilot SDK)</p>
+
+<div class="mockup">
+  <div class="mockup-header">Process Model</div>
+  <div class="mockup-body" style="padding: 24px; font-family: monospace; font-size: 13px; line-height: 1.8;">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px;">
+      <!-- Main Process -->
+      <div style="border: 2px solid #60a5fa; border-radius: 12px; padding: 20px;">
+        <div style="color: #60a5fa; font-weight: bold; font-size: 15px; margin-bottom: 16px;">Electron Main Process</div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="background: rgba(96,165,250,0.1); padding: 8px 12px; border-radius: 6px; border-left: 3px solid #60a5fa;">
+            <strong>CopilotClient</strong><br>
+            <span style="color: #94a3b8; font-size: 12px;">@github/copilot SDK · sessions, tools, streaming</span>
+          </div>
+          <div style="background: rgba(96,165,250,0.1); padding: 8px 12px; border-radius: 6px; border-left: 3px solid #60a5fa;">
+            <strong>Work IQ MCP</strong><br>
+            <span style="color: #94a3b8; font-size: 12px;">@microsoft/workiq · calendar, meetings, mail</span>
+          </div>
+          <div style="background: rgba(96,165,250,0.1); padding: 8px 12px; border-radius: 6px; border-left: 3px solid #60a5fa;">
+            <strong>Meeting Monitor</strong><br>
+            <span style="color: #94a3b8; font-size: 12px;">Polls calendar · triggers native notifications</span>
+          </div>
+          <div style="background: rgba(96,165,250,0.1); padding: 8px 12px; border-radius: 6px; border-left: 3px solid #60a5fa;">
+            <strong>Window Manager</strong><br>
+            <span style="color: #94a3b8; font-size: 12px;">Overlay BrowserWindow · tray · global hotkey</span>
+          </div>
+          <div style="background: rgba(96,165,250,0.1); padding: 8px 12px; border-radius: 6px; border-left: 3px solid #60a5fa;">
+            <strong>Config Store</strong><br>
+            <span style="color: #94a3b8; font-size: 12px;">electron-store · user preferences · alert settings</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Renderer Process -->
+      <div style="border: 2px solid #a78bfa; border-radius: 12px; padding: 20px;">
+        <div style="color: #a78bfa; font-weight: bold; font-size: 15px; margin-bottom: 16px;">Renderer Process (Overlay)</div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="background: rgba(167,139,250,0.1); padding: 8px 12px; border-radius: 6px; border-left: 3px solid #a78bfa;">
+            <strong>React 19 + Zustand</strong><br>
+            <span style="color: #94a3b8; font-size: 12px;">Chat panel, meeting cards, settings</span>
+          </div>
+          <div style="background: rgba(167,139,250,0.1); padding: 8px 12px; border-radius: 6px; border-left: 3px solid #a78bfa;">
+            <strong>Chat Interface</strong><br>
+            <span style="color: #94a3b8; font-size: 12px;">Conversational agent · streaming responses</span>
+          </div>
+          <div style="background: rgba(167,139,250,0.1); padding: 8px 12px; border-radius: 6px; border-left: 3px solid #a78bfa;">
+            <strong>Meeting Dashboard</strong><br>
+            <span style="color: #94a3b8; font-size: 12px;">Upcoming meetings · join links · context</span>
+          </div>
+          <div style="background: rgba(167,139,250,0.1); padding: 8px 12px; border-radius: 6px; border-left: 3px solid #a78bfa;">
+            <strong>Design Tokens</strong><br>
+            <span style="color: #94a3b8; font-size: 12px;">Flint dark theme · CSS variables · typography</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- External connections -->
+    <div style="margin-top: 24px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+      <div style="border: 1px dashed #475569; border-radius: 8px; padding: 12px; text-align: center;">
+        <div style="color: #f59e0b; font-weight: bold; font-size: 13px;">Copilot CLI</div>
+        <div style="color: #64748b; font-size: 11px; margin-top: 4px;">Bundled binary · JSON-RPC stdio<br>Managed by SDK automatically</div>
+      </div>
+      <div style="border: 1px dashed #475569; border-radius: 8px; padding: 12px; text-align: center;">
+        <div style="color: #34d399; font-weight: bold; font-size: 13px;">Work IQ MCP Server</div>
+        <div style="color: #64748b; font-size: 11px; margin-top: 4px;">@microsoft/workiq · stdio<br>Connected via SDK MCP support</div>
+      </div>
+      <div style="border: 1px dashed #475569; border-radius: 8px; padding: 12px; text-align: center;">
+        <div style="color: #fb7185; font-weight: bold; font-size: 13px;">macOS / OS APIs</div>
+        <div style="color: #64748b; font-size: 11px; margin-top: 4px;">Notification Center · Global Shortcut<br>System Tray · App activation</div>
+      </div>
+    </div>
+
+    <!-- Data flow arrows -->
+    <div style="margin-top: 20px; padding: 16px; background: rgba(255,255,255,0.03); border-radius: 8px;">
+      <div style="color: #94a3b8; font-size: 12px; font-weight: bold; margin-bottom: 8px;">DATA FLOW</div>
+      <div style="color: #cbd5e1; font-size: 12px; line-height: 2;">
+        <span style="color: #60a5fa;">Main</span> ←<span style="color: #64748b;">ipcMain/ipcRenderer</span>→ <span style="color: #a78bfa;">Renderer</span><br>
+        <span style="color: #60a5fa;">CopilotClient</span> ←<span style="color: #64748b;">JSON-RPC stdio</span>→ <span style="color: #f59e0b;">Copilot CLI</span><br>
+        <span style="color: #f59e0b;">Copilot CLI</span> ←<span style="color: #64748b;">MCP stdio</span>→ <span style="color: #34d399;">Work IQ</span> ←<span style="color: #64748b;">HTTPS</span>→ Microsoft 365<br>
+        <span style="color: #60a5fa;">Meeting Monitor</span> →<span style="color: #64748b;">Electron Notification API</span>→ <span style="color: #fb7185;">OS Notification Center</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top: 24px;">
+  <h3>Key Design Decisions</h3>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px;">
+    <div style="background: rgba(255,255,255,0.03); border-radius: 8px; padding: 16px;">
+      <div style="color: #60a5fa; font-weight: bold; font-size: 13px; margin-bottom: 8px;">SDK in Main Process</div>
+      <p style="color: #94a3b8; font-size: 13px; margin: 0;">CopilotClient lives in Electron main. No sidecar, no bridging. The SDK spawns and manages the CLI binary internally via JSON-RPC over stdio. We never touch the CLI directly.</p>
+    </div>
+    <div style="background: rgba(255,255,255,0.03); border-radius: 8px; padding: 16px;">
+      <div style="color: #34d399; font-weight: bold; font-size: 13px; margin-bottom: 8px;">Work IQ via SDK MCP</div>
+      <p style="color: #94a3b8; font-size: 13px; margin: 0;">Work IQ MCP server is registered with the Copilot session as an MCP tool source. The agent can call Work IQ tools autonomously when the user asks about meetings/calendar. No separate Work IQ process to manage.</p>
+    </div>
+    <div style="background: rgba(255,255,255,0.03); border-radius: 8px; padding: 16px;">
+      <div style="color: #f59e0b; font-weight: bold; font-size: 13px; margin-bottom: 8px;">Meeting Polling</div>
+      <p style="color: #94a3b8; font-size: 13px; margin: 0;">Background interval in main process queries upcoming meetings via Copilot + Work IQ every ~15min. Results cached. Notifications fired based on proximity. Cheap enough for personal use; Graph API can replace later.</p>
+    </div>
+    <div style="background: rgba(255,255,255,0.03); border-radius: 8px; padding: 16px;">
+      <div style="color: #a78bfa; font-weight: bold; font-size: 13px; margin-bottom: 8px;">Overlay Window</div>
+      <p style="color: #94a3b8; font-size: 13px; margin: 0;">Single BrowserWindow: frameless, always-on-top, transparent. Hidden by default, shown on global hotkey. Same pattern as current Flint — just Electron APIs instead of Tauri.</p>
+    </div>
+  </div>
+</div>
