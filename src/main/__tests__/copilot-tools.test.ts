@@ -8,7 +8,22 @@ vi.mock('electron', () => ({
   shell: { openExternal: vi.fn() },
 }))
 
+vi.mock('@github/copilot-sdk', () => ({
+  defineTool: (name: string, config: Record<string, unknown>) => ({
+    name,
+    ...config,
+  }),
+}))
+
 import { createAllTools, getMonitorTools, getChatTools } from '../copilot/tools'
+
+// Minimal mock invocation for SDK tool handler calls
+const mockInvocation = {
+  sessionId: 'test',
+  toolCallId: 'tc-1',
+  toolName: '',
+  arguments: {},
+} as any
 
 describe('Copilot Tools', () => {
   it('creates 5 tools total', () => {
@@ -35,7 +50,7 @@ describe('Copilot Tools', () => {
       attendees: [],
       organizer: '',
     }
-    await report.handler({ meetings: [meeting] })
+    await report.handler({ meetings: [meeting] }, mockInvocation)
     expect(onMeetings).toHaveBeenCalledWith([meeting])
   })
 
@@ -49,20 +64,20 @@ describe('Copilot Tools', () => {
       getMeetings: () => meetings,
     })
     const get = tools.find((t) => t.name === 'get_meetings')!
-    expect(await get.handler({})).toEqual(meetings)
+    expect(await get.handler({}, mockInvocation)).toEqual(meetings)
   })
 
   it('get_meetings returns empty array when no getter', async () => {
     const tools = createAllTools({ onMeetings: vi.fn(), onShowOverlay: vi.fn() })
     const get = tools.find((t) => t.name === 'get_meetings')!
-    expect(await get.handler({})).toEqual([])
+    expect(await get.handler({}, mockInvocation)).toEqual([])
   })
 
   it('show_overlay calls onShowOverlay callback', async () => {
     const onShowOverlay = vi.fn()
     const tools = createAllTools({ onMeetings: vi.fn(), onShowOverlay })
     const overlay = tools.find((t) => t.name === 'show_overlay')!
-    await overlay.handler({ meetingId: 'abc' })
+    await overlay.handler({ meetingId: 'abc' }, mockInvocation)
     expect(onShowOverlay).toHaveBeenCalledWith('abc')
   })
 

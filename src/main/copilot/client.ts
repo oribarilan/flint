@@ -1,22 +1,16 @@
+import { CopilotClient } from '@github/copilot-sdk'
 import type { ConnectionStatus } from '../types'
-
-// Note: Import from @github/copilot-sdk when available
-// For now, define the interface we need
-export interface CopilotClientLike {
-  createSession(config: unknown): Promise<unknown>
-  stop(): Promise<void>
-}
 
 export interface CopilotManager {
   start(): Promise<void>
   stop(): Promise<void>
-  getClient(): CopilotClientLike | null
+  getClient(): CopilotClient | null
   getStatus(): ConnectionStatus
   onStatusChange(callback: (status: ConnectionStatus) => void): () => void
 }
 
 export function createCopilotManager(): CopilotManager {
-  let client: CopilotClientLike | null = null
+  let client: CopilotClient | null = null
   let status: ConnectionStatus = 'disconnected'
   const listeners: Set<(status: ConnectionStatus) => void> = new Set()
 
@@ -31,14 +25,13 @@ export function createCopilotManager(): CopilotManager {
     async start(): Promise<void> {
       try {
         setStatus('reconnecting')
-        // When SDK is available:
-        // const { CopilotClient } = await import('@github/copilot-sdk')
-        // client = new CopilotClient()
-        console.log('[copilot] Client started (SDK integration pending)')
-        client = { createSession: async () => null, stop: async () => {} }
+        client = new CopilotClient({ autoStart: false })
+        await client.start()
+        console.log('[copilot] Client started')
         setStatus('connected')
       } catch (err) {
         console.error('[copilot] Failed to start:', err)
+        client = null
         setStatus('disconnected')
         throw err
       }
@@ -52,7 +45,7 @@ export function createCopilotManager(): CopilotManager {
       setStatus('disconnected')
     },
 
-    getClient(): CopilotClientLike | null {
+    getClient(): CopilotClient | null {
       return client
     },
 

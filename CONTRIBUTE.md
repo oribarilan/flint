@@ -11,10 +11,10 @@ just dev    # Dev mode with hot reload
 
 ### Prerequisites
 
-- **Rust** (stable) — [rustup.rs](https://rustup.rs)
-- **Node.js** (18+) and npm
-- **just** — task runner (`cargo install just`)
-- Tauri v2 system dependencies — see [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/)
+- **Node.js** 18+ and npm
+- **just** — task runner (`brew install just` or `cargo install just`)
+- **GitHub Copilot CLI** — signed in (`copilot auth`)
+- **Work IQ CLI** — M365 access (`workiq accept-eula`)
 
 ## Development
 
@@ -22,122 +22,98 @@ just dev    # Dev mode with hot reload
 
 ```bash
 just              # List all available commands
-just dev          # Dev mode with hot reload
-just check        # Run ALL checks (lint + format + test + build)
-just test         # Run all tests (Rust + frontend)
-just lint         # Run all linting (Clippy + ESLint)
-just format       # Check all formatting (rustfmt + Prettier)
+just dev          # Dev mode with hot reload (HMR for renderer, restart for main)
+just check        # Run ALL checks (lint + format + typecheck + test)
+just test         # Unit tests (Vitest)
+just test-e2e     # E2E tests (Playwright + Electron)
+just typecheck    # TypeScript type checking
+just lint         # ESLint
+just format       # Prettier format check
+just build        # Production build
+just package-mac  # Package for macOS distribution
 ```
 
-### Test Paths (Baseline vs Gated)
+### Project Structure
 
-Flint now has explicit test paths for speed vs coverage enforcement:
+```
+src/
+├── main/                 # Electron main process
+│   ├── index.ts          # App entry point
+│   ├── copilot/          # Copilot SDK integration
+│   ├── meetings/         # Meeting monitor, cache, notifications
+│   ├── window/           # Overlay, tray, hotkey
+│   ├── ipc/              # IPC handlers and channel definitions
+│   ├── config.ts         # electron-store config
+│   └── types.ts          # Shared types (Meeting, FlintConfig)
+├── preload/
+│   └── index.ts          # contextBridge IPC exposure
+└── renderer/
+    ├── index.html        # Renderer HTML entry
+    └── src/              # React app
+        ├── components/   # MeetingCards, MeetingDetail, ChatPanel, etc.
+        ├── hooks/        # useChat, useMeetings
+        ├── stores/       # Zustand (chatStore, meetingStore)
+        ├── lib/          # IPC wrappers, markdown
+        └── styles/       # Design tokens (global.css)
+```
 
-- `just test` — baseline non-coverage test run (Rust + frontend)
-- `just test-quick` — fastest local loop (changed-frontend + regular Rust tests)
-- `just test-gated` — coverage-enforced run (Rust + frontend)
+### Build Pipeline
 
-Stack-specific variants:
+Uses **electron-vite** to manage three build targets:
 
-- `just test-rust`, `just test-rust-quick`, `just test-rust-gated`
-- `just test-frontend`, `just test-frontend-quick`, `just test-frontend-gated`
+- **Main process** — compiled to CommonJS
+- **Preload script** — compiled for sandboxed context
+- **Renderer** — Vite + React with HMR in dev mode
 
-Coverage tooling setup:
+Config: `electron.vite.config.ts`
+
+### TypeScript
+
+Two separate tsconfigs (enforced by electron-vite):
+
+- `tsconfig.node.json` — main + preload (Node.js target)
+- `tsconfig.web.json` — renderer (browser target, JSX)
+
+Root `tsconfig.json` uses project references to both.
+
+## Testing
+
+### Unit Tests (Vitest)
 
 ```bash
-just setup-test-tools
+just test
 ```
 
-This installs `cargo-llvm-cov` (required for `test-rust-gated`).
+- Main process tests: `src/main/__tests__/`
+- Renderer tests: `src/renderer/src/**/__tests__/`
+- Mock Electron APIs and CopilotClient — never hit real services
 
-### Simulator Modes
-
-The browser simulator supports two explicit modes:
-
-- `npm run sim` (**dev mode**) — uses real OpenCode HTTP/SSE proxy handlers (`/opencode/*` via Vite proxy). Use this for manual integration checks against a running OpenCode server.
-- `npm run sim:test` (**test mode**) — uses deterministic mocked OpenCode handlers with mocked platform APIs. Use this for Playwright and any reproducible automation.
-
-Playwright is configured to always run against deterministic simulator test mode (`sim:test`).
-
-If OpenCode is unavailable in dev mode, simulator chat should remain stable and report disconnected state (no crash).
-
-Focused local repro command for CI simulator chat regressions:
+### E2E Tests (Playwright + Electron)
 
 ```bash
-npx playwright test simulator/tests/smoke.spec.ts -g "Sprint01 Chat Regressions"
+just test-e2e
 ```
 
-Runtime budget guardrail (CI): the focused simulator regression job targets **<= 8 minutes** on `ubuntu-latest`.
+- Uses `_electron.launch()` for native Electron testing
+- Tests: `tests/e2e/`
+- Builds first, then launches the production build
 
-### macOS Keychain Prompts
+## Code Style
 
-On macOS, unsigned dev builds trigger repeated "Flint wants to access your keychain" prompts because the OS requires signed binaries for silent keychain access.
+- **TypeScript strict mode** everywhere
+- **ESLint** + **Prettier** — run `just lint` and `just format`
+- **CSS Modules** with design tokens from `global.css`
+- **Conventional commits**: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`
 
-Flint handles this automatically: **debug builds use file-based credential storage** at `~/.flint/dev-tokens/` instead of the OS keychain. Files are created with `0600` permissions. No manual setup is needed — just run `just dev` and authentication works without prompts.
+## Design
 
-Release builds continue to use the OS keychain via the `keyring` crate.
+Visual identity spec: `specs/design.md`
 
-## Running Checks
+All visual properties use semantic design tokens. Never hardcode colors, spacing, or font sizes in component CSS.
 
-Before submitting changes, run the full check suite:
+## Documentation
 
-```bash
-just check
-```
-
-This runs linting (Clippy + ESLint), formatting (rustfmt + Prettier), tests (Rust + frontend), and a full build.
-
-## CI Triage & Runtime Observability
-
-Use this flow to debug failing GitHub Actions runs quickly.
-
-### 1) Find recent runs
-
-```bash
-gh run list --workflow "Check" --limit 10
-```
-
-### 2) Inspect job-level status and IDs
-
-```bash
-gh run view <run-id> --json jobs,status,conclusion,url
-```
-
-### 3) Pull only failure logs
-
-```bash
-gh run view <run-id> --log-failed
-```
-
-### 4) Reproduce locally with matching commands
-
-- Matrix `check` job:
-
-```bash
-just check
-```
-
-- Focused simulator regression job:
-
-```bash
-npx playwright test simulator/tests/smoke.spec.ts -g "Sprint01 Chat Regressions"
-```
-
-### Runtime evidence convention
-
-When updating CI or runtime-sensitive checks, record representative run evidence in the relevant sprint/task file:
-
-- run URL and job URL
-- observed duration (start/end or total)
-- budget result (PASS/FAIL vs target)
-
-Current focused E2E budget target remains **<= 8 minutes** on `ubuntu-latest`.
-
-### Node runtime deprecation note
-
-The workflow uses Node 24-compatible action majors:
-
-- `actions/checkout@v6`
-- `actions/setup-node@v6`
-
-If GitHub Actions runtime policy changes again, prefer upgrading action major versions rather than adding bypass flags.
+- **Architecture spec**: `docs/superpowers/specs/2026-04-23-desktop-assistant-design.md`
+- **Implementation plan**: `docs/superpowers/plans/2026-04-23-desktop-assistant-plan.md`
+- **Design spec**: `specs/design.md`
+- **Agent instructions**: `AGENTS.md`

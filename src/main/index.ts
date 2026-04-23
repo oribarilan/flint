@@ -31,6 +31,7 @@ app.whenReady().then(async () => {
     await copilotManager.start()
 
     const sessionManager = createSessionManager({
+      client: copilotManager.getClient()!,
       onChatDelta: (delta) => {
         const overlay = getOverlayWindow()
         if (overlay && !overlay.isDestroyed()) {

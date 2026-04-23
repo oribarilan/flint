@@ -1,79 +1,70 @@
 # Flint
 
-A fast, keyboard-driven app launcher with built-in AI chat.
+A desktop personal work assistant powered by GitHub Copilot SDK.
 
-> **Mission:** Replace the default launcher with something that feels instant, stays out of the way, and puts an LLM one keystroke away — without another subscription.
-
-![Flint screenshot](docs/screenshot.png)
-<!-- TODO: add actual screenshot -->
+> **Mission:** Stay on top of your work day — meeting alerts, calendar awareness, and an AI assistant one keystroke away.
 
 ## Features
 
-**Tab** toggles between two modes:
+- **Meeting alerts** — background monitoring of your Microsoft 365 calendar. Native OS notifications before meetings start.
+- **On-demand overlay** — press `Option+Space` to see upcoming meetings and chat with Flint.
+- **Conversational agent** — ask about your schedule, meetings, attendees. Powered by Copilot SDK + Work IQ MCP.
+- **Meeting cards** — glanceable view of upcoming meetings with time-until, attendees, and one-click join.
+- **System tray** — always running, unobtrusive. Badge shows upcoming meeting count.
 
-- **Search** — fuzzy file and app search powered by [nucleo](https://github.com/helix-editor/nucleo). Type, arrow, Enter to open.
-- **Chat** — conversational AI inside the launcher overlay. Bring your own provider — GitHub Copilot is supported today, more coming.
+## Tech Stack
 
-### Platform support
+| Layer | Choice |
+|-------|--------|
+| Shell | Electron 39+ |
+| Build | electron-vite 5 |
+| Frontend | React 19 + TypeScript |
+| State | Zustand 5 |
+| AI | GitHub Copilot SDK |
+| M365 Data | Work IQ MCP |
+| Config | electron-store |
 
-Flint is **macOS-only** for now. Search is built on top of macOS Spotlight — Flint does not build or maintain its own file index but queries the OS-level index that macOS already maintains. This means zero indexing overhead, instant results, and automatic updates as files change.
+## Prerequisites
 
-Windows and Linux support is planned but not yet implemented. See `gaps.md` for details.
+- **Node.js** 18+
+- **GitHub Copilot** — signed in via `copilot auth`
+- **Microsoft 365 Copilot license** — for Work IQ access
+- **Work IQ CLI** — `workiq accept-eula` (one-time setup)
 
-| Feature | macOS | Windows | Linux |
-|---|:---:|:---:|:---:|
-| Overlay (hotkey, borderless, transparent) | ✅ | ✅ | ✅ |
-| File & app search (via Spotlight) | ✅ | ❌ | ❌ |
-| App icon extraction | ✅ | ❌ | ❌ |
-| Focus restoration | ✅ | ❌ | ⚠️ |
-| System tray | ✅ | ✅ | ✅ |
-| Global hotkey | ✅ | ✅ | ✅ |
-| Copilot auth (OAuth device flow) | ✅ | ✅ | ✅ |
-| OS keychain token storage | ✅ | ✅ | ✅ |
-| AI chat (streaming) | ✅ | ✅ | ✅ |
-| Settings window | ✅ | ✅ | ✅ |
-| Config file (`~/.config/flint/`) | ✅ | ✅ | ✅ |
-| Themes (dark + light) | ✅ | ✅ | ✅ |
-| Launch at login | ❌ | ❌ | ❌ |
-
-✅ Supported&ensp; ⚠️ Partial (requires `xdotool`)&ensp; ❌ Not yet implemented
-
-> **Note:** Windows and Linux builds are not yet tested. If you hit issues, please open one.
-
-## Install
-
-No pre-built binaries yet. Build from source:
-
-### Prerequisites
-
-- [Rust](https://rustup.rs/) (stable)
-- [Node.js](https://nodejs.org/) ≥ 18
-- [Tauri v2 prerequisites](https://v2.tauri.app/start/prerequisites/) for your platform
-
-### Build & run
+## Quick Start
 
 ```bash
-git clone https://github.com/AriaBaghworksource/flint.git
-cd flint
 npm install
-# Development (hot reload)
-npm run tauri dev
-# Production build
-npm run tauri build
+just dev      # Dev mode with hot reload
 ```
 
-A [justfile](https://just.systems/) is included for common tasks — run `just` to list them.
+## Commands
 
-## Tech
+```bash
+just              # List all commands
+just dev          # Dev mode with hot reload
+just build        # Production build
+just test         # Unit tests (Vitest)
+just test-e2e     # E2E tests (Playwright + Electron)
+just check        # Lint + format + typecheck + test
+just package-mac  # Package for macOS
+```
 
-| Layer | Stack |
-|---|---|
-| Shell | Tauri v2 (Rust) |
-| Frontend | React + TypeScript + Vite |
-| State | Zustand |
-| Search | nucleo |
-| AI | GitHub Copilot (BYOK — more providers planned) |
+## Architecture
 
-## License
+See `docs/superpowers/specs/2026-04-23-desktop-assistant-design.md` for the full architecture spec.
 
-<!-- TODO: choose a license -->
+```
+Electron Main Process
+├── CopilotManager          — SDK client lifecycle
+├── SessionManager          — Chat + monitor sessions
+├── MeetingMonitor          — Background polling + alerts
+├── Window Manager          — Overlay, tray, hotkey
+└── Config Store            — Preferences
+
+Renderer Process (React 19)
+├── MeetingCards            — Upcoming meetings
+├── MeetingDetail           — Expanded meeting view
+├── ChatPanel + ChatInput   — Conversational agent
+└── Design Tokens           — Flint dark theme
+```

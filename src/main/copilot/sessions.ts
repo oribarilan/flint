@@ -1,4 +1,10 @@
+import { approveAll, type CopilotSession, type Tool } from '@github/copilot-sdk'
+import type { CopilotClient } from '@github/copilot-sdk'
+
 interface SessionManagerConfig {
+  client: CopilotClient
+  monitorTools?: Tool[]
+  chatTools?: Tool[]
   onChatDelta: (delta: string) => void
   onChatDone: () => void
 }
@@ -9,20 +15,53 @@ export interface SessionManager {
 }
 
 export function createSessionManager(config: SessionManagerConfig): SessionManager {
+  let chatSession: CopilotSession | null = null
+  let monitorSession: CopilotSession | null = null
+
+  async function getChatSession(): Promise<CopilotSession> {
+    if (chatSession) return chatSession
+
+    chatSession = await config.client.createSession({
+      sessionId: 'flint-main',
+      onPermissionRequest: approveAll,
+      streaming: true,
+      systemMessage: {
+        content: 'You are Flint, a work assistant. Help the user with questions about their schedule, meetings, and work context.',
+      },
+      tools: config.chatTools,
+    })
+
+    chatSession.on('assistant.message_delta', (event) => {
+      config.onChatDelta(event.data.deltaContent)
+    })
+
+    return chatSession
+  }
+
+  async function getMonitorSession(): Promise<CopilotSession> {
+    if (monitorSession) return monitorSession
+
+    monitorSession = await config.client.createSession({
+      sessionId: 'flint-monitor',
+      onPermissionRequest: approveAll,
+      tools: config.monitorTools,
+    })
+
+    return monitorSession
+  }
+
   return {
     async sendChatMessage(prompt: string): Promise<void> {
-      // When SDK is available, this will forward to the chat session
-      console.log('[sessions] Chat message:', prompt)
-      // Simulate a response for now
-      config.onChatDelta("I'm Flint, your work assistant. ")
-      config.onChatDelta('The Copilot SDK integration is pending — ')
-      config.onChatDelta("I'll be able to check your calendar once connected.")
+      const session = await getChatSession()
+      await session.sendAndWait({ prompt })
       config.onChatDone()
     },
 
     async sendMonitorPoll(): Promise<void> {
-      // When SDK is available, this will send to the monitor session with Work IQ MCP
-      console.log('[sessions] Monitor poll (SDK pending)')
+      const session = await getMonitorSession()
+      await session.sendAndWait({
+        prompt: 'Check for upcoming meetings and report them using the report_meetings tool.',
+      })
     },
   }
 }

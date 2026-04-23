@@ -1,7 +1,27 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+
+const { mockStart, mockStop, MockCopilotClient } = vi.hoisted(() => {
+  const mockStart = vi.fn()
+  const mockStop = vi.fn().mockResolvedValue([])
+  const MockCopilotClient = vi.fn().mockImplementation(() => ({
+    start: mockStart,
+    stop: mockStop,
+    createSession: vi.fn(),
+  }))
+  return { mockStart, mockStop, MockCopilotClient }
+})
+
+vi.mock('@github/copilot-sdk', () => ({
+  CopilotClient: MockCopilotClient,
+}))
+
 import { createCopilotManager } from '../copilot/client'
 
 describe('CopilotManager', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
   it('creates a manager in disconnected state', () => {
     const manager = createCopilotManager()
     expect(manager.getStatus()).toBe('disconnected')
@@ -11,6 +31,8 @@ describe('CopilotManager', () => {
     const manager = createCopilotManager()
     await manager.start()
     expect(manager.getStatus()).toBe('connected')
+    expect(MockCopilotClient).toHaveBeenCalledWith({ autoStart: false })
+    expect(mockStart).toHaveBeenCalled()
   })
 
   it('calls stop and returns to disconnected', async () => {
@@ -18,6 +40,7 @@ describe('CopilotManager', () => {
     await manager.start()
     await manager.stop()
     expect(manager.getStatus()).toBe('disconnected')
+    expect(mockStop).toHaveBeenCalled()
   })
 
   it('notifies status change listeners', async () => {
@@ -53,6 +76,14 @@ describe('CopilotManager', () => {
     const manager = createCopilotManager()
     await manager.start()
     await manager.stop()
+    expect(manager.getClient()).toBeNull()
+  })
+
+  it('sets status to disconnected when start fails', async () => {
+    mockStart.mockRejectedValueOnce(new Error('connection failed'))
+    const manager = createCopilotManager()
+    await expect(manager.start()).rejects.toThrow('connection failed')
+    expect(manager.getStatus()).toBe('disconnected')
     expect(manager.getClient()).toBeNull()
   })
 })
