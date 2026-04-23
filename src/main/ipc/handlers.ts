@@ -1,9 +1,18 @@
 import { ipcMain, shell } from 'electron'
 import { IPC_CHANNELS } from './channels'
 import type { FlintConfig, Meeting } from '../types'
-import { DEFAULT_CONFIG } from '../types'
+import { createConfigStore, type ConfigStore } from '../config'
+import { hideOverlay } from '../window/overlay'
+
+let configStore: ConfigStore
+
+export function getConfigStore(): ConfigStore {
+  return configStore
+}
 
 export function registerIpcHandlers(): void {
+  configStore = createConfigStore()
+
   ipcMain.on(IPC_CHANNELS.CHAT_SEND, (_event, prompt: string) => {
     console.log('[ipc] chat:send', prompt)
     // TODO: forward to Copilot session (Task 7)
@@ -19,15 +28,14 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle(IPC_CHANNELS.CONFIG_GET, (): FlintConfig => {
-    // TODO: return from electron-store (Task 3)
-    return DEFAULT_CONFIG
+    return configStore.getAll()
   })
 
-  ipcMain.on(IPC_CHANNELS.CONFIG_SET, (_event, _partial: Partial<FlintConfig>) => {
-    // TODO: update electron-store (Task 3)
+  ipcMain.on(IPC_CHANNELS.CONFIG_SET, (_event, partial: Partial<FlintConfig>) => {
+    configStore.update(partial)
   })
 
   ipcMain.on(IPC_CHANNELS.OVERLAY_HIDE, () => {
-    // TODO: hide overlay window (Task 4)
+    hideOverlay()
   })
 }
