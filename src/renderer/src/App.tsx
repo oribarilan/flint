@@ -1,14 +1,34 @@
+import { useState, useEffect, useCallback } from 'react'
 import { useMeetings } from './hooks/useMeetings'
 import { useChat } from './hooks/useChat'
+import { useConfig } from './hooks/useConfig'
 import { MeetingCards } from './components/MeetingCards'
 import { MeetingDetail } from './components/MeetingDetail'
 import { ChatPanel } from './components/ChatPanel'
 import { ChatInput } from './components/ChatInput'
+import { Settings } from './components/Settings'
 import styles from './App.module.css'
 
 export default function App() {
   const { meetings, status, selectedMeeting, selectMeeting, clearSelection } = useMeetings()
   const { messages, streamingContent, isStreaming, sendMessage } = useChat()
+  const { config, isLoaded, updateConfig } = useConfig()
+  const [showSettings, setShowSettings] = useState(false)
+
+  const toggleSettings = useCallback(() => {
+    setShowSettings((prev) => !prev)
+  }, [])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent): void => {
+      if ((e.metaKey || e.ctrlKey) && e.key === ',') {
+        e.preventDefault()
+        toggleSettings()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [toggleSettings])
 
   const handleJoin = (joinUrl: string): void => {
     window.flint?.joinMeeting(joinUrl)
@@ -22,6 +42,9 @@ export default function App() {
         <div className={styles.divider} />
         <ChatPanel messages={messages} streamingContent={streamingContent} isStreaming={isStreaming} />
         <ChatInput onSend={sendMessage} disabled={isStreaming} placeholder="Ask about this meeting..." />
+        {showSettings && isLoaded && (
+          <Settings config={config} onUpdate={updateConfig} onClose={() => setShowSettings(false)} />
+        )}
       </div>
     )
   }
@@ -31,6 +54,14 @@ export default function App() {
       <header className={styles.header}>
         <span className={styles.headerIcon}>⚡</span>
         <span className={styles.headerLabel}>FLINT</span>
+        <button
+          className={styles.settingsButton}
+          onClick={toggleSettings}
+          aria-label="Open settings"
+          type="button"
+        >
+          ⚙
+        </button>
       </header>
 
       {status === 'loading' && (
@@ -44,7 +75,7 @@ export default function App() {
       {status === 'ready' && (
         <MeetingCards
           meetings={meetings}
-          alertMinutes={5}
+          alertMinutes={config.alertMinutes}
           onSelect={selectMeeting}
           onJoin={handleJoin}
         />
@@ -53,6 +84,9 @@ export default function App() {
       <div className={styles.divider} />
       <ChatPanel messages={messages} streamingContent={streamingContent} isStreaming={isStreaming} />
       <ChatInput onSend={sendMessage} disabled={isStreaming} />
+      {showSettings && isLoaded && (
+        <Settings config={config} onUpdate={updateConfig} onClose={() => setShowSettings(false)} />
+      )}
     </div>
   )
 }

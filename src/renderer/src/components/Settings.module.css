@@ -1,0 +1,164 @@
+/* ── Settings overlay ───────────────────────────────────────── */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: oklch(0% 0 0 / 0.5);
+}
+
+.panel {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  width: 340px;
+  max-height: 80vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.title {
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.closeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--icon-container);
+  height: var(--icon-container);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: var(--font-lg);
+}
+
+.closeButton:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* ── Sections ──────────────────────────────────────────────── */
+
+.section {
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.section:last-child {
+  border-bottom: none;
+}
+
+.sectionLabel {
+  font-size: var(--font-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: var(--space-md);
+}
+
+/* ── Setting row ───────────────────────────────────────────── */
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  min-height: 36px;
+}
+
+.row + .row {
+  margin-top: var(--space-md);
+}
+
+.label {
+  font-size: var(--font-md);
+  color: var(--text-primary);
+}
+
+.value {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  background: var(--bg-secondary);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+}
+
+/* ── Number input ──────────────────────────────────────────── */
+
+.numberInput {
+  width: 64px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-md);
+  color: var(--text-primary);
+  text-align: center;
+  outline: none;
+}
+
+.numberInput:focus {
+  border-color: var(--accent);
+}
+
+/* ── Toggle ────────────────────────────────────────────────── */
+
+.toggle {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--transition-fast);
+}
+
+.toggle[aria-checked="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.toggleKnob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  background: var(--text-primary);
+  border-radius: var(--radius-full);
+  transition: transform var(--transition-fast);
+}
+
+.toggle[aria-checked="true"] .toggleKnob {
+  transform: translateX(16px);
+  background: var(--text-on-accent);
+}
+
+/* ── Unit suffix ───────────────────────────────────────────── */
+
+.unit {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  margin-left: var(--space-xs);
+}

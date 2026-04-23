@@ -24,6 +24,26 @@
   letter-spacing: 0.5px;
 }
 
+.settingsButton {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--icon-container);
+  height: var(--icon-container);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: var(--font-md);
+}
+
+.settingsButton:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
 .statusMessage {
   padding: var(--space-3xl) var(--space-lg);
   text-align: center;
