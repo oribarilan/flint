@@ -52,7 +52,7 @@ describe('SessionManager', () => {
         streaming: true,
       })
     )
-    expect(mockSendAndWait).toHaveBeenCalledWith({ prompt: 'hello' })
+    expect(mockSendAndWait).toHaveBeenCalledWith({ prompt: 'hello' }, expect.any(Number))
     // onChatDone is now called via session.idle event
     expect(mockOn).toHaveBeenCalledWith('session.idle', expect.any(Function))
     // Simulate the idle event firing
@@ -108,7 +108,8 @@ describe('SessionManager', () => {
     expect(mockSendAndWait).toHaveBeenCalledWith(
       expect.objectContaining({
         prompt: expect.stringContaining('report_meetings'),
-      })
+      }),
+      expect.any(Number)
     )
   })
 

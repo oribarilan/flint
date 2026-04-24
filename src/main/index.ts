@@ -59,7 +59,9 @@ app.whenReady().then(async () => {
       onBadgeUpdate: updateTrayBadge,
     })
 
+    // Start monitor in background — don't block chat availability
     monitor.start()
+    console.log('[main] Monitor started in background')
 
     // Override placeholder chat:send handler (registered with ipcMain.on)
     ipcMain.removeAllListeners(IPC_CHANNELS.CHAT_SEND)
