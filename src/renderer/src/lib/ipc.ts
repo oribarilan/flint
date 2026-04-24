@@ -1,4 +1,4 @@
-import type { Meeting, FlintConfig, ConnectionStatus } from '../../../main/types'
+import type { Meeting, FlintConfig, ConnectionStatus, AttentionItem } from '../../../main/types'
 
 interface FlintAPI {
   platform: string
@@ -12,6 +12,9 @@ interface FlintAPI {
   setConfig: (partial: Partial<FlintConfig>) => void
   hideOverlay: () => void
   onConnectionStatus: (callback: (status: ConnectionStatus) => void) => () => void
+  getAttentionItems: () => Promise<AttentionItem[]>
+  onAttentionUpdate: (callback: (items: AttentionItem[]) => void) => () => void
+  openAttentionItem: (id: string) => void
 }
 
 declare global {

@@ -1,10 +1,11 @@
 import { Notification, shell } from 'electron'
 import { defineTool, type Tool } from '@github/copilot-sdk'
-import type { Meeting } from '../types'
+import type { AttentionItem, Meeting } from '../types'
 
 interface ToolCallbacks {
   onMeetings: (meetings: Meeting[]) => void
   onShowOverlay: (meetingId?: string) => void
+  onAttentionUpdate: (items: AttentionItem[]) => void
   getMeetings?: () => Meeting[]
 }
 
@@ -89,15 +90,64 @@ export function createAllTools(callbacks: ToolCallbacks): Tool[] {
     },
   })
 
-  return [reportMeetings, getMeetings, showNotification, joinMeeting, showOverlay]
+  const setAttentionItems = defineTool('set_attention_items', {
+    description:
+      'Set the items shown in the user\'s attention panel. Replaces all current items. Use this to surface meetings, messages, emails, or any work items the user should focus on.',
+    parameters: {
+      type: 'object',
+      properties: {
+        items: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              icon: { type: 'string', description: 'Emoji icon (📅 💬 📧 📄)' },
+              title: { type: 'string' },
+              description: { type: 'string' },
+              timestamp: { type: 'string', description: 'ISO 8601 timestamp for time badge' },
+              openAction: {
+                type: 'object',
+                properties: {
+                  type: { type: 'string', enum: ['url'] },
+                  url: { type: 'string' },
+                },
+                required: ['type', 'url'],
+              },
+              metadata: {
+                type: 'object',
+                additionalProperties: { type: 'string' },
+                description: 'Context injected into chat on selection',
+              },
+            },
+            required: ['id', 'icon', 'title', 'description', 'metadata'],
+          },
+        },
+      },
+      required: ['items'],
+    },
+    handler: async (args) => {
+      const { items } = args as { items: AttentionItem[] }
+      callbacks.onAttentionUpdate(items)
+      return 'ok'
+    },
+  })
+
+  return [reportMeetings, getMeetings, showNotification, joinMeeting, showOverlay, setAttentionItems]
 }
 
 export function getMonitorTools(callbacks: Pick<ToolCallbacks, 'onMeetings'>): Tool[] {
-  const all = createAllTools({ ...callbacks, onShowOverlay: () => {} })
+  const all = createAllTools({
+    ...callbacks,
+    onShowOverlay: () => {},
+    onAttentionUpdate: () => {},
+  })
   return all.filter((t) => t.name === 'report_meetings')
 }
 
-export function getChatTools(callbacks: Omit<ToolCallbacks, 'onMeetings'>): Tool[] {
+export function getChatTools(
+  callbacks: Omit<ToolCallbacks, 'onMeetings'>,
+): Tool[] {
   const all = createAllTools({ onMeetings: () => {}, ...callbacks })
   return all.filter((t) => t.name !== 'report_meetings')
 }

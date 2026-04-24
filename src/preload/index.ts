@@ -57,6 +57,20 @@ const flintAPI = {
       ipcRenderer.removeListener('connection:status', handler)
     }
   },
+
+  getAttentionItems: (): Promise<unknown[]> => ipcRenderer.invoke('attention:get'),
+  onAttentionUpdate: (callback: (items: unknown[]) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, items: unknown[]): void => {
+      callback(items)
+    }
+    ipcRenderer.on('attention:update', handler)
+    return () => {
+      ipcRenderer.removeListener('attention:update', handler)
+    }
+  },
+  openAttentionItem: (id: string): void => {
+    ipcRenderer.send('attention:open', id)
+  },
 }
 
 contextBridge.exposeInMainWorld('flint', flintAPI)

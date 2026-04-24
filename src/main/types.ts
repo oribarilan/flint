@@ -23,4 +23,17 @@ export const DEFAULT_CONFIG: FlintConfig = {
   showTrayIcon: true,
 }
 
+export interface AttentionItem {
+  id: string
+  icon: string // Emoji (📅 💬 📧 📄)
+  title: string
+  description: string
+  timestamp?: string // ISO 8601 — for time badge display
+  openAction?: {
+    type: 'url'
+    url: string
+  }
+  metadata: Record<string, string> // Context injected into chat on selection
+}
+
 export type ConnectionStatus = 'connected' | 'reconnecting' | 'disconnected'

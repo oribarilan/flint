@@ -26,21 +26,26 @@ const mockInvocation = {
 } as any
 
 describe('Copilot Tools', () => {
-  it('creates 5 tools total', () => {
-    const tools = createAllTools({ onMeetings: vi.fn(), onShowOverlay: vi.fn() })
-    expect(tools).toHaveLength(5)
+  it('creates 6 tools total', () => {
+    const tools = createAllTools({
+      onMeetings: vi.fn(),
+      onShowOverlay: vi.fn(),
+      onAttentionUpdate: vi.fn(),
+    })
+    expect(tools).toHaveLength(6)
     expect(tools.map((t) => t.name)).toEqual([
       'report_meetings',
       'get_meetings',
       'show_notification',
       'join_meeting',
       'show_overlay',
+      'set_attention_items',
     ])
   })
 
   it('report_meetings calls onMeetings callback', async () => {
     const onMeetings = vi.fn()
-    const tools = createAllTools({ onMeetings, onShowOverlay: vi.fn() })
+    const tools = createAllTools({ onMeetings, onShowOverlay: vi.fn(), onAttentionUpdate: vi.fn() })
     const report = tools.find((t) => t.name === 'report_meetings')!
     const meeting = {
       id: '1',
@@ -61,6 +66,7 @@ describe('Copilot Tools', () => {
     const tools = createAllTools({
       onMeetings: vi.fn(),
       onShowOverlay: vi.fn(),
+      onAttentionUpdate: vi.fn(),
       getMeetings: () => meetings,
     })
     const get = tools.find((t) => t.name === 'get_meetings')!
@@ -68,14 +74,18 @@ describe('Copilot Tools', () => {
   })
 
   it('get_meetings returns empty array when no getter', async () => {
-    const tools = createAllTools({ onMeetings: vi.fn(), onShowOverlay: vi.fn() })
+    const tools = createAllTools({
+      onMeetings: vi.fn(),
+      onShowOverlay: vi.fn(),
+      onAttentionUpdate: vi.fn(),
+    })
     const get = tools.find((t) => t.name === 'get_meetings')!
     expect(await get.handler({}, mockInvocation)).toEqual([])
   })
 
   it('show_overlay calls onShowOverlay callback', async () => {
     const onShowOverlay = vi.fn()
-    const tools = createAllTools({ onMeetings: vi.fn(), onShowOverlay })
+    const tools = createAllTools({ onMeetings: vi.fn(), onShowOverlay, onAttentionUpdate: vi.fn() })
     const overlay = tools.find((t) => t.name === 'show_overlay')!
     await overlay.handler({ meetingId: 'abc' }, mockInvocation)
     expect(onShowOverlay).toHaveBeenCalledWith('abc')
@@ -88,8 +98,8 @@ describe('Copilot Tools', () => {
   })
 
   it('getChatTools returns everything except report_meetings', () => {
-    const tools = getChatTools({ onShowOverlay: vi.fn() })
-    expect(tools).toHaveLength(4)
+    const tools = getChatTools({ onShowOverlay: vi.fn(), onAttentionUpdate: vi.fn() })
+    expect(tools).toHaveLength(5)
     expect(tools.map((t) => t.name)).not.toContain('report_meetings')
   })
 })

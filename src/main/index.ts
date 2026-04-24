@@ -5,8 +5,10 @@ import type { CopilotSession } from '@github/copilot-sdk'
 import { createOverlayWindow, getOverlayWindow } from './window/overlay'
 import { createTray } from './window/tray'
 import { registerHotkey, unregisterAllHotkeys } from './window/hotkey'
-import { registerIpcHandlers, getConfigStore } from './ipc/handlers'
+import { registerIpcHandlers, getConfigStore, getAttentionStore } from './ipc/handlers'
 import { IPC_CHANNELS } from './ipc/channels'
+
+import { getChatTools } from './copilot/tools'
 
 let client: CopilotClient | null = null
 let chatSession: CopilotSession | null = null
@@ -39,6 +41,20 @@ app.whenReady().then(async () => {
       // Lazy session creation
       if (!chatSession) {
         console.log('[main] Creating chat session...')
+        const chatTools = getChatTools({
+          onShowOverlay: () => {
+            const win = getOverlayWindow()
+            if (win && !win.isDestroyed()) win.show()
+          },
+          onAttentionUpdate: (items) => {
+            const store = getAttentionStore()
+            store.setItems(items)
+            const win = getOverlayWindow()
+            if (win && !win.isDestroyed()) {
+              win.webContents.send(IPC_CHANNELS.ATTENTION_UPDATE, items)
+            }
+          },
+        })
         chatSession = await client!.createSession({
           model: 'gpt-4.1',
           onPermissionRequest: approveAll,
@@ -46,6 +62,7 @@ app.whenReady().then(async () => {
           systemMessage: {
             content: 'You are Flint, a personal work assistant. Be concise and helpful.',
           },
+          tools: chatTools,
         })
 
         chatSession.on('assistant.message_delta', (event) => {
