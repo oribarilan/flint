@@ -60,7 +60,7 @@
 }
 
 .splitLeft {
-  width: 280px;
+  width: 40%;
   flex-shrink: 0;
   border-right: 1px solid var(--border-subtle);
   overflow-y: auto;
