@@ -27,9 +27,9 @@ app.whenReady().then(async () => {
   createTray()
   registerHotkey(config.hotkey)
 
-  // Initialize Copilot client
-  client = new CopilotClient()
-  console.log('[main] CopilotClient created')
+  // Use system-installed CLI (has plugins + auth), not the bundled one
+  client = new CopilotClient({ cliPath: '/opt/homebrew/bin/copilot' })
+  console.log('[main] CopilotClient created (using system CLI)')
 
   // Wire chat:send — create session lazily on first message
   ipcMain.removeAllListeners(IPC_CHANNELS.CHAT_SEND)
