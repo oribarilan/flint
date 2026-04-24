@@ -6,7 +6,6 @@ interface ToolCallbacks {
   onMeetings: (meetings: Meeting[]) => void
   onShowOverlay: (meetingId?: string) => void
   onAttentionUpdate: (items: AttentionItem[]) => void
-  getMeetings?: () => Meeting[]
 }
 
 export function createAllTools(callbacks: ToolCallbacks): Tool[] {
@@ -39,12 +38,6 @@ export function createAllTools(callbacks: ToolCallbacks): Tool[] {
       callbacks.onMeetings((args as { meetings: Meeting[] }).meetings)
       return 'ok'
     },
-  })
-
-  const getMeetings = defineTool('get_meetings', {
-    description: 'Get the current list of upcoming meetings from the local cache.',
-    parameters: { type: 'object', properties: {} },
-    handler: async () => callbacks.getMeetings?.() ?? [],
   })
 
   const showNotification = defineTool('show_notification', {
@@ -133,7 +126,7 @@ export function createAllTools(callbacks: ToolCallbacks): Tool[] {
     },
   })
 
-  return [reportMeetings, getMeetings, showNotification, joinMeeting, showOverlay, setAttentionItems]
+  return [reportMeetings, showNotification, joinMeeting, showOverlay, setAttentionItems]
 }
 
 export function getMonitorTools(callbacks: Pick<ToolCallbacks, 'onMeetings'>): Tool[] {
@@ -149,5 +142,6 @@ export function getChatTools(
   callbacks: Omit<ToolCallbacks, 'onMeetings'>,
 ): Tool[] {
   const all = createAllTools({ onMeetings: () => {}, ...callbacks })
+  // Exclude report_meetings (monitor-only) and get_meetings (replaced by Work IQ MCP)
   return all.filter((t) => t.name !== 'report_meetings')
 }
