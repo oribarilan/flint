@@ -1,14 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockStart, mockStop, MockCopilotClient } = vi.hoisted(() => {
-  const mockStart = vi.fn()
+const { mockStop, MockCopilotClient } = vi.hoisted(() => {
   const mockStop = vi.fn().mockResolvedValue([])
   const MockCopilotClient = vi.fn().mockImplementation(() => ({
-    start: mockStart,
     stop: mockStop,
     createSession: vi.fn(),
+    state: 'disconnected',
   }))
-  return { mockStart, mockStop, MockCopilotClient }
+  return { mockStop, MockCopilotClient }
 })
 
 vi.mock('@github/copilot-sdk', () => ({
@@ -31,8 +30,7 @@ describe('CopilotManager', () => {
     const manager = createCopilotManager()
     await manager.start()
     expect(manager.getStatus()).toBe('connected')
-    expect(MockCopilotClient).toHaveBeenCalledWith({ autoStart: false })
-    expect(mockStart).toHaveBeenCalled()
+    expect(MockCopilotClient).toHaveBeenCalledWith()
   })
 
   it('calls stop and returns to disconnected', async () => {
@@ -79,8 +77,10 @@ describe('CopilotManager', () => {
     expect(manager.getClient()).toBeNull()
   })
 
-  it('sets status to disconnected when start fails', async () => {
-    mockStart.mockRejectedValueOnce(new Error('connection failed'))
+  it('sets status to disconnected when constructor throws', async () => {
+    MockCopilotClient.mockImplementationOnce(() => {
+      throw new Error('connection failed')
+    })
     const manager = createCopilotManager()
     await expect(manager.start()).rejects.toThrow('connection failed')
     expect(manager.getStatus()).toBe('disconnected')

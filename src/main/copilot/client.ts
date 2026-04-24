@@ -25,12 +25,13 @@ export function createCopilotManager(): CopilotManager {
     async start(): Promise<void> {
       try {
         setStatus('reconnecting')
-        client = new CopilotClient({ autoStart: false })
-        await client.start()
-        console.log('[copilot] Client started')
+        // No args needed — SDK auto-manages the CLI process.
+        // CLI starts lazily on first createSession() call.
+        client = new CopilotClient()
+        console.log('[copilot] Client created, state:', client.state)
         setStatus('connected')
       } catch (err) {
-        console.error('[copilot] Failed to start:', err)
+        console.error('[copilot] Failed to create client:', err)
         client = null
         setStatus('disconnected')
         throw err
@@ -39,7 +40,11 @@ export function createCopilotManager(): CopilotManager {
 
     async stop(): Promise<void> {
       if (client) {
-        await client.stop()
+        try {
+          await client.stop()
+        } catch (err) {
+          console.error('[copilot] Stop error:', err)
+        }
         client = null
       }
       setStatus('disconnected')
