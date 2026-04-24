@@ -1,16 +1,15 @@
 import { app, ipcMain } from 'electron'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
-import { createOverlayWindow, showOverlay, getOverlayWindow } from './window/overlay'
-import { createTray, updateTrayBadge } from './window/tray'
+import { CopilotClient, approveAll } from '@github/copilot-sdk'
+import type { CopilotSession } from '@github/copilot-sdk'
+import { createOverlayWindow, getOverlayWindow } from './window/overlay'
+import { createTray } from './window/tray'
 import { registerHotkey, unregisterAllHotkeys } from './window/hotkey'
 import { registerIpcHandlers, getConfigStore } from './ipc/handlers'
-import { createCopilotManager } from './copilot/client'
-import { createSessionManager } from './copilot/sessions'
-import { createMeetingMonitor, type MeetingMonitor } from './meetings/monitor'
 import { IPC_CHANNELS } from './ipc/channels'
 
-const copilotManager = createCopilotManager()
-let monitor: MeetingMonitor | null = null
+let client: CopilotClient | null = null
+let chatSession: CopilotSession | null = null
 
 app.whenReady().then(async () => {
   electronApp.setAppUserModelId('sh.oribi.flint')
@@ -26,86 +25,70 @@ app.whenReady().then(async () => {
   createTray()
   registerHotkey(config.hotkey)
 
-  // Start Copilot and meeting monitor
-  try {
-    await copilotManager.start()
+  // Initialize Copilot client
+  client = new CopilotClient()
+  console.log('[main] CopilotClient created')
 
-    const sessionManager = createSessionManager({
-      client: copilotManager.getClient()!,
-      onChatDelta: (delta) => {
-        const overlay = getOverlayWindow()
-        if (overlay && !overlay.isDestroyed()) {
-          overlay.webContents.send(IPC_CHANNELS.CHAT_DELTA, delta)
-        }
-      },
-      onChatDone: () => {
-        const overlay = getOverlayWindow()
-        if (overlay && !overlay.isDestroyed()) {
-          overlay.webContents.send(IPC_CHANNELS.CHAT_DONE)
-        }
-      },
-    })
+  // Wire chat:send — create session lazily on first message
+  ipcMain.removeAllListeners(IPC_CHANNELS.CHAT_SEND)
+  ipcMain.on(IPC_CHANNELS.CHAT_SEND, async (_event, prompt: string) => {
+    const overlay = getOverlayWindow()
+    if (!overlay || overlay.isDestroyed()) return
 
-    monitor = createMeetingMonitor({
-      sessionManager,
-      getAlertMinutes: () => getConfigStore().getAll().alertMinutes,
-      onMeetingsChanged: (meetings) => {
-        const overlay = getOverlayWindow()
-        if (overlay && !overlay.isDestroyed()) {
-          overlay.webContents.send(IPC_CHANNELS.MEETINGS_UPDATE, meetings)
-        }
-      },
-      onShowOverlay: (meetingId) => showOverlay(meetingId),
-      onBadgeUpdate: updateTrayBadge,
-    })
+    try {
+      // Lazy session creation
+      if (!chatSession) {
+        console.log('[main] Creating chat session...')
+        chatSession = await client!.createSession({
+          model: 'gpt-4.1',
+          onPermissionRequest: approveAll,
+          streaming: true,
+          systemMessage: {
+            content: 'You are Flint, a personal work assistant. Be concise and helpful.',
+          },
+        })
 
-    // Start monitor in background — don't block chat availability
-    monitor.start()
-    console.log('[main] Monitor started in background')
+        chatSession.on('assistant.message_delta', (event) => {
+          const win = getOverlayWindow()
+          if (win && !win.isDestroyed()) {
+            win.webContents.send(IPC_CHANNELS.CHAT_DELTA, event.data.deltaContent)
+          }
+        })
 
-    // Override placeholder chat:send handler (registered with ipcMain.on)
-    ipcMain.removeAllListeners(IPC_CHANNELS.CHAT_SEND)
-    ipcMain.on(IPC_CHANNELS.CHAT_SEND, async (_event, prompt: string) => {
-      try {
-        await sessionManager.sendChatMessage(prompt)
-      } catch (err) {
-        console.error('[chat] Failed:', err)
+        chatSession.on('session.idle', () => {
+          const win = getOverlayWindow()
+          if (win && !win.isDestroyed()) {
+            win.webContents.send(IPC_CHANNELS.CHAT_DONE)
+          }
+        })
+
+        console.log('[main] Chat session created:', chatSession.sessionId)
       }
-    })
 
-    // Override placeholder meetings:get handler (registered with ipcMain.handle)
-    ipcMain.removeHandler(IPC_CHANNELS.MEETINGS_GET)
-    ipcMain.handle(IPC_CHANNELS.MEETINGS_GET, () => {
-      return monitor?.getCache().getAll() ?? []
-    })
-
-    // Surface connection status
-    const overlay = getOverlayWindow()
-    if (overlay) {
-      overlay.webContents.send(IPC_CHANNELS.CONNECTION_STATUS, 'connected')
-    }
-  } catch (err) {
-    console.error('[main] Failed to start Copilot:', err)
-    const overlay = getOverlayWindow()
-    if (overlay) {
-      overlay.webContents.send(IPC_CHANNELS.CONNECTION_STATUS, 'disconnected')
-    }
-  }
-
-  copilotManager.onStatusChange((status) => {
-    const overlay = getOverlayWindow()
-    if (overlay && !overlay.isDestroyed()) {
-      overlay.webContents.send(IPC_CHANNELS.CONNECTION_STATUS, status)
+      console.log('[main] Sending:', prompt)
+      await chatSession.sendAndWait({ prompt }, 60_000)
+    } catch (err) {
+      console.error('[main] Chat error:', err)
+      // Surface error to UI so it doesn't hang on "Thinking..."
+      overlay.webContents.send(IPC_CHANNELS.CHAT_DELTA, `\n⚠️ Error: ${err instanceof Error ? err.message : String(err)}`)
+      overlay.webContents.send(IPC_CHANNELS.CHAT_DONE)
     }
   })
+
+  console.log('[main] Ready — chat wired, monitor disabled for now')
 })
 
 app.on('will-quit', async () => {
   unregisterAllHotkeys()
-  monitor?.stop()
-  await copilotManager.stop()
+  if (client) {
+    try {
+      await client.stop()
+    } catch {
+      // ignore cleanup errors
+    }
+  }
 })
 
 app.on('window-all-closed', () => {
-  // Keep app running in tray — don't quit on window close (macOS pattern)
+  // Keep app running in tray
 })
