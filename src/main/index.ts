@@ -60,7 +60,8 @@ app.whenReady().then(async () => {
           onPermissionRequest: approveAll,
           streaming: true,
           systemMessage: {
-            content: 'You are Flint, a personal work assistant. Be concise and helpful.',
+            content:
+              'You are Flint, a personal work assistant. You have an attention panel where you can surface relevant items for the user. Use set_attention_items to show meetings, messages, or other work items. Each item needs an id, icon (emoji), title, description, and optionally a timestamp and openAction. When the user has items selected, their context will be provided — use it to give relevant answers. Be concise and helpful.',
           },
           tools: chatTools,
         })

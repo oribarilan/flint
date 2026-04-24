@@ -1,16 +1,31 @@
 import { useState, useCallback, type KeyboardEvent } from 'react'
 import styles from './ChatInput.module.css'
 
+interface SelectedItemSummary {
+  id: string
+  title: string
+}
+
 interface ChatInputProps {
   onSend: (message: string) => void
   disabled?: boolean
   placeholder?: string
+  selectedItems?: SelectedItemSummary[]
+}
+
+const MAX_VISIBLE_TITLES = 3
+
+function formatSelectedLabel(items: SelectedItemSummary[]): string {
+  const visible = items.slice(0, MAX_VISIBLE_TITLES).map((i) => i.title)
+  const remainder = items.length - MAX_VISIBLE_TITLES
+  return remainder > 0 ? `${visible.join(', ')}...` : visible.join(', ')
 }
 
 export function ChatInput({
   onSend,
   disabled,
   placeholder = 'Ask about your schedule...',
+  selectedItems = [],
 }: ChatInputProps) {
   const [value, setValue] = useState('')
 
@@ -44,6 +59,9 @@ export function ChatInput({
         autoFocus
       />
       <span className={styles.hint}>⏎</span>
+      {selectedItems.length > 0 && (
+        <div className={styles.withIndicator}>With: {formatSelectedLabel(selectedItems)}</div>
+      )}
     </div>
   )
 }

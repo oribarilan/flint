@@ -2,6 +2,7 @@
 
 .container {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-sm);
   padding: var(--space-sm) var(--space-lg);
@@ -37,4 +38,14 @@
   font-size: var(--font-xs);
   color: var(--text-secondary);
   opacity: 0.5;
+}
+
+.withIndicator {
+  width: 100%;
+  font-size: var(--font-xs);
+  color: var(--text-secondary);
+  padding: 0 var(--space-md);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }

@@ -1,17 +1,14 @@
-import { useState, useEffect, useCallback } from 'react'
-import { useMeetings } from './hooks/useMeetings'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAttention } from './hooks/useAttention'
 import { useChat } from './hooks/useChat'
 import { useConfig } from './hooks/useConfig'
 import { AttentionPanel } from './components/AttentionPanel'
-import { MeetingDetail } from './components/MeetingDetail'
 import { ChatPanel } from './components/ChatPanel'
 import { ChatInput } from './components/ChatInput'
 import { Settings } from './components/Settings'
 import styles from './App.module.css'
 
 export default function App() {
-  const { selectedMeeting, clearSelection } = useMeetings()
   const { items, selectedIds, toggleSelect } = useAttention()
   const { messages, streamingContent, isStreaming, sendMessage } = useChat()
   const { config, isLoaded, updateConfig } = useConfig()
@@ -32,31 +29,18 @@ export default function App() {
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [toggleSettings])
 
-  const handleJoin = (joinUrl: string): void => {
-    window.flint?.joinMeeting(joinUrl)
-    window.flint?.hideOverlay()
-  }
-
   const handleOpen = (id: string): void => {
     window.flint?.openAttentionItem(id)
   }
 
-  // Meeting detail view (full panel, replaces split)
-  if (selectedMeeting) {
-    return (
-      <div className={styles.root} data-testid="app-root">
-        <MeetingDetail meeting={selectedMeeting} onBack={clearSelection} onJoin={handleJoin} />
-        <div className={styles.divider} />
-        <ChatPanel messages={messages} streamingContent={streamingContent} isStreaming={isStreaming} />
-        <ChatInput onSend={sendMessage} disabled={isStreaming} placeholder="Ask about this meeting..." />
-        {showSettings && isLoaded && (
-          <Settings config={config} onUpdate={updateConfig} onClose={() => setShowSettings(false)} />
-        )}
-      </div>
-    )
-  }
+  const selectedItemSummaries = useMemo(
+    () =>
+      items
+        .filter((i) => selectedIds.has(i.id))
+        .map((i) => ({ id: i.id, title: i.title })),
+    [items, selectedIds]
+  )
 
-  // Default view: split layout
   return (
     <div className={styles.root} data-testid="app-root">
       <header className={styles.header}>
@@ -86,7 +70,11 @@ export default function App() {
         {/* Right panel: chat */}
         <div className={styles.splitRight}>
           <ChatPanel messages={messages} streamingContent={streamingContent} isStreaming={isStreaming} />
-          <ChatInput onSend={sendMessage} disabled={isStreaming} />
+          <ChatInput
+            onSend={sendMessage}
+            disabled={isStreaming}
+            selectedItems={selectedItemSummaries}
+          />
         </div>
       </div>
 

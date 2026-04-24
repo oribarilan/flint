@@ -25,20 +25,6 @@ const flintAPI = {
     }
   },
 
-  getMeetings: (): Promise<unknown[]> => ipcRenderer.invoke('meetings:get'),
-  joinMeeting: (joinUrl: string): void => {
-    ipcRenderer.send('meeting:join', joinUrl)
-  },
-  onMeetingsUpdate: (callback: (meetings: unknown[]) => void): (() => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, meetings: unknown[]): void => {
-      callback(meetings)
-    }
-    ipcRenderer.on('meetings:update', handler)
-    return () => {
-      ipcRenderer.removeListener('meetings:update', handler)
-    }
-  },
-
   getConfig: (): Promise<unknown> => ipcRenderer.invoke('config:get'),
   setConfig: (partial: Record<string, unknown>): void => {
     ipcRenderer.send('config:set', partial)
