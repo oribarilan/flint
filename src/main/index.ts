@@ -59,9 +59,17 @@ app.whenReady().then(async () => {
           model: 'gpt-4.1',
           onPermissionRequest: approveAll,
           streaming: true,
+          mcpServers: {
+            'work-iq': {
+              type: 'local',
+              command: 'npx',
+              args: ['-y', '@microsoft/workiq', 'mcp'],
+              tools: ['*'],
+            },
+          },
           systemMessage: {
             content:
-              'You are Flint, a personal work assistant. You have an attention panel where you can surface relevant items for the user. Use set_attention_items to show meetings, messages, or other work items. Each item needs an id, icon (emoji), title, description, and optionally a timestamp and openAction. When the user has items selected, their context will be provided — use it to give relevant answers. Be concise and helpful.',
+              'You are Flint, a personal work assistant. You have access to the user\'s Microsoft 365 data via Work IQ (calendar, email, Teams, documents). You also have an attention panel where you can surface relevant items for the user. Use set_attention_items to show meetings, messages, or other work items. Each item needs an id, icon (emoji), title, description, and optionally a timestamp (ISO 8601) and openAction ({type:"url",url:"..."}). When the user has items selected, their context will be provided — use it to give relevant answers. When showing calendar events, always populate the attention panel with set_attention_items. Be concise and helpful.',
           },
           tools: chatTools,
         })
@@ -93,7 +101,7 @@ app.whenReady().then(async () => {
     }
   })
 
-  console.log('[main] Ready — chat wired, monitor disabled for now')
+  console.log('[main] Ready — chat wired with Work IQ MCP')
 })
 
 app.on('will-quit', async () => {
