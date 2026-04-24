@@ -16,7 +16,13 @@ When proposing changes that would alter the spec or design spec, flag them for r
 
 ## Task Management
 
-Work items live in `.todo/` and are organized by sprint. See sprint structure and rules in `.todo/` directory.
+Work items live in `.todo/` using the **tasks skill** structure. Use the `tasks` skill when creating, picking, or completing tasks.
+
+- **Backlog tasks**: `.todo/backlog/<task-name>.md` — standalone work items
+- **User stories**: `.todo/US-<story-name>/` — grouped related tasks with a `main.md` for overview and prioritization
+- **Done**: `.todo/done/` — completed tasks, mirroring source structure
+
+Every task must have a testable definition of done. Every task must deliver value on its own. See the tasks skill for templates and workflow.
 
 ## Engineering Principles
 
@@ -177,6 +183,12 @@ try {
 - **[Streaming Events](https://github.com/github/copilot-sdk/blob/main/docs/features/streaming-events.md)** — Real-time event reference.
 - **[Custom Agents](https://github.com/github/copilot-sdk/blob/main/docs/features/custom-agents.md)** — Specialized sub-agents.
 - **[Hooks](https://github.com/github/copilot-sdk/blob/main/docs/features/hooks.md)** — Intercept and customize session behavior.
+
+### Work IQ MCP Reference
+
+- **[Work IQ Repository](https://github.com/microsoft/work-iq)** — Official Microsoft Work IQ plugin collection. MCP servers, skills, and tools for M365 data (calendar, mail, Teams, documents, people).
+- **[Work IQ CLI Docs](https://learn.microsoft.com/en-us/microsoft-365-copilot/extensibility/workiq-overview)** — CLI and MCP server usage, `workiq ask`, `workiq mcp`.
+- **[Work IQ Plugins](https://github.com/microsoft/work-iq/blob/main/PLUGINS.md)** — Available plugins: `workiq`, `workiq-productivity`, `microsoft-365-agents-toolkit`.
 
 ## Commands
 

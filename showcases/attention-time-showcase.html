@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flint — Attention Panel Time Grouping</title>
+<style>
+  /* ── Reset + Fonts ──────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+
+  body {
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #111015;
+    color: #e2e4e8;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* ── Flint Tokens ───────────────────────────────────── */
+  :root {
+    --bg-primary: oklch(14% 0.006 60);
+    --bg-secondary: oklch(19% 0.007 60);
+    --bg-hover: oklch(23% 0.008 60);
+    --bg-selected: oklch(25% 0.01 60);
+    --bg-accent-subtle: oklch(74% 0.15 65 / 0.1);
+    --text-primary: oklch(93% 0.006 60);
+    --text-secondary: oklch(62% 0.008 60);
+    --text-placeholder: oklch(43% 0.006 60);
+    --text-on-accent: oklch(16% 0.02 65);
+    --accent: oklch(74% 0.15 65);
+    --accent-hover: oklch(70% 0.14 65);
+    --border-subtle: oklch(23% 0.006 60);
+    --border-hover: oklch(28% 0.008 60);
+    --color-warning: oklch(78% 0.15 85);
+    --color-warning-subtle: oklch(78% 0.15 85 / 0.08);
+    --color-warning-border: oklch(78% 0.15 85 / 0.18);
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-full: 9999px;
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 12px;
+    --space-lg: 16px;
+    --space-xl: 20px;
+    --icon-container: 30px;
+    --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
+    --transition-fast: 120ms cubic-bezier(0.25, 1, 0.5, 1);
+    --transition-normal: 200ms cubic-bezier(0.25, 1, 0.5, 1);
+  }
+
+  /* ── Showcase Controls ──────────────────────────────── */
+  .showcase-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: oklch(40% 0.006 60);
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+
+  .controls {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .controls button {
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 7px 14px;
+    border-radius: var(--radius-md);
+    border: 1px solid oklch(25% 0.006 60);
+    background: oklch(17% 0.005 60);
+    color: oklch(55% 0.008 60);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+  }
+  .controls button:hover {
+    background: oklch(21% 0.007 60);
+    color: oklch(70% 0.008 60);
+  }
+  .controls button.active {
+    background: var(--accent);
+    color: var(--text-on-accent);
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+
+  .state-controls {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    justify-content: center;
+  }
+  .state-controls button {
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid oklch(22% 0.005 60);
+    background: oklch(15% 0.004 60);
+    color: oklch(48% 0.006 60);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+  .state-controls button:hover {
+    color: oklch(62% 0.008 60);
+    background: oklch(18% 0.005 60);
+  }
+  .state-controls button.active {
+    background: oklch(22% 0.008 60);
+    color: oklch(85% 0.006 60);
+    border-color: oklch(30% 0.008 60);
+  }
+
+  .variant-label {
+    text-align: center;
+    margin-bottom: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .variant-desc {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-secondary);
+    max-width: 480px;
+    margin: 0 auto 20px;
+    line-height: 1.6;
+  }
+
+  /* ── Panel Frame ────────────────────────────────────── */
+  .panel-frame {
+    width: 413px;
+    height: 520px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-primary);
+    box-shadow:
+      0 24px 80px oklch(4% 0.01 60 / 0.6),
+      0 0 0 1px oklch(20% 0.006 60 / 0.3);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .variant { display: none; height: 100%; }
+  .variant.active { display: flex; flex-direction: column; }
+
+  /* ── Panel Header ───────────────────────────────────── */
+  .panel-header {
+    padding: var(--space-md) var(--space-lg) var(--space-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    flex-shrink: 0;
+  }
+  .panel-header-icon { font-size: 13px; }
+  .panel-header-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+  }
+  .panel-header-spacer { flex: 1; }
+  .panel-header-count {
+    font-size: 10px;
+    color: var(--text-placeholder);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Shared Card Styles ─────────────────────────────── */
+  .card {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    margin: 0 var(--space-sm) 2px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition:
+      background var(--transition-fast),
+      border-color var(--transition-fast);
+    position: relative;
+  }
+  .card:hover {
+    background: var(--bg-hover);
+  }
+  .card.selected {
+    background: var(--bg-accent-subtle);
+    border-color: oklch(74% 0.15 65 / 0.15);
+  }
+  .card.imminent {
+    background: var(--color-warning-subtle);
+    border-color: var(--color-warning-border);
+  }
+  .card.imminent.selected {
+    background: oklch(78% 0.15 85 / 0.12);
+    border-color: oklch(78% 0.15 85 / 0.25);
+  }
+
+  /* Icon container — Flint's signature element */
+  .card-icon {
+    width: var(--icon-container);
+    height: var(--icon-container);
+    border-radius: var(--radius-md);
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+    transition: background var(--transition-fast);
+    margin-top: 1px;
+  }
+  .card.selected .card-icon {
+    background: var(--accent);
+  }
+  .card.imminent .card-icon {
+    background: oklch(78% 0.15 85 / 0.15);
+  }
+
+  .card-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .card-title {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.4;
+  }
+  .card.imminent .card-title {
+    color: var(--color-warning);
+  }
+  .card-desc {
+    font-size: 10px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.4;
+  }
+
+  .card-actions {
+    display: flex;
+    gap: var(--space-xs);
+    flex-shrink: 0;
+    align-self: center;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+  }
+  .card:hover .card-actions,
+  .card.selected .card-actions {
+    opacity: 1;
+  }
+
+  .btn-select, .btn-open {
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: var(--radius-sm);
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all var(--transition-fast);
+  }
+  .btn-select {
+    background: oklch(25% 0.008 60);
+    color: var(--text-secondary);
+  }
+  .btn-select:hover {
+    background: oklch(30% 0.01 60);
+    color: var(--text-primary);
+  }
+  .card.selected .btn-select {
+    background: var(--accent);
+    color: var(--text-on-accent);
+  }
+  .btn-open {
+    background: none;
+    color: var(--text-placeholder);
+    border: 1px solid oklch(25% 0.006 60);
+  }
+  .btn-open:hover {
+    color: var(--text-secondary);
+    border-color: oklch(30% 0.008 60);
+  }
+
+  /* ── Scrollable list ────────────────────────────────── */
+  .card-list {
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    min-height: 0;
+    scrollbar-width: thin;
+    scrollbar-color: oklch(23% 0.006 60) transparent;
+  }
+  .card-list::-webkit-scrollbar { width: 4px; }
+  .card-list::-webkit-scrollbar-track { background: transparent; }
+  .card-list::-webkit-scrollbar-thumb {
+    background: oklch(23% 0.006 60);
+    border-radius: 2px;
+  }
+  .card-list::-webkit-scrollbar-thumb:hover {
+    background: oklch(28% 0.008 60);
+  }
+
+  /* ── Empty state ────────────────────────────────────── */
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    color: var(--text-placeholder);
+    font-size: 11px;
+    padding: 40px;
+  }
+  .empty-state-icon {
+    font-size: 24px;
+    opacity: 0.4;
+  }
+  .empty-state-text {
+    text-align: center;
+    line-height: 1.6;
+  }
+
+
+  /* ════════════════════════════════════════════════════════
+     VARIANT A · DAY SEPARATORS
+     Sticky section headers by time bucket
+     ════════════════════════════════════════════════════════ */
+
+  .v-a .section-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-lg) var(--space-xs);
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--bg-primary);
+  }
+  .v-a .section-header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--bg-primary);
+    z-index: -1;
+  }
+  .v-a .section-header-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--text-placeholder);
+    text-transform: uppercase;
+  }
+  .v-a .section-header-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border-subtle);
+  }
+  .v-a .section-header-count {
+    font-size: 10px;
+    color: var(--text-placeholder);
+    font-variant-numeric: tabular-nums;
+  }
+  /* "Now" section header gets accent treatment */
+  .v-a .section-header.now .section-header-label {
+    color: var(--color-warning);
+  }
+  .v-a .section-header.now .section-header-line {
+    background: oklch(78% 0.15 85 / 0.2);
+  }
+  .v-a .section-header.now::after {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-warning);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+
+  /* ════════════════════════════════════════════════════════
+     VARIANT B · TIMELINE RAIL
+     Thin vertical line with time dots
+     ════════════════════════════════════════════════════════ */
+
+  .v-b .card-list {
+    padding-left: 8px;
+  }
+  .v-b .timeline-group {
+    position: relative;
+    padding-left: 24px;
+  }
+  /* The vertical rail */
+  .v-b .timeline-group::before {
+    content: '';
+    position: absolute;
+    left: 14px;
+    top: 26px;
+    bottom: 4px;
+    width: 1px;
+    background: var(--border-subtle);
+  }
+  .v-b .timeline-group:last-child::before {
+    bottom: 26px;
+  }
+
+  .v-b .timeline-marker {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) 0 var(--space-xs) 0;
+    position: relative;
+  }
+  .v-b .timeline-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: oklch(30% 0.008 60);
+    border: 2px solid var(--bg-primary);
+    position: absolute;
+    left: -28px;
+    top: 12px;
+    z-index: 1;
+  }
+  .v-b .timeline-marker.now .timeline-dot {
+    background: var(--color-warning);
+    box-shadow: 0 0 0 3px oklch(78% 0.15 85 / 0.15);
+    animation: pulse-ring 2s ease-in-out infinite;
+  }
+  @keyframes pulse-ring {
+    0%, 100% { box-shadow: 0 0 0 3px oklch(78% 0.15 85 / 0.15); }
+    50% { box-shadow: 0 0 0 5px oklch(78% 0.15 85 / 0.05); }
+  }
+  .v-b .timeline-marker.later .timeline-dot {
+    background: oklch(35% 0.008 60);
+  }
+  .v-b .timeline-marker.future .timeline-dot {
+    background: oklch(25% 0.006 60);
+    border-color: oklch(20% 0.005 60);
+  }
+
+  .v-b .timeline-time {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    color: var(--text-placeholder);
+    text-transform: uppercase;
+  }
+  .v-b .timeline-marker.now .timeline-time {
+    color: var(--color-warning);
+  }
+
+  .v-b .timeline-cards {
+    padding-bottom: var(--space-xs);
+  }
+  .v-b .card {
+    margin-left: 0;
+    margin-right: var(--space-sm);
+  }
+
+
+  /* ════════════════════════════════════════════════════════
+     VARIANT C · TIME BADGES
+     Per-card time pills, no separators
+     ════════════════════════════════════════════════════════ */
+
+  .v-c .card {
+    position: relative;
+  }
+  .v-c .card-body {
+    padding-right: 70px;
+  }
+  .v-c .time-badge {
+    position: absolute;
+    top: var(--space-sm);
+    right: var(--space-md);
+    font-size: 9px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: var(--radius-full);
+    background: oklch(20% 0.006 60);
+    color: var(--text-placeholder);
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+    transition: all var(--transition-fast);
+  }
+  .v-c .time-badge.imminent {
+    background: oklch(78% 0.15 85 / 0.12);
+    color: var(--color-warning);
+  }
+  .v-c .time-badge.soon {
+    background: oklch(74% 0.15 65 / 0.08);
+    color: oklch(74% 0.12 65);
+  }
+  .v-c .time-badge.future {
+    background: oklch(18% 0.005 60);
+    color: oklch(38% 0.006 60);
+  }
+
+  /* Hide badge on hover to show actions */
+  .v-c .card:hover .time-badge,
+  .v-c .card.selected .time-badge {
+    opacity: 0;
+  }
+  .v-c .card-actions {
+    position: absolute;
+    top: var(--space-sm);
+    right: var(--space-md);
+  }
+
+  /* Subtle time separator lines between day boundaries */
+  .v-c .day-hint {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-xs) var(--space-lg);
+  }
+  .v-c .day-hint-dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: oklch(25% 0.006 60);
+  }
+  .v-c .day-hint-label {
+    font-size: 9px;
+    color: oklch(32% 0.005 60);
+    letter-spacing: 0.3px;
+  }
+
+
+  /* ════════════════════════════════════════════════════════
+     VARIANT D · COLLAPSIBLE GROUPS
+     Expandable sections with disclosure triangles
+     ════════════════════════════════════════════════════════ */
+
+  .v-d .collapse-group {
+    border-bottom: 1px solid oklch(19% 0.005 60);
+  }
+  .v-d .collapse-group:last-child {
+    border-bottom: none;
+  }
+  .v-d .collapse-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-lg);
+    cursor: pointer;
+    user-select: none;
+    transition: background var(--transition-fast);
+  }
+  .v-d .collapse-header:hover {
+    background: oklch(16% 0.005 60);
+  }
+  .v-d .collapse-chevron {
+    font-size: 8px;
+    color: var(--text-placeholder);
+    transition: transform 250ms var(--ease-out);
+    width: 12px;
+    text-align: center;
+  }
+  .v-d .collapse-group.open .collapse-chevron {
+    transform: rotate(90deg);
+  }
+  .v-d .collapse-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--text-placeholder);
+    text-transform: uppercase;
+    flex: 1;
+  }
+  .v-d .collapse-group.now .collapse-label {
+    color: var(--color-warning);
+  }
+  .v-d .collapse-count {
+    font-size: 10px;
+    color: oklch(32% 0.005 60);
+    font-variant-numeric: tabular-nums;
+    min-width: 20px;
+    text-align: right;
+  }
+  .v-d .collapse-group.open .collapse-count {
+    opacity: 0.5;
+  }
+  .v-d .collapse-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 300ms var(--ease-out);
+  }
+  .v-d .collapse-group.open .collapse-body {
+    max-height: 600px;
+  }
+  .v-d .collapse-body-inner {
+    padding-bottom: var(--space-xs);
+  }
+  /* Collapsed preview: show first item title inline */
+  .v-d .collapse-preview {
+    font-size: 10px;
+    color: oklch(38% 0.006 60);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 140px;
+    display: none;
+  }
+  .v-d .collapse-group:not(.open) .collapse-preview {
+    display: block;
+  }
+
+  /* ── Reduced motion ─────────────────────────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="showcase-title">Flint — Attention Panel · Time Grouping</div>
+
+<div class="controls" id="variant-controls">
+  <button class="active" data-variant="a">A · Day Separators</button>
+  <button data-variant="b">B · Timeline Rail</button>
+  <button data-variant="c">C · Time Badges</button>
+  <button data-variant="d">D · Collapsible Groups</button>
+</div>
+
+<div class="state-controls" id="state-controls">
+  <button class="active" data-state="full">Full day</button>
+  <button data-state="sparse">Sparse</button>
+  <button data-state="single">Single section</button>
+</div>
+
+<div id="variant-label" class="variant-label"></div>
+<div id="variant-desc" class="variant-desc"></div>
+
+<div class="panel-frame" id="panel">
+
+  <!-- Variant A · Day Separators -->
+  <div class="variant v-a active" id="variant-a">
+    <div class="panel-header">
+      <span class="panel-header-icon">⚡</span>
+      <span class="panel-header-label">Attention</span>
+      <div class="panel-header-spacer"></div>
+      <span class="panel-header-count" id="a-count"></span>
+    </div>
+    <div class="card-list" id="a-list"></div>
+  </div>
+
+  <!-- Variant B · Timeline Rail -->
+  <div class="variant v-b" id="variant-b">
+    <div class="panel-header">
+      <span class="panel-header-icon">⚡</span>
+      <span class="panel-header-label">Attention</span>
+      <div class="panel-header-spacer"></div>
+      <span class="panel-header-count" id="b-count"></span>
+    </div>
+    <div class="card-list" id="b-list"></div>
+  </div>
+
+  <!-- Variant C · Time Badges -->
+  <div class="variant v-c" id="variant-c">
+    <div class="panel-header">
+      <span class="panel-header-icon">⚡</span>
+      <span class="panel-header-label">Attention</span>
+      <div class="panel-header-spacer"></div>
+      <span class="panel-header-count" id="c-count"></span>
+    </div>
+    <div class="card-list" id="c-list"></div>
+  </div>
+
+  <!-- Variant D · Collapsible Groups -->
+  <div class="variant v-d" id="variant-d">
+    <div class="panel-header">
+      <span class="panel-header-icon">⚡</span>
+      <span class="panel-header-label">Attention</span>
+      <div class="panel-header-spacer"></div>
+      <span class="panel-header-count" id="d-count"></span>
+    </div>
+    <div class="card-list" id="d-list"></div>
+  </div>
+
+</div>
+
+<script>
+// ── Fixture Data ─────────────────────────────────────────
+const allItems = [
+  // Now
+  { id: 1, icon: '📅', title: 'Q4 Planning Review', desc: '2:00 PM · Sarah, Mike, Lisa', group: 'now', timeLabel: 'now', badgeText: 'now', imminent: true },
+  { id: 2, icon: '💬', title: 'Jordan Williams', desc: '"Are we still on for 3:30?"', group: 'now', timeLabel: '1:45 PM', badgeText: '15m ago', imminent: false },
+
+  // Later today
+  { id: 3, icon: '📅', title: '1:1 with Jordan', desc: '3:30 PM · Jordan Williams', group: 'later', timeLabel: '3:30 PM', badgeText: 'in 1h 30m', imminent: false },
+  { id: 4, icon: '📧', title: 'Budget approval needed', desc: 'From Sarah Chen · Action required', group: 'later', timeLabel: '11:30 AM', badgeText: 'earlier', imminent: false },
+  { id: 5, icon: '📅', title: 'Sprint Retro', desc: '5:00 PM · Engineering (12)', group: 'later', timeLabel: '5:00 PM', badgeText: 'in 3h', imminent: false },
+
+  // Tomorrow
+  { id: 6, icon: '📅', title: 'Design Review', desc: '10:00 AM · Design team', group: 'tomorrow', timeLabel: '10:00 AM', badgeText: 'tmrw 10am', imminent: false },
+  { id: 7, icon: '📄', title: 'Q4 Report Draft', desc: 'Shared by Mike Ross · Updated 2h ago', group: 'tomorrow', timeLabel: '', badgeText: 'tomorrow', imminent: false },
+
+  // This week
+  { id: 8, icon: '📅', title: 'All Hands', desc: 'Thursday 2:00 PM · Company-wide', group: 'week', timeLabel: 'Thu 2:00 PM', badgeText: 'Thu', imminent: false },
+];
+
+const groupMeta = {
+  now:      { label: 'Now', order: 0 },
+  later:    { label: 'Later Today', order: 1 },
+  tomorrow: { label: 'Tomorrow', order: 2 },
+  week:     { label: 'This Week', order: 3 },
+};
+
+const sparseItems = [1, 3, 6]; // IDs for sparse view
+const singleItems = [1, 2];    // IDs for single-section view
+
+const variantMeta = {
+  a: {
+    label: 'A · Day Separators',
+    desc: 'Sticky section headers divide items into time buckets — "Now", "Later Today", "Tomorrow", "This Week". Subtle horizontal rules with small labels. Clear grouping without heavy visual weight.'
+  },
+  b: {
+    label: 'B · Timeline Rail',
+    desc: 'A thin vertical line on the left with time dots creates chronological flow. Imminent items pulse. The rail gives a sense of progression through the day without rigid separators.'
+  },
+  c: {
+    label: 'C · Time Badges',
+    desc: 'No separators — each card carries a time pill in the top-right corner showing relative time. Color-coded: amber for imminent, gold for soon, muted for later. Context lives on the card itself.'
+  },
+  d: {
+    label: 'D · Collapsible Groups',
+    desc: 'Expandable sections with disclosure triangles. "Now" and "Later Today" open by default, "Tomorrow" and "This Week" collapsed with item counts. Lets users manage information density.'
+  },
+};
+
+// ── State ────────────────────────────────────────────────
+let currentState = 'full';
+let selectedIds = new Set();
+let currentVariant = 'a';
+
+function getItems() {
+  if (currentState === 'sparse') return allItems.filter(i => sparseItems.includes(i.id));
+  if (currentState === 'single') return allItems.filter(i => singleItems.includes(i.id));
+  return allItems;
+}
+
+function groupItems(items) {
+  const groups = {};
+  items.forEach(item => {
+    if (!groups[item.group]) groups[item.group] = [];
+    groups[item.group].push(item);
+  });
+  return Object.entries(groups).sort((a, b) => groupMeta[a[0]].order - groupMeta[b[0]].order);
+}
+
+function toggleSelect(id) {
+  if (selectedIds.has(id)) {
+    selectedIds.delete(id);
+  } else {
+    selectedIds.add(id);
+  }
+  render();
+}
+
+// ── Card HTML ────────────────────────────────────────────
+function cardHTML(item, extra = '') {
+  const sel = selectedIds.has(item.id) ? 'selected' : '';
+  const imm = item.imminent ? 'imminent' : '';
+  return `
+    <div class="card ${sel} ${imm}" data-id="${item.id}">
+      <div class="card-icon">${item.icon}</div>
+      <div class="card-body">
+        <div class="card-title">${item.title}</div>
+        <div class="card-desc">${item.desc}</div>
+      </div>
+      ${extra}
+      <div class="card-actions">
+        <button class="btn-select" onclick="event.stopPropagation(); toggleSelect(${item.id})">Select</button>
+        <button class="btn-open">Open ↗</button>
+      </div>
+    </div>`;
+}
+
+// ── Render Functions ─────────────────────────────────────
+
+function renderA() {
+  const items = getItems();
+  const groups = groupItems(items);
+  const list = document.getElementById('a-list');
+  document.getElementById('a-count').textContent = `${items.length} items`;
+
+  if (items.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">✦</div><div class="empty-state-text">Nothing needs your attention right now</div></div>`;
+    return;
+  }
+
+  let html = '';
+  groups.forEach(([key, groupItems]) => {
+    const isNow = key === 'now';
+    html += `
+      <div class="section-header ${isNow ? 'now' : ''}">
+        <span class="section-header-label">${groupMeta[key].label}</span>
+        <span class="section-header-line"></span>
+        <span class="section-header-count">${groupItems.length}</span>
+      </div>`;
+    groupItems.forEach(item => { html += cardHTML(item); });
+  });
+  list.innerHTML = html;
+}
+
+function renderB() {
+  const items = getItems();
+  const groups = groupItems(items);
+  const list = document.getElementById('b-list');
+  document.getElementById('b-count').textContent = `${items.length} items`;
+
+  if (items.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">✦</div><div class="empty-state-text">Nothing needs your attention right now</div></div>`;
+    return;
+  }
+
+  let html = '';
+  groups.forEach(([key, groupItems]) => {
+    const markerClass = key === 'now' ? 'now' : key === 'later' ? 'later' : 'future';
+    html += `<div class="timeline-group">`;
+    html += `
+      <div class="timeline-marker ${markerClass}">
+        <div class="timeline-dot"></div>
+        <span class="timeline-time">${groupMeta[key].label}</span>
+      </div>`;
+    html += `<div class="timeline-cards">`;
+    groupItems.forEach(item => { html += cardHTML(item); });
+    html += `</div></div>`;
+  });
+  list.innerHTML = html;
+}
+
+function renderC() {
+  const items = getItems();
+  const groups = groupItems(items);
+  const list = document.getElementById('c-list');
+  document.getElementById('c-count').textContent = `${items.length} items`;
+
+  if (items.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">✦</div><div class="empty-state-text">Nothing needs your attention right now</div></div>`;
+    return;
+  }
+
+  let html = '';
+  let prevGroup = null;
+  groups.forEach(([key, groupItems]) => {
+    // Insert subtle day boundary hint between groups
+    if (prevGroup !== null && (key === 'tomorrow' || key === 'week')) {
+      html += `
+        <div class="day-hint">
+          <span class="day-hint-dot"></span>
+          <span class="day-hint-label">${groupMeta[key].label}</span>
+        </div>`;
+    }
+    groupItems.forEach(item => {
+      const badgeClass = item.imminent ? 'imminent' : (key === 'now' || key === 'later') ? 'soon' : 'future';
+      const badge = `<span class="time-badge ${badgeClass}">${item.badgeText}</span>`;
+      html += cardHTML(item, badge);
+    });
+    prevGroup = key;
+  });
+  list.innerHTML = html;
+}
+
+function renderD() {
+  const items = getItems();
+  const groups = groupItems(items);
+  const list = document.getElementById('d-list');
+  document.getElementById('d-count').textContent = `${items.length} items`;
+
+  if (items.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">✦</div><div class="empty-state-text">Nothing needs your attention right now</div></div>`;
+    return;
+  }
+
+  // Default: "now" and "later" open, others collapsed
+  const defaultOpen = { now: true, later: true, tomorrow: false, week: false };
+
+  let html = '';
+  groups.forEach(([key, groupItems]) => {
+    const isOpen = defaultOpen[key] !== false;
+    const isNow = key === 'now';
+    const firstTitle = groupItems[0]?.title || '';
+    html += `
+      <div class="collapse-group ${isOpen ? 'open' : ''} ${isNow ? 'now' : ''}" data-group="${key}">
+        <div class="collapse-header" onclick="toggleGroup(this)">
+          <span class="collapse-chevron">▶</span>
+          <span class="collapse-label">${groupMeta[key].label}</span>
+          <span class="collapse-preview">${firstTitle}</span>
+          <span class="collapse-count">${groupItems.length}</span>
+        </div>
+        <div class="collapse-body">
+          <div class="collapse-body-inner">
+            ${groupItems.map(item => cardHTML(item)).join('')}
+          </div>
+        </div>
+      </div>`;
+  });
+  list.innerHTML = html;
+}
+
+function toggleGroup(header) {
+  const group = header.closest('.collapse-group');
+  group.classList.toggle('open');
+}
+
+// ── Master render ────────────────────────────────────────
+function render() {
+  renderA();
+  renderB();
+  renderC();
+  renderD();
+}
+
+// ── Card click → select ──────────────────────────────────
+document.getElementById('panel').addEventListener('click', (e) => {
+  const card = e.target.closest('.card');
+  if (!card) return;
+  // Don't toggle if clicking buttons
+  if (e.target.closest('.btn-select') || e.target.closest('.btn-open')) return;
+  const id = parseInt(card.dataset.id);
+  if (id) toggleSelect(id);
+});
+
+// ── Variant switching ────────────────────────────────────
+document.getElementById('variant-controls').addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  const v = btn.dataset.variant;
+  currentVariant = v;
+
+  document.querySelectorAll('#variant-controls button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  document.querySelectorAll('.variant').forEach(el => el.classList.remove('active'));
+  document.getElementById('variant-' + v).classList.add('active');
+
+  document.getElementById('variant-label').textContent = variantMeta[v].label;
+  document.getElementById('variant-desc').textContent = variantMeta[v].desc;
+});
+
+// ── State switching ──────────────────────────────────────
+document.getElementById('state-controls').addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  currentState = btn.dataset.state;
+  document.querySelectorAll('#state-controls button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedIds.clear();
+  render();
+});
+
+// ── Init ─────────────────────────────────────────────────
+document.getElementById('variant-label').textContent = variantMeta.a.label;
+document.getElementById('variant-desc').textContent = variantMeta.a.desc;
+render();
+</script>
+</body>
+</html>
