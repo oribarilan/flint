@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useMeetings } from './hooks/useMeetings'
+import { useAttention } from './hooks/useAttention'
 import { useChat } from './hooks/useChat'
 import { useConfig } from './hooks/useConfig'
-import { MeetingCards } from './components/MeetingCards'
+import { AttentionPanel } from './components/AttentionPanel'
 import { MeetingDetail } from './components/MeetingDetail'
 import { ChatPanel } from './components/ChatPanel'
 import { ChatInput } from './components/ChatInput'
@@ -10,7 +11,8 @@ import { Settings } from './components/Settings'
 import styles from './App.module.css'
 
 export default function App() {
-  const { meetings, status, selectedMeeting, selectMeeting, clearSelection } = useMeetings()
+  const { selectedMeeting, clearSelection } = useMeetings()
+  const { items, selectedIds, toggleSelect } = useAttention()
   const { messages, streamingContent, isStreaming, sendMessage } = useChat()
   const { config, isLoaded, updateConfig } = useConfig()
   const [showSettings, setShowSettings] = useState(false)
@@ -33,6 +35,10 @@ export default function App() {
   const handleJoin = (joinUrl: string): void => {
     window.flint?.joinMeeting(joinUrl)
     window.flint?.hideOverlay()
+  }
+
+  const handleOpen = (id: string): void => {
+    window.flint?.openAttentionItem(id)
   }
 
   // Meeting detail view (full panel, replaces split)
@@ -67,22 +73,14 @@ export default function App() {
       </header>
 
       <div className={styles.splitBody}>
-        {/* Left panel: meetings */}
+        {/* Left panel: attention */}
         <div className={styles.splitLeft}>
-          {status === 'loading' && (
-            <div className={styles.statusMessage}>Checking your calendar...</div>
-          )}
-          {status === 'error' && (
-            <div className={styles.statusMessage}>Couldn&apos;t reach your calendar. Retrying...</div>
-          )}
-          {status === 'ready' && (
-            <MeetingCards
-              meetings={meetings}
-              alertMinutes={config.alertMinutes}
-              onSelect={selectMeeting}
-              onJoin={handleJoin}
-            />
-          )}
+          <AttentionPanel
+            items={items}
+            selectedIds={selectedIds}
+            onSelect={toggleSelect}
+            onOpen={handleOpen}
+          />
         </div>
 
         {/* Right panel: chat */}
