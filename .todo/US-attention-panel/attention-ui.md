@@ -1,9 +1,9 @@
 # Task: attention-ui
 
 ## Context
-Build the `AttentionPanel` and `AttentionCard` components that render in the left panel. Cards show icon, title, description, Select, and Open buttons. Items are grouped by time (day separators). Selected cards get visual highlighting.
+Build the `AttentionPanel` and `AttentionCard` components that render in the left panel. Cards show icon, title, description, time badge, Select, and Open buttons. The panel is a flat list ordered by the agent — no time-based grouping. Each card has a small relative-time badge for temporal context.
 
-**Value delivered**: The left panel renders agent-pushed items as interactive cards with time grouping and selection state.
+**Value delivered**: The left panel renders agent-pushed items as interactive cards with time badges and selection state.
 
 ## Related Files
 - `src/renderer/src/components/AttentionPanel.tsx` — new
@@ -20,11 +20,11 @@ Build the `AttentionPanel` and `AttentionCard` components that render in the lef
 ## Acceptance Criteria
 - [ ] `attentionStore` Zustand store holds `items: AttentionItem[]`, `selectedIds: Set<string>`, and actions `setItems`, `toggleSelect`, `clearSelection`
 - [ ] `useAttention` hook subscribes to `attention:update` IPC, loads initial items, exposes selection actions
-- [ ] `AttentionCard` renders icon, title (1 line, truncated), description (2 lines max, truncated), Select button, Open button (only when `openAction` present)
+- [ ] `AttentionCard` renders icon, title (1 line, truncated), description (2 lines max, truncated), time badge (top-right pill), Select button, Open button (only when `openAction` present)
+- [ ] Time badge shows relative time ("in 4 min", "2h ago", "yesterday") — amber color for future/imminent items, muted for past
 - [ ] Clicking Select toggles the card's selection state (visual checkmark + accent border)
 - [ ] Clicking Open calls `window.flint.openAttentionItem(id)`
-- [ ] `AttentionPanel` groups items by time bucket: "Now", "Later Today", "Tomorrow", "This Week", "Later" — using day separator headers
-- [ ] Items without `timestamp` go into an "Other" group at the bottom
+- [ ] `AttentionPanel` renders items as a flat list in agent-provided order — no automatic sorting or time grouping
 - [ ] Empty state: "No items yet. Ask me about your day." with ⚡ icon
 - [ ] `App.tsx` renders `AttentionPanel` in the left split instead of `MeetingCards`
 - [ ] All styling uses design tokens from `global.css`, no hardcoded colors
@@ -38,5 +38,6 @@ Build the `AttentionPanel` and `AttentionCard` components that render in the lef
 Large
 
 ## Notes
-- Reference `showcases/attention-time-showcase.html` for time grouping visual options (day separators variant recommended)
-- Imminent items (timestamp within alertMinutes) should get amber styling
+- Reference Variant C (Time Badges) in `showcases/attention-time-showcase.html` for badge styling
+- Imminent items (timestamp within alertMinutes of now) get amber badge; past timestamps get muted badge
+- The agent controls ordering — the panel renders items in the order received from `set_attention_items`
