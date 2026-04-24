@@ -39,3 +39,14 @@
 .content {
   margin: 0;
 }
+
+.thinking {
+  color: var(--text-secondary);
+  opacity: 0.6;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 0.3; }
+}

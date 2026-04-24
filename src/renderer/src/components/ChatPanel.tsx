@@ -21,9 +21,11 @@ export function ChatPanel({ messages, streamingContent, isStreaming }: ChatPanel
           <div className={styles.content}>{msg.content}</div>
         </div>
       ))}
-      {isStreaming && streamingContent && (
+      {isStreaming && (
         <div className={`${styles.message} ${styles.assistant}`}>
-          <div className={styles.content}>{streamingContent}</div>
+          <div className={styles.content}>
+            {streamingContent || <span className={styles.thinking}>Thinking…</span>}
+          </div>
         </div>
       )}
     </div>

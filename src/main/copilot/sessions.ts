@@ -23,16 +23,21 @@ export function createSessionManager(config: SessionManagerConfig): SessionManag
 
     chatSession = await config.client.createSession({
       sessionId: 'flint-main',
+      model: 'gpt-4.1',
       onPermissionRequest: approveAll,
       streaming: true,
       systemMessage: {
-        content: 'You are Flint, a work assistant. Help the user with questions about their schedule, meetings, and work context.',
+        content: 'You are Flint, a work assistant. Help the user with questions about their schedule, meetings, and work context. Be concise and helpful.',
       },
       tools: config.chatTools,
     })
 
     chatSession.on('assistant.message_delta', (event) => {
       config.onChatDelta(event.data.deltaContent)
+    })
+
+    chatSession.on('session.idle', () => {
+      config.onChatDone()
     })
 
     return chatSession
@@ -43,6 +48,7 @@ export function createSessionManager(config: SessionManagerConfig): SessionManag
 
     monitorSession = await config.client.createSession({
       sessionId: 'flint-monitor',
+      model: 'gpt-4.1',
       onPermissionRequest: approveAll,
       tools: config.monitorTools,
     })
@@ -53,8 +59,13 @@ export function createSessionManager(config: SessionManagerConfig): SessionManag
   return {
     async sendChatMessage(prompt: string): Promise<void> {
       const session = await getChatSession()
-      await session.sendAndWait({ prompt })
-      config.onChatDone()
+      console.log('[chat] Sending:', prompt)
+      try {
+        await session.sendAndWait({ prompt })
+      } catch (err) {
+        console.error('[chat] sendAndWait error:', err)
+        config.onChatDone()
+      }
     },
 
     async sendMonitorPoll(): Promise<void> {

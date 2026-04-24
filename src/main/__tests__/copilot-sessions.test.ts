@@ -1,10 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const mockSendAndWait = vi.fn().mockResolvedValue(undefined)
-const mockOn = vi.fn()
-const mockCreateSession = vi.fn().mockResolvedValue({
-  sendAndWait: mockSendAndWait,
-  on: mockOn,
+const eventHandlers: Record<string, Function> = {}
+const mockOn = vi.fn((event: string, handler: Function) => {
+  eventHandlers[event] = handler
+})
+const mockCreateSession = vi.fn().mockImplementation(async () => {
+  // Reset handlers for fresh session
+  Object.keys(eventHandlers).forEach((k) => delete eventHandlers[k])
+  return {
+    sendAndWait: mockSendAndWait,
+    on: mockOn,
+  }
 })
 
 vi.mock('@github/copilot-sdk', () => ({
@@ -46,6 +53,10 @@ describe('SessionManager', () => {
       })
     )
     expect(mockSendAndWait).toHaveBeenCalledWith({ prompt: 'hello' })
+    // onChatDone is now called via session.idle event
+    expect(mockOn).toHaveBeenCalledWith('session.idle', expect.any(Function))
+    // Simulate the idle event firing
+    eventHandlers['session.idle']?.()
     expect(onChatDone).toHaveBeenCalled()
   })
 
