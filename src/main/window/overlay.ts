@@ -6,7 +6,7 @@ let overlayWindow: BrowserWindow | null = null
 
 export function createOverlayWindow(): BrowserWindow {
   overlayWindow = new BrowserWindow({
-    width: 860,
+    width: 1032,
     height: 520,
     show: false,
     frame: false,
