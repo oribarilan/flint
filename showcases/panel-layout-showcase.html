@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flint — Panel Layout Showcase</title>
+<style>
+  /* ── Reset + Fonts ──────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+
+  body {
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #1a1a22;
+    color: #e2e4e8;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    padding: 40px;
+  }
+
+  /* ── Flint Tokens (matched from global.css) ─────────── */
+  :root {
+    --bg-primary: oklch(14% 0.006 60);
+    --bg-secondary: oklch(19% 0.007 60);
+    --bg-hover: oklch(23% 0.008 60);
+    --text-primary: oklch(93% 0.006 60);
+    --text-secondary: oklch(62% 0.008 60);
+    --text-placeholder: oklch(43% 0.006 60);
+    --accent: oklch(74% 0.15 65);
+    --text-on-accent: oklch(16% 0.02 65);
+    --border-subtle: oklch(23% 0.006 60);
+    --color-warning: oklch(78% 0.15 85);
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+  }
+
+  /* ── Showcase Controls ──────────────────────────────── */
+  .controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+  }
+  .controls button {
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.04);
+    color: #94a3b8;
+    cursor: pointer;
+    transition: all 150ms;
+  }
+  .controls button:hover { background: rgba(255,255,255,0.08); color: #e2e4e8; }
+  .controls button.active {
+    background: var(--accent);
+    color: var(--text-on-accent);
+    border-color: var(--accent);
+  }
+
+  .showcase-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: #475569;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+
+  /* ── Panel Frame (680×500 native size) ──────────────── */
+  .panel-frame {
+    width: 680px;
+    height: 500px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-primary);
+    box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 1px rgba(255,255,255,0.1);
+    overflow: hidden;
+    margin: 0 auto 48px;
+    position: relative;
+  }
+
+  .variant { display: none; }
+  .variant.active { display: flex; flex-direction: column; height: 100%; }
+
+  /* ── Variant label ──────────────────────────────────── */
+  .variant-label {
+    text-align: center;
+    margin-bottom: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #e2e4e8;
+  }
+  .variant-desc {
+    text-align: center;
+    font-size: 12px;
+    color: #64748b;
+    max-width: 500px;
+    margin: 0 auto 24px;
+    line-height: 1.6;
+  }
+
+  /* ════════════════════════════════════════════════════
+     SHARED COMPONENT STYLES
+     ════════════════════════════════════════════════════ */
+
+  .header {
+    padding: 12px 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .header-icon { font-size: 14px; }
+  .header-label {
+    color: var(--text-secondary);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .header-spacer { flex: 1; }
+  .header-action {
+    background: none; border: none; color: var(--text-secondary);
+    font-size: 13px; cursor: pointer; padding: 4px;
+    border-radius: var(--radius-sm);
+  }
+  .header-action:hover { color: var(--text-primary); background: var(--bg-hover); }
+
+  .section-label {
+    color: var(--text-secondary);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    padding: 8px 16px 4px;
+    flex-shrink: 0;
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border-subtle);
+    margin: 0 16px;
+    flex-shrink: 0;
+  }
+
+  /* Meeting card */
+  .meeting {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    margin: 0 12px 4px;
+    border-radius: var(--radius-md);
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.04);
+    cursor: pointer;
+  }
+  .meeting:hover { background: var(--bg-hover); }
+  .meeting.imminent {
+    background: rgba(245,158,11,0.06);
+    border-color: rgba(245,158,11,0.15);
+  }
+  .meeting-time {
+    min-width: 40px;
+    text-align: center;
+  }
+  .meeting-time-value {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+  }
+  .imminent .meeting-time-value { color: var(--color-warning); }
+  .meeting-time-until {
+    font-size: 10px;
+    color: var(--text-placeholder);
+  }
+  .imminent .meeting-time-until { color: var(--color-warning); opacity: 0.7; }
+  .meeting-info { flex: 1; min-width: 0; }
+  .meeting-title {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .meeting-attendees {
+    font-size: 10px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .join-btn {
+    background: var(--color-warning);
+    color: #1a1a22;
+    border: none;
+    padding: 3px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  /* Chat message */
+  .msg {
+    max-width: 80%;
+    padding: 6px 10px;
+    border-radius: var(--radius-md);
+    font-size: 12px;
+    line-height: 1.5;
+    word-break: break-word;
+    margin-bottom: 6px;
+  }
+  .msg-user {
+    align-self: flex-end;
+    background: var(--accent);
+    color: var(--text-on-accent);
+    border-bottom-right-radius: 3px;
+  }
+  .msg-assistant {
+    align-self: flex-start;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border-bottom-left-radius: 3px;
+  }
+  .msg-thinking {
+    color: var(--text-secondary);
+    opacity: 0.6;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 0.6; } 50% { opacity: 0.3; } }
+
+  /* Chat input */
+  .chat-input-wrap {
+    padding: 10px 16px 14px;
+    flex-shrink: 0;
+  }
+  .chat-input {
+    display: flex;
+    align-items: center;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 8px 12px;
+    gap: 8px;
+  }
+  .chat-input input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-size: 12px;
+    font-family: inherit;
+  }
+  .chat-input input::placeholder { color: var(--text-placeholder); }
+  .chat-input .hint { color: var(--text-placeholder); font-size: 10px; }
+
+  /* Chat area */
+  .chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 10px 16px;
+    overflow-y: auto;
+    gap: 2px;
+    min-height: 0;
+  }
+  .chat-area-empty {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+  }
+  .chat-area-empty-text {
+    color: var(--text-placeholder);
+    font-size: 11px;
+  }
+
+  /* Meetings list */
+  .meetings-list {
+    padding: 4px 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /* ════════════════════════════════════════════════════
+     VARIANT A: CURRENT (Baseline)
+     ════════════════════════════════════════════════════ */
+  .v-a .meetings-list { flex: 0 0 auto; max-height: 220px; }
+  .v-a .chat-area { flex: 1; }
+
+  /* ════════════════════════════════════════════════════
+     VARIANT B: CHAT-FIRST
+     Meetings are a compact strip at top,
+     chat dominates the panel
+     ════════════════════════════════════════════════════ */
+  .v-b .meeting-strip {
+    display: flex;
+    gap: 8px;
+    padding: 8px 12px;
+    overflow-x: auto;
+    flex-shrink: 0;
+    scrollbar-width: none;
+  }
+  .v-b .meeting-strip::-webkit-scrollbar { display: none; }
+  .v-b .meeting-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: var(--radius-lg);
+    white-space: nowrap;
+    cursor: pointer;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+  .v-b .meeting-pill:hover { background: var(--bg-hover); }
+  .v-b .meeting-pill.imminent {
+    background: rgba(245,158,11,0.08);
+    border-color: rgba(245,158,11,0.2);
+  }
+  .v-b .pill-time { font-weight: 700; color: var(--text-secondary); }
+  .v-b .meeting-pill.imminent .pill-time { color: var(--color-warning); }
+  .v-b .pill-title { color: var(--text-primary); font-weight: 500; }
+  .v-b .pill-until { color: var(--text-placeholder); font-size: 10px; }
+  .v-b .chat-area { flex: 1; }
+
+  /* ════════════════════════════════════════════════════
+     VARIANT C: COMMAND BAR
+     Spotlight-style: big input at top, content below
+     ════════════════════════════════════════════════════ */
+  .v-c .cmd-input-wrap {
+    padding: 16px 16px 12px;
+    flex-shrink: 0;
+  }
+  .v-c .cmd-input {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 12px 16px;
+  }
+  .v-c .cmd-input .cmd-icon {
+    color: var(--accent);
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .v-c .cmd-input input {
+    flex: 1;
+    background: none; border: none; outline: none;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: inherit;
+    font-weight: 500;
+  }
+  .v-c .cmd-input input::placeholder { color: var(--text-placeholder); }
+  .v-c .cmd-content {
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    min-height: 0;
+  }
+  .v-c .cmd-section-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--text-placeholder);
+    padding: 12px 16px 4px;
+  }
+  .v-c .cmd-result {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .v-c .cmd-result:hover { background: var(--bg-hover); }
+  .v-c .cmd-result.selected { background: var(--bg-hover); }
+  .v-c .cmd-result-icon {
+    width: 28px; height: 28px;
+    border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .v-c .cmd-result-icon.cal { background: rgba(245,158,11,0.12); }
+  .v-c .cmd-result-icon.chat { background: rgba(96,165,250,0.12); }
+  .v-c .cmd-result-info { flex: 1; min-width: 0; }
+  .v-c .cmd-result-title { font-weight: 500; color: var(--text-primary); }
+  .v-c .cmd-result-meta { font-size: 10px; color: var(--text-secondary); }
+  .v-c .cmd-result-action {
+    font-size: 10px;
+    color: var(--text-placeholder);
+  }
+  .v-c .cmd-response {
+    padding: 12px 16px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-primary);
+  }
+
+  /* ════════════════════════════════════════════════════
+     VARIANT D: SPLIT VIEW
+     Left: meetings. Right: chat. Balanced.
+     ════════════════════════════════════════════════════ */
+  .v-d .split-body {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+  }
+  .v-d .split-left {
+    width: 260px;
+    border-right: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+  .v-d .split-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .v-d .split-left .meetings-list {
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .v-d .split-right .chat-area { flex: 1; }
+  .v-d .split-right .chat-input-wrap { border-top: 1px solid var(--border-subtle); }
+  .v-d .split-left .section-label { padding-top: 12px; }
+
+  /* ── State toggles ─────────────────────────────────── */
+  .state-controls {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 20px;
+    justify-content: center;
+  }
+  .state-controls button {
+    font-family: inherit;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.03);
+    color: #64748b;
+    cursor: pointer;
+  }
+  .state-controls button:hover { color: #94a3b8; background: rgba(255,255,255,0.06); }
+  .state-controls button.active {
+    background: rgba(255,255,255,0.08);
+    color: #e2e4e8;
+    border-color: rgba(255,255,255,0.12);
+  }
+</style>
+</head>
+<body>
+
+<div class="showcase-title">Flint — Panel Layout Alternatives</div>
+
+<div class="controls" id="variant-controls">
+  <button class="active" data-variant="a">A · Current</button>
+  <button data-variant="b">B · Chat-First</button>
+  <button data-variant="c">C · Command Bar</button>
+  <button data-variant="d">D · Split View</button>
+</div>
+
+<div class="state-controls" id="state-controls">
+  <button class="active" data-state="with-meetings">With meetings</button>
+  <button data-state="with-chat">With chat</button>
+  <button data-state="empty">Empty</button>
+</div>
+
+<div id="variant-label" class="variant-label"></div>
+<div id="variant-desc" class="variant-desc"></div>
+
+<div class="panel-frame" id="panel">
+
+  <!-- ════ VARIANT A: CURRENT ════ -->
+  <div class="variant v-a active" id="variant-a">
+    <div class="header">
+      <span class="header-icon">⚡</span>
+      <span class="header-label">FLINT</span>
+      <div class="header-spacer"></div>
+      <button class="header-action">⚙</button>
+    </div>
+
+    <div class="section-label" id="a-section-label">UPCOMING</div>
+    <div class="meetings-list" id="a-meetings"></div>
+
+    <div class="divider"></div>
+
+    <div class="chat-area" id="a-chat"></div>
+    <div class="chat-input-wrap">
+      <div class="chat-input">
+        <input type="text" placeholder="Ask about your schedule..." />
+        <span class="hint">⏎</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ VARIANT B: CHAT-FIRST ════ -->
+  <div class="variant v-b" id="variant-b">
+    <div class="header">
+      <span class="header-icon">⚡</span>
+      <span class="header-label">FLINT</span>
+      <div class="header-spacer"></div>
+      <button class="header-action">⚙</button>
+    </div>
+
+    <div class="meeting-strip" id="b-meetings"></div>
+    <div class="divider"></div>
+
+    <div class="chat-area" id="b-chat"></div>
+
+    <div class="chat-input-wrap">
+      <div class="chat-input">
+        <input type="text" placeholder="Ask Flint anything..." />
+        <span class="hint">⏎</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ VARIANT C: COMMAND BAR ════ -->
+  <div class="variant v-c" id="variant-c">
+    <div class="cmd-input-wrap">
+      <div class="cmd-input">
+        <span class="cmd-icon">⚡</span>
+        <input type="text" placeholder="Ask about your day..." />
+      </div>
+    </div>
+    <div class="cmd-content" id="c-content"></div>
+  </div>
+
+  <!-- ════ VARIANT D: SPLIT VIEW ════ -->
+  <div class="variant v-d" id="variant-d">
+    <div class="header">
+      <span class="header-icon">⚡</span>
+      <span class="header-label">FLINT</span>
+      <div class="header-spacer"></div>
+      <button class="header-action">⚙</button>
+    </div>
+
+    <div class="split-body">
+      <div class="split-left">
+        <div class="section-label">UPCOMING</div>
+        <div class="meetings-list" id="d-meetings"></div>
+      </div>
+      <div class="split-right">
+        <div class="chat-area" id="d-chat"></div>
+        <div class="chat-input-wrap">
+          <div class="chat-input">
+            <input type="text" placeholder="Ask about your schedule..." />
+            <span class="hint">⏎</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Fixture Data ─────────────────────────────────────
+const meetings = [
+  { time: '2:00 PM', until: '4 min', title: 'Q4 Planning Review', attendees: 'Sarah, Mike, Lisa', imminent: true, joinUrl: true },
+  { time: '3:30 PM', until: '1h 34m', title: '1:1 with Jordan', attendees: 'Jordan Williams', imminent: false },
+  { time: '5:00 PM', until: '3h 4m', title: 'Sprint Retro', attendees: 'Engineering team (12)', imminent: false },
+];
+
+const chatMessages = [
+  { role: 'user', text: 'What do I have after the planning review?' },
+  { role: 'assistant', text: 'After Q4 Planning Review (2:00–3:00 PM), you have a 30-minute gap, then your 1:1 with Jordan at 3:30 PM. The Sprint Retro follows at 5:00 PM.' },
+];
+
+const variantMeta = {
+  a: { label: 'A · Current Layout', desc: 'Meetings stack at the top, chat below. Meeting cards get prime real estate. Chat is secondary — visible but not the focus until you start typing.' },
+  b: { label: 'B · Chat-First', desc: 'Meetings compressed into a horizontal strip of pills. Chat dominates the panel. Optimized for conversational interaction — meetings are context, not the main event.' },
+  c: { label: 'C · Command Bar', desc: 'Spotlight/Raycast pattern. Single large input at top, content below adapts to context. Meetings and chat responses appear as results in a unified list. Feels like a launcher.' },
+  d: { label: 'D · Split View', desc: 'Side-by-side: meetings on the left, chat on the right. Both surfaces always visible. No mode switching. Good for reference while chatting, but tighter horizontal space.' },
+};
+
+// ── Rendering ────────────────────────────────────────
+let currentState = 'with-meetings';
+
+function meetingCard(m) {
+  return `<div class="meeting ${m.imminent ? 'imminent' : ''}">
+    <div class="meeting-time">
+      <div class="meeting-time-value">${m.time}</div>
+      <div class="meeting-time-until">${m.until}</div>
+    </div>
+    <div class="meeting-info">
+      <div class="meeting-title">${m.title}</div>
+      <div class="meeting-attendees">${m.attendees}</div>
+    </div>
+    ${m.imminent && m.joinUrl ? '<button class="join-btn">Join ↗</button>' : ''}
+  </div>`;
+}
+
+function chatBubbles(msgs) {
+  return msgs.map(m => `<div class="msg msg-${m.role}"><div>${m.text}</div></div>`).join('');
+}
+
+function emptyMeetings() {
+  return '<div style="padding:32px 16px;text-align:center;color:var(--text-placeholder);font-size:11px;">⚡<br>No upcoming meetings</div>';
+}
+function emptyChat() {
+  return '<div class="chat-area-empty"><span class="chat-area-empty-text">Ask about your day…</span></div>';
+}
+
+function render() {
+  const hasMeetings = currentState === 'with-meetings' || currentState === 'with-chat';
+  const hasChat = currentState === 'with-chat';
+  const isEmpty = currentState === 'empty';
+
+  // Variant A
+  const aLabel = document.getElementById('a-section-label');
+  const aMeet = document.getElementById('a-meetings');
+  const aChat = document.getElementById('a-chat');
+  if (isEmpty) { aLabel.textContent = ''; aMeet.innerHTML = emptyMeetings(); aChat.innerHTML = ''; }
+  else { aLabel.textContent = 'UPCOMING'; aMeet.innerHTML = meetings.map(meetingCard).join(''); aChat.innerHTML = hasChat ? chatBubbles(chatMessages) : ''; }
+
+  // Variant B
+  const bMeet = document.getElementById('b-meetings');
+  const bChat = document.getElementById('b-chat');
+  if (isEmpty) { bMeet.innerHTML = ''; bChat.innerHTML = emptyChat(); }
+  else {
+    bMeet.innerHTML = meetings.map(m => `
+      <div class="meeting-pill ${m.imminent ? 'imminent' : ''}">
+        <span class="pill-time">${m.time}</span>
+        <span class="pill-title">${m.title}</span>
+        <span class="pill-until">${m.until}</span>
+      </div>`).join('');
+    bChat.innerHTML = hasChat ? chatBubbles(chatMessages) : emptyChat();
+  }
+
+  // Variant C
+  const cContent = document.getElementById('c-content');
+  if (isEmpty) {
+    cContent.innerHTML = '<div style="padding:48px 16px;text-align:center;color:var(--text-placeholder);font-size:11px;">Type to search or ask a question</div>';
+  } else if (hasChat) {
+    cContent.innerHTML = `
+      <div class="cmd-section-label">MEETINGS</div>
+      ${meetings.slice(0,2).map(m => `
+        <div class="cmd-result">
+          <div class="cmd-result-icon cal">📅</div>
+          <div class="cmd-result-info">
+            <div class="cmd-result-title">${m.title}</div>
+            <div class="cmd-result-meta">${m.time} · ${m.attendees}</div>
+          </div>
+          <div class="cmd-result-action">${m.until}</div>
+        </div>`).join('')}
+      <div class="cmd-section-label">RESPONSE</div>
+      <div class="cmd-response">${chatMessages[1].text}</div>`;
+  } else {
+    cContent.innerHTML = `
+      <div class="cmd-section-label">UPCOMING MEETINGS</div>
+      ${meetings.map((m, i) => `
+        <div class="cmd-result ${i === 0 ? 'selected' : ''}">
+          <div class="cmd-result-icon cal">📅</div>
+          <div class="cmd-result-info">
+            <div class="cmd-result-title">${m.title}</div>
+            <div class="cmd-result-meta">${m.time} · ${m.attendees}</div>
+          </div>
+          <div class="cmd-result-action">${m.until}${m.imminent && m.joinUrl ? ' · Join ↗' : ''}</div>
+        </div>`).join('')}
+      <div class="cmd-section-label">SUGGESTIONS</div>
+      <div class="cmd-result">
+        <div class="cmd-result-icon chat">💬</div>
+        <div class="cmd-result-info">
+          <div class="cmd-result-title">Prepare for Q4 Planning</div>
+          <div class="cmd-result-meta">Ask Flint to summarize recent context</div>
+        </div>
+      </div>`;
+  }
+
+  // Variant D
+  const dMeet = document.getElementById('d-meetings');
+  const dChat = document.getElementById('d-chat');
+  if (isEmpty) { dMeet.innerHTML = emptyMeetings(); dChat.innerHTML = emptyChat(); }
+  else { dMeet.innerHTML = meetings.map(meetingCard).join(''); dChat.innerHTML = hasChat ? chatBubbles(chatMessages) : emptyChat(); }
+}
+
+// ── Variant switching ────────────────────────────────
+document.getElementById('variant-controls').addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  const v = btn.dataset.variant;
+
+  document.querySelectorAll('#variant-controls button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  document.querySelectorAll('.variant').forEach(el => el.classList.remove('active'));
+  document.getElementById('variant-' + v).classList.add('active');
+
+  document.getElementById('variant-label').textContent = variantMeta[v].label;
+  document.getElementById('variant-desc').textContent = variantMeta[v].desc;
+});
+
+// ── State switching ──────────────────────────────────
+document.getElementById('state-controls').addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  currentState = btn.dataset.state;
+  document.querySelectorAll('#state-controls button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+});
+
+// ── Init ─────────────────────────────────────────────
+document.getElementById('variant-label').textContent = variantMeta.a.label;
+document.getElementById('variant-desc').textContent = variantMeta.a.desc;
+render();
+</script>
+</body>
+</html>

@@ -35,6 +35,7 @@ export default function App() {
     window.flint?.hideOverlay()
   }
 
+  // Meeting detail view (full panel, replaces split)
   if (selectedMeeting) {
     return (
       <div className={styles.root} data-testid="app-root">
@@ -49,6 +50,7 @@ export default function App() {
     )
   }
 
+  // Default view: split layout
   return (
     <div className={styles.root} data-testid="app-root">
       <header className={styles.header}>
@@ -64,26 +66,32 @@ export default function App() {
         </button>
       </header>
 
-      {status === 'loading' && (
-        <div className={styles.statusMessage}>Checking your calendar...</div>
-      )}
+      <div className={styles.splitBody}>
+        {/* Left panel: meetings */}
+        <div className={styles.splitLeft}>
+          {status === 'loading' && (
+            <div className={styles.statusMessage}>Checking your calendar...</div>
+          )}
+          {status === 'error' && (
+            <div className={styles.statusMessage}>Couldn&apos;t reach your calendar. Retrying...</div>
+          )}
+          {status === 'ready' && (
+            <MeetingCards
+              meetings={meetings}
+              alertMinutes={config.alertMinutes}
+              onSelect={selectMeeting}
+              onJoin={handleJoin}
+            />
+          )}
+        </div>
 
-      {status === 'error' && (
-        <div className={styles.statusMessage}>Couldn&apos;t reach your calendar. Retrying...</div>
-      )}
+        {/* Right panel: chat */}
+        <div className={styles.splitRight}>
+          <ChatPanel messages={messages} streamingContent={streamingContent} isStreaming={isStreaming} />
+          <ChatInput onSend={sendMessage} disabled={isStreaming} />
+        </div>
+      </div>
 
-      {status === 'ready' && (
-        <MeetingCards
-          meetings={meetings}
-          alertMinutes={config.alertMinutes}
-          onSelect={selectMeeting}
-          onJoin={handleJoin}
-        />
-      )}
-
-      <div className={styles.divider} />
-      <ChatPanel messages={messages} streamingContent={streamingContent} isStreaming={isStreaming} />
-      <ChatInput onSend={sendMessage} disabled={isStreaming} />
       {showSettings && isLoaded && (
         <Settings config={config} onUpdate={updateConfig} onClose={() => setShowSettings(false)} />
       )}
