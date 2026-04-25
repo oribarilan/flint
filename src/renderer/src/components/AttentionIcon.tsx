@@ -1,4 +1,13 @@
-import { Calendar, MessageCircle, Mail, FileText, Circle } from "lucide-react";
+import {
+  Calendar,
+  MessageCircle,
+  Mail,
+  FileText,
+  ClipboardList,
+  AlertTriangle,
+  BarChart3,
+  Circle,
+} from "lucide-react";
 import type { LucideProps } from "lucide-react";
 import type { ComponentType } from "react";
 
@@ -7,6 +16,9 @@ const ICON_MAP: Record<string, ComponentType<LucideProps>> = {
   "message-circle": MessageCircle,
   mail: Mail,
   "file-text": FileText,
+  "clipboard-list": ClipboardList,
+  "alert-triangle": AlertTriangle,
+  "bar-chart-3": BarChart3,
 };
 
 interface AttentionIconProps {

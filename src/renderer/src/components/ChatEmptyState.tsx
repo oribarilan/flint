@@ -1,3 +1,4 @@
+import { AttentionIcon } from "./AttentionIcon";
 import styles from "./ChatEmptyState.module.css";
 
 interface Suggestion {
@@ -8,22 +9,22 @@ interface Suggestion {
 
 const SUGGESTIONS: Suggestion[] = [
   {
-    icon: "📅",
+    icon: "calendar",
     title: "What are my next meetings?",
     description: "See upcoming meetings, times, and attendees",
   },
   {
-    icon: "📋",
+    icon: "clipboard-list",
     title: "Prepare me for my next meeting",
     description: "Get agenda, attendee context, and talking points",
   },
   {
-    icon: "⚠️",
+    icon: "alert-triangle",
     title: "Any conflicts this week?",
     description: "Find overlapping or back-to-back meetings",
   },
   {
-    icon: "📊",
+    icon: "bar-chart-3",
     title: "Summarize today's schedule",
     description: "Quick overview of your day at a glance",
   },
@@ -57,7 +58,7 @@ export function ChatEmptyState({ onSend }: ChatEmptyStateProps) {
             onClick={() => onSend(suggestion.title)}
           >
             <span className={styles.cardIcon} aria-hidden="true">
-              {suggestion.icon}
+              <AttentionIcon name={suggestion.icon} size={16} />
             </span>
             <div className={styles.cardText}>
               <span className={styles.cardTitle}>{suggestion.title}</span>

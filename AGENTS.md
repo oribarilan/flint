@@ -235,6 +235,36 @@ Key rules:
 - `prefers-reduced-motion` must be respected.
 - Scrollable containers must set `overscroll-behavior: contain`.
 
+### Icon System
+
+**Lucide React** (`lucide-react`) is the only icon system. No emoji icons in UI components.
+
+**How it works:**
+- `AttentionIcon` (`src/renderer/src/components/AttentionIcon.tsx`) maps string names to Lucide components via `ICON_MAP`.
+- Dynamic icons (from AI/IPC data) go through `AttentionIcon` with a string name: `<AttentionIcon name="calendar" size={16} />`.
+- Static icons (known at compile time) may import Lucide components directly: `import { Zap } from "lucide-react"`.
+- Unknown icon names fall back to `Circle`.
+
+**Supported icon names** (extend `ICON_MAP` when adding new ones):
+
+| Name | Lucide Component | Usage |
+|------|-----------------|-------|
+| `calendar` | `Calendar` | Meetings, events |
+| `message-circle` | `MessageCircle` | Chat, Teams messages |
+| `mail` | `Mail` | Emails |
+| `file-text` | `FileText` | Documents |
+| `clipboard-list` | `ClipboardList` | Agendas, preparation |
+| `alert-triangle` | `AlertTriangle` | Warnings, conflicts |
+| `bar-chart-3` | `BarChart3` | Summaries, analytics |
+
+**Icon sizing tokens:** `--icon-sm` (16px), `--icon-md` (18px), `--icon-lg` (24px), `--icon-container` (30px).
+
+**Rules:**
+- Always use `size` prop on Lucide components — never CSS `font-size`.
+- Icon containers use `--icon-container` (30px) with `--radius-md` corners and `--bg-secondary` fill.
+- Selected icon containers fill with `--accent` and icon color inverts to `--text-on-accent`.
+- Decorative icons get `aria-hidden="true"`. Functional icons need accessible labels.
+
 ## Testing
 
 - **Unit (Vitest):** `src/main/__tests__/` and `src/renderer/src/**/__tests__/`. Mock Electron APIs and CopilotClient. Run via `just test`.
