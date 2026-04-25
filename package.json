@@ -24,6 +24,7 @@
   "dependencies": {
     "@github/copilot-sdk": "^0.2.2",
     "electron-store": "^11.0.2",
+    "lucide-react": "^1.11.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "zustand": "^5"
