@@ -10,9 +10,11 @@ import { createCopilotManager, type CopilotManager } from './copilot/client'
 import { createSessionManager, type SessionManager } from './copilot/sessions'
 import { getChatTools } from './copilot/tools'
 import { filterModels, handleSetModel } from './ipc/model-handlers'
+import { createPulseScheduler, type PulseScheduler } from './pulse/scheduler'
 
 let copilotManager: CopilotManager | null = null
 let sessionManager: SessionManager | null = null
+let pulseScheduler: PulseScheduler | null = null
 
 /** Resolve the Copilot CLI binary path using env → PATH → macOS fallback. */
 function resolveCopilotCliPath(): string | undefined {
@@ -167,11 +169,35 @@ app.whenReady().then(async () => {
     }
   })
 
+  // ── Pulse scheduler ──
+  pulseScheduler = createPulseScheduler({
+    sessionManager,
+    copilotManager,
+    attentionStore: getAttentionStore(),
+    getConfig: () => configStore.getAll(),
+    onOverlayFocus: (cb) => {
+      const win = getOverlayWindow()
+      if (win) win.on('focus', cb)
+    },
+    onOverlayBlur: (cb) => {
+      const win = getOverlayWindow()
+      if (win) win.on('blur', cb)
+    },
+  })
+
+  const pollConfig = configStore.getAll()
+  if (pollConfig.pollEnabled) {
+    pulseScheduler.start()
+  }
+
   console.log('[main] Ready — chat wired with CopilotManager + SessionManager')
 })
 
 app.on('will-quit', async () => {
   unregisterAllHotkeys()
+  if (pulseScheduler) {
+    pulseScheduler.stop()
+  }
   if (copilotManager) {
     await copilotManager.stop()
   }
