@@ -25,14 +25,15 @@ const mockInvocation = {
 } as any
 
 describe('Copilot Tools', () => {
-  it('creates 5 tools total', () => {
+  it('creates 6 tools total', () => {
     const tools = createAllTools({
       onMeetings: vi.fn(),
       onShowOverlay: vi.fn(),
       onAttentionUpdate: vi.fn(),
     })
-    expect(tools).toHaveLength(5)
+    expect(tools).toHaveLength(6)
     expect(tools.map((t) => t.name)).toEqual([
+      'ask_work_iq',
       'report_meetings',
       'show_notification',
       'join_meeting',
@@ -82,7 +83,7 @@ describe('Copilot Tools', () => {
 
   it('getChatTools returns everything except report_meetings', () => {
     const tools = getChatTools({ onShowOverlay: vi.fn(), onAttentionUpdate: vi.fn() })
-    expect(tools).toHaveLength(4)
+    expect(tools).toHaveLength(5)
     expect(tools.map((t) => t.name)).not.toContain('report_meetings')
   })
 })
