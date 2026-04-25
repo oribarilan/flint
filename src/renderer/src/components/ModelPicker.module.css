@@ -1,0 +1,22 @@
+/* ── Model Picker (model-specific styles only) ─────────────── */
+
+.modelPickerPopover {
+  bottom: 100%;
+  left: var(--space-sm);
+  margin-bottom: var(--space-xs);
+  min-width: 180px;
+}
+
+.loading {
+  padding: var(--space-md);
+  color: var(--text-secondary);
+  font-size: var(--font-sm);
+  text-align: center;
+}
+
+.error {
+  padding: var(--space-md);
+  color: var(--color-error);
+  font-size: var(--font-sm);
+  text-align: center;
+}

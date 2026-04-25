@@ -14,6 +14,7 @@ export interface FlintConfig {
   alertMinutes: number;
   launchAtLogin: boolean;
   showTrayIcon: boolean;
+  model: string;
 }
 
 export const DEFAULT_CONFIG: FlintConfig = {
@@ -21,6 +22,7 @@ export const DEFAULT_CONFIG: FlintConfig = {
   alertMinutes: 5,
   launchAtLogin: true,
   showTrayIcon: true,
+  model: "gpt-4.1",
 };
 
 export interface AttentionItem {
@@ -34,6 +36,11 @@ export interface AttentionItem {
     url: string;
   };
   metadata: Record<string, string>; // Context injected into chat on selection
+}
+
+export interface ModelInfo {
+  id: string;
+  name: string;
 }
 
 export type ConnectionStatus = "connected" | "reconnecting" | "disconnected";

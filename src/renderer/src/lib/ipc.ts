@@ -1,4 +1,4 @@
-import type { FlintConfig, ConnectionStatus, AttentionItem } from '../../../main/types'
+import type { FlintConfig, ConnectionStatus, AttentionItem, ModelInfo } from '../../../main/types'
 
 interface FlintAPI {
   platform: string
@@ -12,6 +12,9 @@ interface FlintAPI {
   getAttentionItems: () => Promise<AttentionItem[]>
   onAttentionUpdate: (callback: (items: AttentionItem[]) => void) => () => void
   openAttentionItem: (id: string) => void
+  listModels: () => Promise<ModelInfo[]>
+  setModel: (id: string) => void
+  onModelChanged: (callback: (modelId: string) => void) => () => void
 }
 
 declare global {

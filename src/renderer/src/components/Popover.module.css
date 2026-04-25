@@ -1,0 +1,10 @@
+/* ── Generic Popover Container ─────────────────────────────── */
+
+.popover {
+  position: absolute;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 100;
+}

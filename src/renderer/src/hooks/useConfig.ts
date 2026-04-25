@@ -5,6 +5,7 @@ export interface FlintConfig {
   alertMinutes: number
   launchAtLogin: boolean
   showTrayIcon: boolean
+  model: string
 }
 
 const DEFAULT_CONFIG: FlintConfig = {
@@ -12,6 +13,7 @@ const DEFAULT_CONFIG: FlintConfig = {
   alertMinutes: 5,
   launchAtLogin: true,
   showTrayIcon: true,
+  model: 'gpt-4.1',
 }
 
 export function useConfig() {

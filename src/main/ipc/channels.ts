@@ -4,6 +4,8 @@ export const IPC_CHANNELS = {
   CONFIG_GET: 'config:get',
   CONFIG_SET: 'config:set',
   OVERLAY_HIDE: 'overlay:hide',
+  MODEL_LIST: 'model:list',
+  MODEL_SET: 'model:set',
 
   ATTENTION_GET: 'attention:get',
   ATTENTION_OPEN: 'attention:open',
@@ -13,4 +15,5 @@ export const IPC_CHANNELS = {
   CHAT_DONE: 'chat:done',
   ATTENTION_UPDATE: 'attention:update',
   CONNECTION_STATUS: 'connection:status',
+  MODEL_CHANGED: 'model:changed',
 } as const

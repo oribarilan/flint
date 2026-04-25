@@ -9,6 +9,7 @@ import { registerIpcHandlers, getConfigStore, getAttentionStore } from "./ipc/ha
 import { IPC_CHANNELS } from "./ipc/channels";
 
 import { getChatTools } from "./copilot/tools";
+import { filterModels, handleSetModel } from "./ipc/model-handlers";
 
 let client: CopilotClient | null = null;
 let chatSession: CopilotSession | null = null;
@@ -30,6 +31,36 @@ app.whenReady().then(async () => {
   // Use system-installed CLI (has plugins + auth), not the bundled one
   client = new CopilotClient({ cliPath: "/opt/homebrew/bin/copilot" });
   console.log("[main] CopilotClient created (using system CLI)");
+
+  // Register model IPC handlers (need access to client/chatSession)
+  ipcMain.handle(IPC_CHANNELS.MODEL_LIST, async () => {
+    if (!client) return [];
+    try {
+      const models = await client.listModels();
+      return filterModels(models);
+    } catch (err) {
+      console.error("[main] model:list error:", err);
+      return [];
+    }
+  });
+
+  ipcMain.on(IPC_CHANNELS.MODEL_SET, async (_event, modelId: string) => {
+    try {
+      await handleSetModel(modelId, {
+        session: chatSession,
+        configStore: getConfigStore(),
+        sendToRenderer: (id) => {
+          const overlay = getOverlayWindow();
+          if (overlay && !overlay.isDestroyed()) {
+            overlay.webContents.send(IPC_CHANNELS.MODEL_CHANGED, id);
+          }
+        },
+      });
+    } catch (err) {
+      console.error("[main] model:set error:", err);
+      // On failure: don't update config or notify renderer
+    }
+  });
 
   // Wire chat:send — create session lazily on first message
   ipcMain.removeAllListeners(IPC_CHANNELS.CHAT_SEND);
@@ -56,7 +87,7 @@ app.whenReady().then(async () => {
           },
         });
         chatSession = await client!.createSession({
-          model: "gpt-4.1",
+          model: getConfigStore().getAll().model,
           onPermissionRequest: approveAll,
           streaming: true,
           systemMessage: {
