@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Settings as SettingsIcon, Cpu, ChevronUp } from "lucide-react";
 import { useAttention } from "./hooks/useAttention";
 import { useChat } from "./hooks/useChat";
@@ -19,6 +19,7 @@ export default function App() {
   const setCurrentModel = useModelStore((s) => s.setCurrentModel);
   const [showSettings, setShowSettings] = useState(false);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const modelButtonRef = useRef<HTMLButtonElement>(null);
 
   const toggleSettings = useCallback(() => {
     setShowSettings((prev) => !prev);
@@ -27,6 +28,8 @@ export default function App() {
   const togglePicker = useCallback(() => {
     setIsPickerOpen((prev) => !prev);
   }, []);
+
+  const closePicker = useCallback(() => setIsPickerOpen(false), []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
@@ -105,10 +108,12 @@ export default function App() {
 
       <footer className={styles.bottomBar}>
         <button
+          ref={modelButtonRef}
           className={styles.modelIndicator}
           onClick={togglePicker}
           aria-label={`Current model: ${currentModel}`}
           aria-expanded={isPickerOpen}
+          aria-haspopup="listbox"
           type="button"
         >
           <Cpu size={16} aria-hidden="true" />
@@ -127,7 +132,7 @@ export default function App() {
         >
           <SettingsIcon size={16} />
         </button>
-        {isPickerOpen && <ModelPicker onClose={() => setIsPickerOpen(false)} />}
+        {isPickerOpen && <ModelPicker onClose={closePicker} triggerRef={modelButtonRef} />}
       </footer>
 
       {showSettings && isLoaded && (

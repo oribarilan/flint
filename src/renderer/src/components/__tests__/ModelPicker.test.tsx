@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, it, expect, vi, beforeEach } from "vitest";
 import { cleanup, render, screen, fireEvent, act } from "@testing-library/react";
+import { createRef } from "react";
 import { useModelStore } from "../../stores/modelStore";
 
 // Mock window.flint
@@ -24,6 +25,10 @@ Object.defineProperty(window, "flint", {
 
 import { ModelPicker } from "../ModelPicker";
 
+function makeTriggerRef() {
+  return createRef<HTMLButtonElement>();
+}
+
 beforeEach(() => {
   useModelStore.setState({
     currentModel: "gpt-4.1",
@@ -39,7 +44,7 @@ afterEach(() => {
 describe("ModelPicker", () => {
   it("fetches and renders model list", async () => {
     const onClose = vi.fn();
-    render(<ModelPicker onClose={onClose} />);
+    render(<ModelPicker onClose={onClose} triggerRef={makeTriggerRef()} />);
 
     // Should show loading initially
     expect(screen.getByText("Loading models…")).toBeTruthy();
@@ -67,7 +72,7 @@ describe("ModelPicker", () => {
     });
 
     const onClose = vi.fn();
-    render(<ModelPicker onClose={onClose} />);
+    render(<ModelPicker onClose={onClose} triggerRef={makeTriggerRef()} />);
 
     // Should NOT call listModels since models are cached
     expect(mockListModels).not.toHaveBeenCalled();
@@ -85,7 +90,7 @@ describe("ModelPicker", () => {
     });
 
     const onClose = vi.fn();
-    render(<ModelPicker onClose={onClose} />);
+    render(<ModelPicker onClose={onClose} triggerRef={makeTriggerRef()} />);
 
     const options = screen.getAllByRole("option");
     expect(options[0].getAttribute("aria-selected")).toBe("true");
@@ -110,14 +115,10 @@ describe("ModelPicker", () => {
     });
 
     const onClose = vi.fn();
-    render(<ModelPicker onClose={onClose} />);
-
-    // Initial focus index should be on current model (index 0)
-    const options = screen.getAllByRole("option");
+    render(<ModelPicker onClose={onClose} triggerRef={makeTriggerRef()} />);
 
     // Arrow down moves to index 1
     fireEvent.keyDown(document, { key: "ArrowDown" });
-    // The focused class should be on the second option
     // We verify by pressing Enter and checking which model is selected
     fireEvent.keyDown(document, { key: "Enter" });
 
@@ -134,7 +135,7 @@ describe("ModelPicker", () => {
     });
 
     const onClose = vi.fn();
-    render(<ModelPicker onClose={onClose} />);
+    render(<ModelPicker onClose={onClose} triggerRef={makeTriggerRef()} />);
 
     // Focus starts on index 0, arrow up should stay on 0
     fireEvent.keyDown(document, { key: "ArrowUp" });
@@ -153,7 +154,7 @@ describe("ModelPicker", () => {
     });
 
     const onClose = vi.fn();
-    render(<ModelPicker onClose={onClose} />);
+    render(<ModelPicker onClose={onClose} triggerRef={makeTriggerRef()} />);
 
     // Arrow down twice from index 0 — should stop at index 1
     fireEvent.keyDown(document, { key: "ArrowDown" });
@@ -173,7 +174,7 @@ describe("ModelPicker", () => {
     });
 
     const onClose = vi.fn();
-    render(<ModelPicker onClose={onClose} />);
+    render(<ModelPicker onClose={onClose} triggerRef={makeTriggerRef()} />);
 
     // Move to second option and select
     fireEvent.keyDown(document, { key: "ArrowDown" });
@@ -193,7 +194,7 @@ describe("ModelPicker", () => {
     });
 
     const onClose = vi.fn();
-    render(<ModelPicker onClose={onClose} />);
+    render(<ModelPicker onClose={onClose} triggerRef={makeTriggerRef()} />);
 
     fireEvent.click(screen.getByText("Claude Sonnet 4"));
 
@@ -211,16 +212,40 @@ describe("ModelPicker", () => {
     });
 
     const onClose = vi.fn();
-    render(<ModelPicker onClose={onClose} />);
+    render(<ModelPicker onClose={onClose} triggerRef={makeTriggerRef()} />);
 
     const listbox = screen.getByRole("listbox");
     expect(listbox).toBeTruthy();
     expect(listbox.getAttribute("aria-label")).toBe("Select model");
+    expect(listbox.getAttribute("tabindex")).toBe("0");
+    // Initial focus is on current model (gpt-4.1)
+    expect(listbox.getAttribute("aria-activedescendant")).toBe("model-option-gpt-4.1");
 
     const options = screen.getAllByRole("option");
     expect(options).toHaveLength(2);
     expect(options[0].getAttribute("aria-selected")).toBe("true");
+    expect(options[0].getAttribute("id")).toBe("model-option-gpt-4.1");
     expect(options[1].getAttribute("aria-selected")).toBe("false");
+    expect(options[1].getAttribute("id")).toBe("model-option-claude-sonnet-4");
+  });
+
+  it("updates aria-activedescendant on arrow navigation", () => {
+    useModelStore.setState({
+      currentModel: "gpt-4.1",
+      models: [
+        { id: "gpt-4.1", name: "GPT 4.1" },
+        { id: "claude-sonnet-4", name: "Claude Sonnet 4" },
+      ],
+    });
+
+    const onClose = vi.fn();
+    render(<ModelPicker onClose={onClose} triggerRef={makeTriggerRef()} />);
+
+    const listbox = screen.getByRole("listbox");
+    expect(listbox.getAttribute("aria-activedescendant")).toBe("model-option-gpt-4.1");
+
+    fireEvent.keyDown(document, { key: "ArrowDown" });
+    expect(listbox.getAttribute("aria-activedescendant")).toBe("model-option-claude-sonnet-4");
   });
 
   it("traps Tab key inside popover", () => {
@@ -230,7 +255,7 @@ describe("ModelPicker", () => {
     });
 
     const onClose = vi.fn();
-    render(<ModelPicker onClose={onClose} />);
+    render(<ModelPicker onClose={onClose} triggerRef={makeTriggerRef()} />);
 
     const event = new KeyboardEvent("keydown", {
       key: "Tab",
@@ -240,5 +265,27 @@ describe("ModelPicker", () => {
     const prevented = !document.dispatchEvent(event);
     // Tab should be prevented (default prevented)
     expect(prevented).toBe(true);
+  });
+
+  it("shows error message when listModels rejects", async () => {
+    mockListModels.mockRejectedValueOnce(new Error("Network error"));
+
+    const onClose = vi.fn();
+    render(<ModelPicker onClose={onClose} triggerRef={makeTriggerRef()} />);
+
+    // Should show loading initially
+    expect(screen.getByText("Loading models…")).toBeTruthy();
+
+    // Wait for the rejection to be handled
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    // Should show error message
+    expect(screen.getByRole("alert")).toBeTruthy();
+    expect(screen.getByText("Couldn't load models")).toBeTruthy();
+
+    // Should not show loading anymore
+    expect(screen.queryByText("Loading models…")).toBeNull();
   });
 });

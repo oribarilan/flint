@@ -60,3 +60,10 @@
   font-size: var(--font-sm);
   text-align: center;
 }
+
+.error {
+  padding: var(--space-md);
+  color: var(--color-error);
+  font-size: var(--font-sm);
+  text-align: center;
+}

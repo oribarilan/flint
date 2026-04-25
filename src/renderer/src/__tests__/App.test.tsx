@@ -187,6 +187,7 @@ describe("Model indicator", () => {
     expect(indicator.tagName).toBe("BUTTON");
     expect(indicator.textContent).toContain("gpt-4.1");
     expect(indicator.getAttribute("aria-expanded")).toBe("false");
+    expect(indicator.getAttribute("aria-haspopup")).toBe("listbox");
   });
 
   it("toggles picker open on click", async () => {
