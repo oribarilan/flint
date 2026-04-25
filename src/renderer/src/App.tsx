@@ -14,6 +14,7 @@ export default function App() {
   const { messages, streamingContent, isStreaming, sendMessage } = useChat();
   const { config, isLoaded, updateConfig } = useConfig();
   const [showSettings, setShowSettings] = useState(false);
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
 
   const toggleSettings = useCallback(() => {
     setShowSettings((prev) => !prev);
@@ -24,11 +25,23 @@ export default function App() {
       if ((e.metaKey || e.ctrlKey) && e.key === ",") {
         e.preventDefault();
         toggleSettings();
+        return;
+      }
+
+      if (e.key === "Escape") {
+        e.preventDefault();
+        if (isPickerOpen) {
+          setIsPickerOpen(false);
+        } else if (showSettings) {
+          setShowSettings(false);
+        } else {
+          window.flint?.hideOverlay();
+        }
       }
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [toggleSettings]);
+  }, [toggleSettings, isPickerOpen, showSettings]);
 
   const handleOpen = (id: string): void => {
     window.flint?.openAttentionItem(id);

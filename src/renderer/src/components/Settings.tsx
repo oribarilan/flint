@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect } from 'react'
+import { useRef, useCallback } from 'react'
 import type { FlintConfig } from '../hooks/useConfig'
 import styles from './Settings.module.css'
 
@@ -17,14 +17,6 @@ export function Settings({ config, onUpdate, onClose }: SettingsProps) {
     },
     [onClose]
   )
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [onClose])
 
   const handleAlertChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const value = Math.max(1, Math.min(60, Number(e.target.value) || 1))
