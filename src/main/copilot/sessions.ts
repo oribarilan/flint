@@ -1,6 +1,10 @@
 import { approveAll, type CopilotSession, type Tool } from '@github/copilot-sdk'
 import type { CopilotClient } from '@github/copilot-sdk'
 import { CHAT_SYSTEM_PROMPT } from './system-prompt'
+import { buildMonitorPrompt, MONITOR_SYSTEM_PROMPT } from '../pulse/prompts'
+import type { MonitorPollContext } from '../pulse/prompts'
+
+export type { MonitorPollContext }
 
 const CHAT_TIMEOUT_MS = 60_000 // 60s timeout for chat
 const MONITOR_TIMEOUT_MS = 90_000 // 90s timeout for monitor (MCP startup can be slow)
@@ -8,6 +12,7 @@ const MONITOR_TIMEOUT_MS = 90_000 // 90s timeout for monitor (MCP startup can be
 interface SessionManagerConfig {
   client: CopilotClient
   getModel: () => string
+  getPollModel: () => string
   monitorTools?: Tool[]
   chatTools?: Tool[]
   onChatDelta: (delta: string) => void
@@ -17,7 +22,7 @@ interface SessionManagerConfig {
 
 export interface SessionManager {
   sendChatMessage(prompt: string): Promise<void>
-  sendMonitorPoll(): Promise<void>
+  sendMonitorPoll(context: MonitorPollContext): Promise<void>
   resetChat(): Promise<void>
   getChatSession(): CopilotSession | null
 }
@@ -68,12 +73,15 @@ export function createSessionManager(config: SessionManagerConfig): SessionManag
   async function getMonitorSession(): Promise<CopilotSession> {
     if (monitorSession) return monitorSession
 
-    const model = config.getModel()
+    const model = config.getPollModel()
     console.log('[sessions] Creating monitor session with model:', model)
     monitorSession = await config.client.createSession({
       sessionId: 'flint-monitor',
       model,
       onPermissionRequest: approveAll,
+      systemMessage: {
+        content: MONITOR_SYSTEM_PROMPT,
+      },
       tools: config.monitorTools,
     })
     console.log('[sessions] Monitor session created:', monitorSession.sessionId)
@@ -98,13 +106,12 @@ export function createSessionManager(config: SessionManagerConfig): SessionManag
       }
     },
 
-    async sendMonitorPoll(): Promise<void> {
+    async sendMonitorPoll(context: MonitorPollContext): Promise<void> {
       try {
         const session = await getMonitorSession()
+        const prompt = buildMonitorPrompt(context)
         console.log('[monitor] Polling...')
-        await session.sendAndWait({
-          prompt: 'Check for upcoming meetings and report them using the report_meetings tool.',
-        }, MONITOR_TIMEOUT_MS)
+        await session.sendAndWait({ prompt }, MONITOR_TIMEOUT_MS)
         console.log('[monitor] Poll complete')
       } catch (err) {
         console.error('[monitor] Poll error:', err instanceof Error ? err.message : err)

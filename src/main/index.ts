@@ -103,6 +103,7 @@ app.whenReady().then(async () => {
   sessionManager = createSessionManager({
     client,
     getModel: () => configStore.getAll().model,
+    getPollModel: () => configStore.getAll().pollModel,
     chatTools,
     onChatDelta: (delta) => {
       const overlay = getOverlayWindow()

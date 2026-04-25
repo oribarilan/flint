@@ -26,6 +26,13 @@ vi.mock('../copilot/system-prompt', () => ({
   CHAT_SYSTEM_PROMPT: 'You are Flint, a test assistant.',
 }))
 
+vi.mock('../pulse/prompts', () => ({
+  buildMonitorPrompt: vi.fn((ctx: { lastPollTime?: string }) =>
+    ctx.lastPollTime ? `Last check: ${ctx.lastPollTime}` : 'Check my calendar',
+  ),
+  MONITOR_SYSTEM_PROMPT: 'You are the background monitor.',
+}))
+
 import { createSessionManager } from '../copilot/sessions'
 
 function createMockClient(): CopilotClient {
@@ -34,6 +41,15 @@ function createMockClient(): CopilotClient {
     start: vi.fn(),
     stop: vi.fn(),
   } as unknown as CopilotClient
+}
+
+function defaultConfig() {
+  return {
+    getModel: () => 'gpt-4.1',
+    getPollModel: () => 'gpt-4.1-mini',
+    onChatDelta: vi.fn(),
+    onChatDone: vi.fn(),
+  }
 }
 
 describe('SessionManager', () => {
@@ -49,7 +65,7 @@ describe('SessionManager', () => {
 
     const manager = createSessionManager({
       client,
-      getModel: () => 'gpt-4.1',
+      ...defaultConfig(),
       onChatDelta,
       onChatDone,
     })
@@ -78,9 +94,8 @@ describe('SessionManager', () => {
 
     const manager = createSessionManager({
       client,
+      ...defaultConfig(),
       getModel: () => currentModel,
-      onChatDelta: vi.fn(),
-      onChatDone: vi.fn(),
     })
 
     await manager.sendChatMessage('first')
@@ -111,9 +126,7 @@ describe('SessionManager', () => {
     const client = createMockClient()
     const manager = createSessionManager({
       client,
-      getModel: () => 'gpt-4.1',
-      onChatDelta: vi.fn(),
-      onChatDone: vi.fn(),
+      ...defaultConfig(),
     })
 
     await manager.sendChatMessage('first')
@@ -129,9 +142,8 @@ describe('SessionManager', () => {
 
     const manager = createSessionManager({
       client,
-      getModel: () => 'gpt-4.1',
+      ...defaultConfig(),
       onChatDelta,
-      onChatDone: vi.fn(),
     })
 
     await manager.sendChatMessage('test')
@@ -143,9 +155,7 @@ describe('SessionManager', () => {
     const client = createMockClient()
     const manager = createSessionManager({
       client,
-      getModel: () => 'gpt-4.1',
-      onChatDelta: vi.fn(),
-      onChatDone: vi.fn(),
+      ...defaultConfig(),
     })
 
     await manager.sendChatMessage('hello')
@@ -160,9 +170,7 @@ describe('SessionManager', () => {
     const client = createMockClient()
     const manager = createSessionManager({
       client,
-      getModel: () => 'gpt-4.1',
-      onChatDelta: vi.fn(),
-      onChatDone: vi.fn(),
+      ...defaultConfig(),
     })
 
     await expect(manager.resetChat()).resolves.toBeUndefined()
@@ -172,9 +180,7 @@ describe('SessionManager', () => {
     const client = createMockClient()
     const manager = createSessionManager({
       client,
-      getModel: () => 'gpt-4.1',
-      onChatDelta: vi.fn(),
-      onChatDone: vi.fn(),
+      ...defaultConfig(),
     })
 
     await manager.sendChatMessage('first')
@@ -192,9 +198,7 @@ describe('SessionManager', () => {
 
     const manager = createSessionManager({
       client,
-      getModel: () => 'gpt-4.1',
-      onChatDelta: vi.fn(),
-      onChatDone: vi.fn(),
+      ...defaultConfig(),
       onChatError,
     })
 
@@ -209,9 +213,7 @@ describe('SessionManager', () => {
 
     const manager = createSessionManager({
       client,
-      getModel: () => 'gpt-4.1',
-      onChatDelta: vi.fn(),
-      onChatDone: vi.fn(),
+      ...defaultConfig(),
       onChatError,
     })
 
@@ -219,25 +221,55 @@ describe('SessionManager', () => {
     expect(onChatError).toHaveBeenCalledWith('Response timed out. Try again.')
   })
 
-  it('sends monitor poll and creates monitor session', async () => {
+  it('sends monitor poll with bootstrap prompt', async () => {
     const client = createMockClient()
     const manager = createSessionManager({
       client,
-      getModel: () => 'gpt-4.1',
-      onChatDelta: vi.fn(),
-      onChatDone: vi.fn(),
+      ...defaultConfig(),
     })
 
-    await manager.sendMonitorPoll()
+    await manager.sendMonitorPoll({ currentItems: [] })
 
     expect(mockCreateSession).toHaveBeenCalledWith(
       expect.objectContaining({
         sessionId: 'flint-monitor',
+        model: 'gpt-4.1-mini',
+        systemMessage: {
+          content: 'You are the background monitor.',
+        },
       }),
     )
     expect(mockSendAndWait).toHaveBeenCalledWith(
       expect.objectContaining({
-        prompt: expect.stringContaining('report_meetings'),
+        prompt: 'Check my calendar',
+      }),
+      expect.any(Number),
+    )
+  })
+
+  it('sends monitor poll with delta prompt when lastPollTime is provided', async () => {
+    const client = createMockClient()
+    const manager = createSessionManager({
+      client,
+      ...defaultConfig(),
+    })
+
+    await manager.sendMonitorPoll({
+      lastPollTime: '2026-04-25T10:00:00Z',
+      currentItems: [
+        {
+          id: 'mtg-1',
+          icon: 'calendar',
+          title: 'Standup',
+          description: 'Daily standup',
+          metadata: {},
+        },
+      ],
+    })
+
+    expect(mockSendAndWait).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: 'Last check: 2026-04-25T10:00:00Z',
       }),
       expect.any(Number),
     )
@@ -247,20 +279,37 @@ describe('SessionManager', () => {
     const client = createMockClient()
     const manager = createSessionManager({
       client,
-      getModel: () => 'gpt-4.1',
-      onChatDelta: vi.fn(),
-      onChatDone: vi.fn(),
+      ...defaultConfig(),
     })
-    await expect(manager.sendMonitorPoll()).resolves.toBeUndefined()
+    await expect(
+      manager.sendMonitorPoll({ currentItems: [] }),
+    ).resolves.toBeUndefined()
+  })
+
+  it('monitor session uses getPollModel not getModel', async () => {
+    const client = createMockClient()
+    const manager = createSessionManager({
+      client,
+      ...defaultConfig(),
+      getModel: () => 'gpt-4.1',
+      getPollModel: () => 'claude-sonnet-4',
+    })
+
+    await manager.sendMonitorPoll({ currentItems: [] })
+
+    expect(mockCreateSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: 'flint-monitor',
+        model: 'claude-sonnet-4',
+      }),
+    )
   })
 
   it('getChatSession returns null before first message', () => {
     const client = createMockClient()
     const manager = createSessionManager({
       client,
-      getModel: () => 'gpt-4.1',
-      onChatDelta: vi.fn(),
-      onChatDone: vi.fn(),
+      ...defaultConfig(),
     })
     expect(manager.getChatSession()).toBeNull()
   })
