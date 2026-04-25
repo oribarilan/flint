@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, type RefObject } from "react";
 import type { AttentionItem } from "../../../main/types";
-import { SUGGESTIONS } from "../components/ChatEmptyState";
+import type { Suggestion } from "../utils/suggestions";
 
 export type FocusedPanel = "attention" | "suggestions" | null;
 
 interface UseKeyboardNavOptions {
   items: AttentionItem[];
+  suggestions: Suggestion[];
   hasMessages: boolean;
   isStreaming: boolean;
   chatPanelRef: RefObject<HTMLDivElement | null>;
@@ -23,6 +24,7 @@ interface UseKeyboardNavResult {
 
 export function useKeyboardNav({
   items,
+  suggestions,
   hasMessages,
   isStreaming,
   chatPanelRef,
@@ -115,7 +117,7 @@ export function useKeyboardNav({
           }
 
           const maxIndex =
-            panel === "attention" ? items.length - 1 : SUGGESTIONS.length - 1;
+            panel === "attention" ? items.length - 1 : suggestions.length - 1;
 
           if (e.key === "j") {
             setFocusedIndex((prev) => Math.min(prev + 1, maxIndex));
@@ -184,9 +186,9 @@ export function useKeyboardNav({
           } else {
             onOpen(items[focusedIndex].id);
           }
-        } else if (focusedPanel === "suggestions" && focusedIndex < SUGGESTIONS.length) {
+        } else if (focusedPanel === "suggestions" && focusedIndex < suggestions.length) {
           if (e.key === "Enter") {
-            sendMessage(SUGGESTIONS[focusedIndex].title);
+            sendMessage(suggestions[focusedIndex].title);
           }
         }
       }
@@ -198,6 +200,7 @@ export function useKeyboardNav({
     focusedPanel,
     focusedIndex,
     items,
+    suggestions,
     hasMessages,
     isStreaming,
     chatPanelRef,

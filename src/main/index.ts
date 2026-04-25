@@ -1,159 +1,208 @@
-import { app, ipcMain } from "electron";
-import { electronApp, optimizer } from "@electron-toolkit/utils";
-import { CopilotClient, approveAll } from "@github/copilot-sdk";
-import type { CopilotSession } from "@github/copilot-sdk";
-import { createOverlayWindow, getOverlayWindow } from "./window/overlay";
-import { createTray } from "./window/tray";
-import { registerHotkey, unregisterAllHotkeys } from "./window/hotkey";
-import { registerIpcHandlers, getConfigStore, getAttentionStore } from "./ipc/handlers";
-import { IPC_CHANNELS } from "./ipc/channels";
+import { execSync } from 'child_process'
+import { app, ipcMain } from 'electron'
+import { electronApp, optimizer } from '@electron-toolkit/utils'
+import { createOverlayWindow, getOverlayWindow } from './window/overlay'
+import { createTray } from './window/tray'
+import { registerHotkey, unregisterAllHotkeys } from './window/hotkey'
+import { registerIpcHandlers, getConfigStore, getAttentionStore } from './ipc/handlers'
+import { IPC_CHANNELS } from './ipc/channels'
+import { createCopilotManager, type CopilotManager } from './copilot/client'
+import { createSessionManager, type SessionManager } from './copilot/sessions'
+import { getChatTools } from './copilot/tools'
+import { filterModels, handleSetModel } from './ipc/model-handlers'
+import { createPulseScheduler, type PulseScheduler } from './pulse/scheduler'
 
-import { getChatTools } from "./copilot/tools";
-import { CHAT_SYSTEM_PROMPT } from "./copilot/system-prompt";
-import { filterModels, handleSetModel } from "./ipc/model-handlers";
+let copilotManager: CopilotManager | null = null
+let sessionManager: SessionManager | null = null
+let pulseScheduler: PulseScheduler | null = null
 
-let client: CopilotClient | null = null;
-let chatSession: CopilotSession | null = null;
+/** Resolve the Copilot CLI binary path using env → PATH → macOS fallback. */
+function resolveCopilotCliPath(): string | undefined {
+  // 1. Explicit env var
+  if (process.env.COPILOT_CLI_PATH) {
+    console.log('[main] Using COPILOT_CLI_PATH:', process.env.COPILOT_CLI_PATH)
+    return process.env.COPILOT_CLI_PATH
+  }
+
+  // 2. PATH lookup via `which`
+  try {
+    const resolved = execSync('which copilot', { encoding: 'utf-8' }).trim()
+    if (resolved) {
+      console.log('[main] Found copilot in PATH:', resolved)
+      return resolved
+    }
+  } catch {
+    // `which` failed — not in PATH
+  }
+
+  // 3. macOS Homebrew fallback
+  if (process.platform === 'darwin') {
+    console.log('[main] Using macOS fallback: /opt/homebrew/bin/copilot')
+    return '/opt/homebrew/bin/copilot'
+  }
+
+  // Let the SDK handle resolution
+  return undefined
+}
 
 app.whenReady().then(async () => {
-  electronApp.setAppUserModelId("sh.oribi.flint");
+  electronApp.setAppUserModelId('sh.oribi.flint')
 
-  app.on("browser-window-created", (_, window) => {
-    optimizer.watchWindowShortcuts(window);
-  });
+  app.on('browser-window-created', (_, window) => {
+    optimizer.watchWindowShortcuts(window)
+  })
 
-  registerIpcHandlers();
+  registerIpcHandlers()
 
-  const config = getConfigStore().getAll();
-  createOverlayWindow();
-  createTray();
-  registerHotkey(config.hotkey);
+  const configStore = getConfigStore()
+  const config = configStore.getAll()
+  createOverlayWindow()
+  createTray()
+  registerHotkey(config.hotkey)
 
-  // Use system-installed CLI (has plugins + auth), not the bundled one
-  client = new CopilotClient({ cliPath: "/opt/homebrew/bin/copilot" });
-  console.log("[main] CopilotClient created (using system CLI)");
+  // ── Copilot lifecycle ──
+  const cliPath = resolveCopilotCliPath()
+  copilotManager = createCopilotManager(cliPath)
 
-  // Register model IPC handlers (need access to client/chatSession)
-  ipcMain.handle(IPC_CHANNELS.MODEL_LIST, async () => {
-    if (!client) return [];
-    try {
-      const models = await client.listModels();
-      return filterModels(models);
-    } catch (err) {
-      console.error("[main] model:list error:", err);
-      return [];
+  // Wire connection:status IPC
+  copilotManager.onStatusChange((status) => {
+    const overlay = getOverlayWindow()
+    if (overlay && !overlay.isDestroyed()) {
+      overlay.webContents.send(IPC_CHANNELS.CONNECTION_STATUS, status)
     }
-  });
+  })
+
+  try {
+    await copilotManager.start()
+  } catch (err) {
+    console.error('[main] CopilotManager failed to start:', err)
+    return
+  }
+
+  const client = copilotManager.getClient()
+  if (!client) {
+    console.error('[main] No CopilotClient after start')
+    return
+  }
+
+  // ── Chat tools ──
+  const chatTools = getChatTools({
+    onShowOverlay: () => {
+      const win = getOverlayWindow()
+      if (win && !win.isDestroyed()) win.show()
+    },
+    onAttentionUpdate: (items) => {
+      const store = getAttentionStore()
+      store.setItems(items)
+      const win = getOverlayWindow()
+      if (win && !win.isDestroyed()) {
+        win.webContents.send(IPC_CHANNELS.ATTENTION_UPDATE, items)
+      }
+    },
+  })
+
+  // ── Session manager ──
+  sessionManager = createSessionManager({
+    client,
+    getModel: () => configStore.getAll().model,
+    getPollModel: () => configStore.getAll().pollModel,
+    chatTools,
+    onChatDelta: (delta) => {
+      const overlay = getOverlayWindow()
+      if (overlay && !overlay.isDestroyed()) {
+        overlay.webContents.send(IPC_CHANNELS.CHAT_DELTA, delta)
+      }
+    },
+    onChatDone: () => {
+      const overlay = getOverlayWindow()
+      if (overlay && !overlay.isDestroyed()) {
+        overlay.webContents.send(IPC_CHANNELS.CHAT_DONE)
+      }
+    },
+    onChatError: (error) => {
+      const overlay = getOverlayWindow()
+      if (overlay && !overlay.isDestroyed()) {
+        overlay.webContents.send(IPC_CHANNELS.CHAT_DELTA, `\n⚠️ Error: ${error}`)
+        overlay.webContents.send(IPC_CHANNELS.CHAT_DONE)
+      }
+    },
+  })
+
+  // ── IPC: chat ──
+  ipcMain.on(IPC_CHANNELS.CHAT_SEND, async (_event, prompt: string) => {
+    if (!sessionManager) return
+    await sessionManager.sendChatMessage(prompt)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.CHAT_RESET, async () => {
+    if (!sessionManager) return
+    await sessionManager.resetChat()
+  })
+
+  // ── IPC: models ──
+  ipcMain.handle(IPC_CHANNELS.MODEL_LIST, async () => {
+    const c = copilotManager?.getClient()
+    if (!c) return []
+    try {
+      const models = await c.listModels()
+      return filterModels(models)
+    } catch (err) {
+      console.error('[main] model:list error:', err)
+      return []
+    }
+  })
 
   ipcMain.on(IPC_CHANNELS.MODEL_SET, async (_event, modelId: string) => {
     try {
       await handleSetModel(modelId, {
-        session: chatSession,
-        configStore: getConfigStore(),
+        session: sessionManager?.getChatSession() ?? null,
+        configStore,
         sendToRenderer: (id) => {
-          const overlay = getOverlayWindow();
+          const overlay = getOverlayWindow()
           if (overlay && !overlay.isDestroyed()) {
-            overlay.webContents.send(IPC_CHANNELS.MODEL_CHANGED, id);
+            overlay.webContents.send(IPC_CHANNELS.MODEL_CHANGED, id)
           }
         },
-      });
+      })
     } catch (err) {
-      console.error("[main] model:set error:", err);
-      // On failure: don't update config or notify renderer
+      console.error('[main] model:set error:', err)
     }
-  });
+  })
 
-  // Wire chat:reset — destroy session so next chat:send creates a fresh one
-  ipcMain.handle(IPC_CHANNELS.CHAT_RESET, async () => {
-    if (chatSession) {
-      try {
-        await chatSession.abort();
-      } catch {
-        // session may not have an active request
-      }
-      chatSession = null;
-      console.log("[ipc] chat session reset");
-    }
-  });
+  // ── Pulse scheduler ──
+  pulseScheduler = createPulseScheduler({
+    sessionManager,
+    copilotManager,
+    attentionStore: getAttentionStore(),
+    getConfig: () => configStore.getAll(),
+    onOverlayFocus: (cb) => {
+      const win = getOverlayWindow()
+      if (win) win.on('focus', cb)
+    },
+    onOverlayBlur: (cb) => {
+      const win = getOverlayWindow()
+      if (win) win.on('blur', cb)
+    },
+  })
 
-  // Wire chat:send — create session lazily on first message
-  ipcMain.removeAllListeners(IPC_CHANNELS.CHAT_SEND);
-  ipcMain.on(IPC_CHANNELS.CHAT_SEND, async (_event, prompt: string) => {
-    const overlay = getOverlayWindow();
-    if (!overlay || overlay.isDestroyed()) return;
-
-    try {
-      // Lazy session creation
-      if (!chatSession) {
-        console.log("[main] Creating chat session...");
-        const chatTools = getChatTools({
-          onShowOverlay: () => {
-            const win = getOverlayWindow();
-            if (win && !win.isDestroyed()) win.show();
-          },
-          onAttentionUpdate: (items) => {
-            const store = getAttentionStore();
-            store.setItems(items);
-            const win = getOverlayWindow();
-            if (win && !win.isDestroyed()) {
-              win.webContents.send(IPC_CHANNELS.ATTENTION_UPDATE, items);
-            }
-          },
-        });
-        chatSession = await client!.createSession({
-          model: getConfigStore().getAll().model,
-          onPermissionRequest: approveAll,
-          streaming: true,
-          systemMessage: {
-            content: CHAT_SYSTEM_PROMPT,
-          },
-          tools: chatTools,
-        });
-
-        chatSession.on("assistant.message_delta", (event) => {
-          const win = getOverlayWindow();
-          if (win && !win.isDestroyed()) {
-            win.webContents.send(IPC_CHANNELS.CHAT_DELTA, event.data.deltaContent);
-          }
-        });
-
-        chatSession.on("session.idle", () => {
-          const win = getOverlayWindow();
-          if (win && !win.isDestroyed()) {
-            win.webContents.send(IPC_CHANNELS.CHAT_DONE);
-          }
-        });
-
-        console.log("[main] Chat session created:", chatSession.sessionId);
-      }
-
-      console.log("[main] Sending:", prompt);
-      await chatSession.sendAndWait({ prompt }, 60_000);
-    } catch (err) {
-      console.error("[main] Chat error:", err);
-      // Surface error to UI so it doesn't hang on "Thinking..."
-      overlay.webContents.send(
-        IPC_CHANNELS.CHAT_DELTA,
-        `\n⚠️ Error: ${err instanceof Error ? err.message : String(err)}`,
-      );
-      overlay.webContents.send(IPC_CHANNELS.CHAT_DONE);
-    }
-  });
-
-  console.log("[main] Ready — chat wired with Work IQ MCP");
-});
-
-app.on("will-quit", async () => {
-  unregisterAllHotkeys();
-  if (client) {
-    try {
-      await client.stop();
-    } catch {
-      // ignore cleanup errors
-    }
+  const pollConfig = configStore.getAll()
+  if (pollConfig.pollEnabled) {
+    pulseScheduler.start()
   }
-});
 
-app.on("window-all-closed", () => {
+  console.log('[main] Ready — chat wired with CopilotManager + SessionManager')
+})
+
+app.on('will-quit', async () => {
+  unregisterAllHotkeys()
+  if (pulseScheduler) {
+    pulseScheduler.stop()
+  }
+  if (copilotManager) {
+    await copilotManager.stop()
+  }
+})
+
+app.on('window-all-closed', () => {
   // Keep app running in tray
-});
+})

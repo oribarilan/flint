@@ -43,4 +43,35 @@ describe('ConfigStore', () => {
     expect(config.hotkey).toBe(DEFAULT_CONFIG.hotkey)
     expect(config.launchAtLogin).toBe(DEFAULT_CONFIG.launchAtLogin)
   })
+
+  it('returns default poll config fields', () => {
+    const config = store.getAll()
+    expect(config.pollEnabled).toBe(true)
+    expect(config.pollFrequency).toBe('normal')
+    expect(config.pollModel).toBe('gpt-4.1-mini')
+  })
+
+  it('updates pollFrequency', () => {
+    store.update({ pollFrequency: 'aggressive' })
+    expect(store.getAll().pollFrequency).toBe('aggressive')
+  })
+
+  it('updates pollEnabled', () => {
+    store.update({ pollEnabled: false })
+    expect(store.getAll().pollEnabled).toBe(false)
+  })
+
+  it('updates pollModel', () => {
+    store.update({ pollModel: 'gpt-4.1' })
+    expect(store.getAll().pollModel).toBe('gpt-4.1')
+  })
+
+  it('preserves poll settings when updating other fields', () => {
+    store.update({ pollFrequency: 'relaxed', pollModel: 'gpt-4.1' })
+    store.update({ alertMinutes: 15 })
+    const config = store.getAll()
+    expect(config.pollFrequency).toBe('relaxed')
+    expect(config.pollModel).toBe('gpt-4.1')
+    expect(config.alertMinutes).toBe(15)
+  })
 })

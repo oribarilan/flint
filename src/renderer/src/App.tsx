@@ -6,6 +6,7 @@ import { useConfig } from "./hooks/useConfig";
 import { useKeyboardNav } from "./hooks/useKeyboardNav";
 import { useModelStore } from "./stores/modelStore";
 import { useAttentionStore } from "./stores/attentionStore";
+import { buildSuggestions } from "./utils/suggestions";
 import { AttentionPanel } from "./components/AttentionPanel";
 import { ChatPanel } from "./components/ChatPanel";
 import { ChatInput } from "./components/ChatInput";
@@ -30,8 +31,11 @@ export default function App() {
     window.flint?.openAttentionItem(id);
   };
 
+  const suggestions = buildSuggestions(items);
+
   const { focusedPanel, focusedIndex, resetFocus } = useKeyboardNav({
     items,
+    suggestions,
     hasMessages: messages.length > 0,
     isStreaming,
     chatPanelRef,

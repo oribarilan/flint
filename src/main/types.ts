@@ -9,12 +9,17 @@ export interface Meeting {
   agenda?: string;
 }
 
+export type PollFrequency = "relaxed" | "normal" | "aggressive";
+
 export interface FlintConfig {
   hotkey: string;
   alertMinutes: number;
   launchAtLogin: boolean;
   showTrayIcon: boolean;
   model: string;
+  pollEnabled: boolean;
+  pollFrequency: PollFrequency;
+  pollModel: string;
 }
 
 export const DEFAULT_CONFIG: FlintConfig = {
@@ -23,6 +28,9 @@ export const DEFAULT_CONFIG: FlintConfig = {
   launchAtLogin: true,
   showTrayIcon: true,
   model: "gpt-4.1",
+  pollEnabled: true,
+  pollFrequency: "normal",
+  pollModel: "gpt-4.1-mini",
 };
 
 export interface AttentionItem {
