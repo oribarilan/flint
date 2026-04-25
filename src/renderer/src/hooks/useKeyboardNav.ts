@@ -89,17 +89,29 @@ export function useKeyboardNav({
 
           let panel = focusedPanel;
           if (!panel) {
-            // First press activates attention at index 0
-            if (items.length === 0) return;
-            setFocusedPanel("attention");
+            // First press: pick the available panel (prefer attention, fall back to suggestions)
+            if (items.length > 0) {
+              panel = "attention";
+            } else if (hasSuggestions) {
+              panel = "suggestions";
+            } else {
+              return;
+            }
+            setFocusedPanel(panel);
             setFocusedIndex(0);
+            chatInputRef.current?.blur();
             return;
           }
 
-          // When only attention panel is navigable, force it
+          // When current panel isn't available, switch to the one that is
           if (!hasSuggestions && panel === "suggestions") {
             panel = "attention";
             setFocusedPanel("attention");
+            setFocusedIndex(0);
+          } else if (panel === "attention" && items.length === 0 && hasSuggestions) {
+            panel = "suggestions";
+            setFocusedPanel("suggestions");
+            setFocusedIndex(0);
           }
 
           const maxIndex =
@@ -110,6 +122,7 @@ export function useKeyboardNav({
           } else {
             setFocusedIndex((prev) => Math.max(prev - 1, 0));
           }
+          chatInputRef.current?.blur();
           return;
         }
 
@@ -119,6 +132,7 @@ export function useKeyboardNav({
           if (items.length > 0) {
             setFocusedPanel("attention");
             setFocusedIndex(0);
+            chatInputRef.current?.blur();
           }
           return;
         }
@@ -129,6 +143,7 @@ export function useKeyboardNav({
           if (hasSuggestions) {
             setFocusedPanel("suggestions");
             setFocusedIndex(0);
+            chatInputRef.current?.blur();
           }
           return;
         }

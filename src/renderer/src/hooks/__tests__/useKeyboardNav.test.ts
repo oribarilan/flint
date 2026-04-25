@@ -128,13 +128,56 @@ describe("useKeyboardNav", () => {
       expect(result.current.focusedIndex).toBe(0);
     });
 
-    it("Ctrl+j is no-op when items list is empty", () => {
-      const options = createDefaultOptions({ items: [] });
+    it("Ctrl+j is no-op when no panels have items", () => {
+      const options = createDefaultOptions({ items: [], hasMessages: true });
       const { result } = renderHook(() => useKeyboardNav(options));
 
       act(() => pressCtrl("j"));
 
       expect(result.current.focusedPanel).toBeNull();
+    });
+
+    it("first Ctrl+j picks suggestions when attention is empty but suggestions visible", () => {
+      const options = createDefaultOptions({ items: [], hasMessages: false });
+      const { result } = renderHook(() => useKeyboardNav(options));
+
+      act(() => pressCtrl("j"));
+
+      expect(result.current.focusedPanel).toBe("suggestions");
+      expect(result.current.focusedIndex).toBe(0);
+    });
+
+    it("Ctrl+j blurs chat input so Space/Enter work on focused items", () => {
+      const inputEl = document.createElement("input");
+      document.body.appendChild(inputEl);
+      const chatInputRef = { current: inputEl } as unknown as React.RefObject<HTMLInputElement | null>;
+      const toggleSelect = vi.fn();
+      const options = createDefaultOptions({ chatInputRef, toggleSelect });
+      renderHook(() => useKeyboardNav(options));
+
+      // Focus the input first
+      inputEl.focus();
+      expect(document.activeElement).toBe(inputEl);
+
+      // Ctrl+j should blur it
+      act(() => pressCtrl("j"));
+      expect(document.activeElement).not.toBe(inputEl);
+
+      // Now Space should work (toggle selection)
+      act(() => pressKey(" "));
+      expect(toggleSelect).toHaveBeenCalledWith("1");
+
+      document.body.removeChild(inputEl);
+    });
+
+    it("first Ctrl+j picks attention when both panels have items", () => {
+      const options = createDefaultOptions({ hasMessages: false });
+      const { result } = renderHook(() => useKeyboardNav(options));
+
+      act(() => pressCtrl("j"));
+
+      expect(result.current.focusedPanel).toBe("attention");
+      expect(result.current.focusedIndex).toBe(0);
     });
   });
 
