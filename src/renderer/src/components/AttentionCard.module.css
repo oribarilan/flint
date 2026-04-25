@@ -22,6 +22,12 @@
   outline-offset: -2px;
 }
 
+/* ── Keyboard focus (vim-style navigation) ────────────────── */
+
+.keyboardFocused {
+  background: var(--bg-hover);
+}
+
 /* ── Selected state ────────────────────────────────────────── */
 
 .selected {

@@ -7,7 +7,7 @@ interface Suggestion {
   description: string;
 }
 
-const SUGGESTIONS: Suggestion[] = [
+export const SUGGESTIONS: Suggestion[] = [
   {
     icon: "calendar",
     title: "What are my next meetings?",
@@ -38,9 +38,10 @@ export function getGreeting(hour: number): string {
 
 interface ChatEmptyStateProps {
   onSend: (prompt: string) => void;
+  keyboardFocusedIndex?: number | null;
 }
 
-export function ChatEmptyState({ onSend }: ChatEmptyStateProps) {
+export function ChatEmptyState({ onSend, keyboardFocusedIndex }: ChatEmptyStateProps) {
   const greeting = getGreeting(new Date().getHours());
 
   return (
@@ -50,10 +51,11 @@ export function ChatEmptyState({ onSend }: ChatEmptyStateProps) {
         <p className={styles.subtitle}>I can help you stay on top of your day. Try asking about:</p>
       </div>
       <div className={styles.cards} role="group" aria-label="Suggested prompts">
-        {SUGGESTIONS.map((suggestion) => (
+        {SUGGESTIONS.map((suggestion, index) => (
           <button
             key={suggestion.title}
-            className={styles.card}
+            className={`${styles.card} ${keyboardFocusedIndex === index ? styles.keyboardFocused : ""}`}
+            data-testid={`suggestion-card-${index}`}
             type="button"
             onClick={() => onSend(suggestion.title)}
           >

@@ -290,3 +290,53 @@ describe("Slash-to-focus shortcut", () => {
     expect(input).toBeTruthy();
   });
 });
+
+describe("Bottom bar hints", () => {
+  it("renders hotkey hint elements with correct key text", () => {
+    const { container } = render(<App />);
+
+    const footer = container.querySelector("footer");
+    expect(footer).toBeTruthy();
+
+    // Collect all kbd elements within the hints section
+    const kbds = footer!.querySelectorAll("kbd");
+    const keyTexts = Array.from(kbds).map((kbd) => kbd.textContent);
+
+    // ⌃J ⌃K navigate · ⌃U ⌃D scroll · / chat
+    expect(keyTexts).toContain("⌃");
+    expect(keyTexts).toContain("J");
+    expect(keyTexts).toContain("K");
+    expect(keyTexts).toContain("U");
+    expect(keyTexts).toContain("D");
+    expect(keyTexts).toContain("/");
+  });
+
+  it("renders navigate, scroll, and chat labels", () => {
+    const { container } = render(<App />);
+
+    const footer = container.querySelector("footer");
+    const text = footer!.textContent!;
+
+    expect(text).toContain("navigate");
+    expect(text).toContain("scroll");
+    expect(text).toContain("chat");
+  });
+
+  it("renders middle dot separators", () => {
+    const { container } = render(<App />);
+
+    const footer = container.querySelector("footer");
+    const text = footer!.textContent!;
+
+    // Two middle-dot separators
+    const dots = text.match(/·/g);
+    expect(dots).toHaveLength(2);
+  });
+
+  it("hints section is aria-hidden", () => {
+    const { container } = render(<App />);
+
+    const hints = container.querySelector("[aria-hidden='true']");
+    expect(hints).toBeTruthy();
+  });
+});

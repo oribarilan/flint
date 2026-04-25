@@ -3,10 +3,12 @@ import { Settings as SettingsIcon, Cpu, ChevronUp } from "lucide-react";
 import { useAttention } from "./hooks/useAttention";
 import { useChat } from "./hooks/useChat";
 import { useConfig } from "./hooks/useConfig";
+import { useKeyboardNav } from "./hooks/useKeyboardNav";
 import { useModelStore } from "./stores/modelStore";
 import { AttentionPanel } from "./components/AttentionPanel";
 import { ChatPanel } from "./components/ChatPanel";
 import { ChatInput } from "./components/ChatInput";
+import { HotkeyHint } from "./components/HotkeyHint";
 import { ModelPicker } from "./components/ModelPicker";
 import { Settings } from "./components/Settings";
 import styles from "./App.module.css";
@@ -21,6 +23,22 @@ export default function App() {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const modelButtonRef = useRef<HTMLButtonElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
+  const chatPanelRef = useRef<HTMLDivElement>(null);
+
+  const handleOpen = (id: string): void => {
+    window.flint?.openAttentionItem(id);
+  };
+
+  const { focusedPanel, focusedIndex, resetFocus } = useKeyboardNav({
+    items,
+    hasMessages: messages.length > 0,
+    isStreaming,
+    chatPanelRef,
+    chatInputRef,
+    toggleSelect,
+    onOpen: handleOpen,
+    sendMessage,
+  });
 
   const toggleSettings = useCallback(() => {
     setShowSettings((prev) => !prev);
@@ -47,6 +65,7 @@ export default function App() {
         } else if (showSettings) {
           setShowSettings(false);
         } else {
+          resetFocus();
           window.flint?.hideOverlay();
         }
         return;
@@ -66,7 +85,7 @@ export default function App() {
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [toggleSettings, showSettings, isPickerOpen]);
+  }, [toggleSettings, showSettings, isPickerOpen, resetFocus]);
 
   // Sync model from config on init + subscribe to model:changed from main
   useEffect(() => {
@@ -82,14 +101,13 @@ export default function App() {
     return () => unsub?.();
   }, [setCurrentModel]);
 
-  const handleOpen = (id: string): void => {
-    window.flint?.openAttentionItem(id);
-  };
-
   const selectedItemSummaries = useMemo(
     () => items.filter((i) => selectedIds.has(i.id)).map((i) => ({ id: i.id, title: i.title })),
     [items, selectedIds],
   );
+
+  const attentionFocusedIndex = focusedPanel === "attention" ? focusedIndex : null;
+  const suggestionsFocusedIndex = focusedPanel === "suggestions" ? focusedIndex : null;
 
   return (
     <div className={styles.root} data-testid="app-root">
@@ -99,6 +117,7 @@ export default function App() {
           <AttentionPanel
             items={items}
             selectedIds={selectedIds}
+            keyboardFocusedIndex={attentionFocusedIndex}
             onSelect={toggleSelect}
             onOpen={handleOpen}
           />
@@ -107,10 +126,12 @@ export default function App() {
         {/* Right panel: chat */}
         <div className={styles.splitRight}>
           <ChatPanel
+            ref={chatPanelRef}
             messages={messages}
             streamingContent={streamingContent}
             isStreaming={isStreaming}
             onSend={sendMessage}
+            suggestionsKeyboardFocusedIndex={suggestionsFocusedIndex}
           />
           <ChatInput
             ref={chatInputRef}
@@ -139,6 +160,18 @@ export default function App() {
             aria-hidden="true"
           />
         </button>
+        <div className={styles.hints} aria-hidden="true">
+          <HotkeyHint keys={["ctrl", "j"]} />
+          <HotkeyHint keys={["ctrl", "k"]} />
+          <span className={styles.hintLabel}>navigate</span>
+          <span className={styles.hintSeparator}>·</span>
+          <HotkeyHint keys={["ctrl", "u"]} />
+          <HotkeyHint keys={["ctrl", "d"]} />
+          <span className={styles.hintLabel}>scroll</span>
+          <span className={styles.hintSeparator}>·</span>
+          <HotkeyHint keys={["/"]} />
+          <span className={styles.hintLabel}>chat</span>
+        </div>
         <button
           className={styles.settingsButton}
           onClick={toggleSettings}

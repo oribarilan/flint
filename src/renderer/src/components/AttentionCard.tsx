@@ -6,6 +6,7 @@ import styles from "./AttentionCard.module.css";
 interface AttentionCardProps {
   item: AttentionItem;
   isSelected: boolean;
+  isKeyboardFocused?: boolean;
   onSelect: (id: string) => void;
   onOpen: (id: string) => void;
 }
@@ -38,10 +39,10 @@ function isFutureTimestamp(timestamp?: string): boolean {
   return new Date(timestamp).getTime() > Date.now();
 }
 
-export function AttentionCard({ item, isSelected, onSelect, onOpen }: AttentionCardProps) {
+export function AttentionCard({ item, isSelected, isKeyboardFocused, onSelect, onOpen }: AttentionCardProps) {
   const relativeTime = formatRelativeTime(item.timestamp);
   const isFuture = isFutureTimestamp(item.timestamp);
-  const cardClassName = `${styles.card} ${isSelected ? styles.selected : ""}`;
+  const cardClassName = `${styles.card} ${isSelected ? styles.selected : ""} ${isKeyboardFocused ? styles.keyboardFocused : ""}`;
 
   const handleCardClick = () => {
     onSelect(item.id);

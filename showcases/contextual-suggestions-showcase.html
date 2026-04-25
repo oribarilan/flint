@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flint — Contextual Suggestions Showcase</title>
+<style>
+/* ── Reset ──────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Page ───────────────────────────────────────────────── */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  background: #1a1a1c;
+  color: #e0ddd8;
+  padding: 32px 40px 60px;
+  min-height: 100vh;
+}
+
+/* ── Controls bar ───────────────────────────────────────── */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+.controls h1 {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: #b0a890;
+  margin-right: auto;
+  width: 100%;
+}
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.control-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #666;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.controls button {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid #333;
+  background: transparent;
+  color: #999;
+  cursor: pointer;
+  transition: all 120ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+.controls button:hover {
+  background: #2a2a2c;
+  color: #ccc;
+}
+.controls button.active {
+  background: oklch(74% 0.15 65 / 0.12);
+  border-color: oklch(74% 0.15 65 / 0.3);
+  color: oklch(82% 0.1 65);
+}
+.sep {
+  width: 1px;
+  height: 20px;
+  background: #333;
+  margin: 0 4px;
+}
+
+/* ── Variant labels ─────────────────────────────────────── */
+.variant-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 12px;
+  margin-top: 36px;
+}
+.variant-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: oklch(74% 0.15 65);
+  letter-spacing: 0.03em;
+}
+.variant-desc {
+  font-size: 11px;
+  color: #777;
+  font-weight: 400;
+}
+
+/* ── Fidelity: Overlay frame ────────────────────────────── */
+.overlay-frame {
+  width: 1032px;
+  height: 520px;
+  border-radius: 12px;
+  border: 1px solid oklch(23% 0.006 60);
+  overflow: hidden;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 1px rgba(255,255,255,0.1);
+  display: flex;
+  flex-direction: column;
+  /* Flint tokens */
+  --font-xs: 0.625rem;
+  --font-sm: 0.6875rem;
+  --font-base: 0.75rem;
+  --font-md: 0.8125rem;
+  --font-lg: 1rem;
+  --font-xl: 1.25rem;
+  --bg-primary: oklch(14% 0.006 60);
+  --bg-secondary: oklch(19% 0.007 60);
+  --bg-hover: oklch(23% 0.008 60);
+  --bg-selected: oklch(25% 0.01 60);
+  --bg-accent-subtle: oklch(74% 0.15 65 / 0.1);
+  --text-primary: oklch(93% 0.006 60);
+  --text-secondary: oklch(62% 0.008 60);
+  --text-placeholder: oklch(43% 0.006 60);
+  --text-on-accent: oklch(16% 0.02 65);
+  --accent: oklch(74% 0.15 65);
+  --accent-hover: oklch(70% 0.14 65);
+  --border-subtle: oklch(23% 0.006 60);
+  --border-hover: oklch(28% 0.008 60);
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 20px;
+  --space-2xl: 24px;
+  --space-3xl: 32px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+  --icon-container: 30px;
+  --shadow-sm: 0 1px 3px oklch(4% 0.01 60 / 0.3);
+  --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
+  --transition-fast: 120ms cubic-bezier(0.25, 1, 0.5, 1);
+  --transition-normal: 200ms cubic-bezier(0.25, 1, 0.5, 1);
+
+  font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  font-size: var(--font-base);
+  line-height: 1.5;
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  background: var(--bg-primary);
+}
+
+/* ── Header ─────────────────────────────────────────────── */
+.flint-header {
+  padding: var(--space-md) var(--space-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+.flint-header-icon { font-size: var(--font-md); }
+.flint-header-label {
+  color: var(--text-secondary);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.flint-header-model {
+  margin-left: auto;
+  font-size: var(--font-xs);
+  color: var(--text-placeholder);
+}
+
+/* ── Split layout ───────────────────────────────────────── */
+.split-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  border-top: 1px solid var(--border-subtle);
+}
+.split-left {
+  width: 40%;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+}
+.split-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* ── Attention panel (mock) ─────────────────────────────── */
+.attention-panel { display: flex; flex-direction: column; height: 100%; }
+.attention-label {
+  font-size: var(--font-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.05em;
+  padding: var(--space-md) var(--space-lg) var(--space-xs);
+}
+.attention-list { flex: 1; overflow-y: auto; padding: var(--space-xs) 0; }
+.attention-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-lg);
+  cursor: default;
+}
+.attention-card-icon {
+  width: var(--icon-container);
+  height: var(--icon-container);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.attention-card-body { min-width: 0; flex: 1; }
+.attention-card-title {
+  font-size: var(--font-md);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.attention-card-meta {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.attention-card-time {
+  font-size: var(--font-xs);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.attention-card.imminent .attention-card-icon { background: var(--accent); }
+.attention-card.imminent .attention-card-icon span { filter: brightness(0.2); }
+.attention-card.imminent .attention-card-time { color: var(--accent); font-weight: 600; }
+
+/* ── Chat input (shared) ────────────────────────────────── */
+.chat-input-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
+  border-top: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+.chat-input {
+  flex: 1;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--font-md);
+  color: var(--text-primary);
+  outline: none;
+  font-family: inherit;
+}
+.chat-input::placeholder { color: var(--text-placeholder); }
+.chat-input:focus { border-color: var(--accent); }
+.chat-input-hint {
+  flex-shrink: 0;
+  font-size: var(--font-xs);
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+/* ── Empty state area ───────────────────────────────────── */
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── Guide layout (base — current production) ───────────── */
+.guide-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2xl) var(--space-lg);
+  gap: var(--space-xl);
+}
+.guide-header { text-align: center; }
+.guide-greeting {
+  font-size: var(--font-xl);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-xs);
+}
+.guide-subtitle {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.guide-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  width: 100%;
+  max-width: 380px;
+}
+.guide-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  width: 100%;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.guide-card:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-hover);
+}
+.guide-card-icon {
+  flex-shrink: 0;
+  width: var(--icon-container);
+  height: var(--icon-container);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+.guide-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+.guide-card-title {
+  font-size: var(--font-md);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+.guide-card-desc {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CONTEXTUAL CARD VARIANTS
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Variant A: Seamless ────────────────────────────────── */
+/* Contextual cards are visually identical to static ones.
+   Only the text changes. No visual distinction at all. */
+
+/* (Uses the same .guide-card styles — no extra CSS needed) */
+
+/* ── Variant B: Tinted ──────────────────────────────────── */
+/* Contextual cards get a very subtle accent background tint
+   to signal "this is personalized for you right now." */
+
+.tinted .guide-card.contextual {
+  background: oklch(74% 0.15 65 / 0.06);
+  border-color: oklch(74% 0.15 65 / 0.12);
+}
+.tinted .guide-card.contextual:hover {
+  background: oklch(74% 0.15 65 / 0.1);
+  border-color: oklch(74% 0.15 65 / 0.2);
+}
+.tinted .guide-card.contextual .guide-card-icon {
+  color: var(--accent);
+}
+
+/* ── Variant C: Sectioned ───────────────────────────────── */
+/* Contextual cards in a "Right now" section above,
+   static cards in an "Or try" section below. */
+
+.sectioned .guide-cards {
+  gap: 0;
+}
+.sectioned .section-label {
+  font-size: var(--font-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0 0 var(--space-xs) 0;
+}
+.sectioned .section-label:not(:first-child) {
+  padding-top: var(--space-md);
+}
+.sectioned .guide-cards .guide-card {
+  margin-bottom: var(--space-sm);
+}
+
+/* ── Hidden utility ─────────────────────────────────────── */
+.hidden { display: none !important; }
+
+/* ── Notes ──────────────────────────────────────────────── */
+.notes {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid #333;
+  font-size: 12px;
+  color: #666;
+  max-width: 800px;
+  line-height: 1.6;
+}
+.notes h2 {
+  font-size: 12px;
+  font-weight: 600;
+  color: #999;
+  letter-spacing: 0.03em;
+  margin-bottom: 8px;
+}
+.notes ul { padding-left: 16px; }
+.notes li { margin-bottom: 4px; }
+.notes strong { color: #888; }
+.notes code {
+  font-size: 11px;
+  background: #2a2a2c;
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: #ccc;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- ── Controls ───────────────────────────────────────────── -->
+<div class="controls">
+  <h1>CONTEXTUAL SUGGESTIONS</h1>
+
+  <div class="control-group">
+    <span class="control-label">Style</span>
+    <button class="active" onclick="showVariant('seamless')">A — Seamless</button>
+    <button onclick="showVariant('tinted')">B — Tinted</button>
+    <button onclick="showVariant('sectioned')">C — Sectioned</button>
+  </div>
+
+  <span class="sep"></span>
+
+  <div class="control-group">
+    <span class="control-label">Calendar</span>
+    <button class="active" data-state="empty" onclick="setState('empty')">No meetings</button>
+    <button data-state="imminent" onclick="setState('imminent')">Imminent</button>
+    <button data-state="busy" onclick="setState('busy')">Busy day</button>
+    <button data-state="both" onclick="setState('both')">Both</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     VARIANT A — "Seamless"
+     ════════════════════════════════════════════════════════════ -->
+
+<div class="variant-header" id="label-seamless">
+  <span class="variant-name">A — Seamless</span>
+  <span class="variant-desc">Contextual cards look identical to static ones. Only the text changes. No visual distinction.</span>
+</div>
+
+<div class="overlay-frame" id="variant-seamless">
+  <div class="flint-header">
+    <span class="flint-header-icon">⚡</span>
+    <span class="flint-header-label">FLINT</span>
+    <span class="flint-header-model">gpt-4.1</span>
+  </div>
+  <div class="split-body">
+    <div class="split-left">
+      <div class="attention-panel">
+        <div class="attention-label">ATTENTION</div>
+        <div class="attention-list" id="attention-seamless"></div>
+      </div>
+    </div>
+    <div class="split-right">
+      <div class="empty-state">
+        <div class="guide-body">
+          <div class="guide-header">
+            <div class="guide-greeting" id="greeting-seamless">Good morning</div>
+            <div class="guide-subtitle">I can help you stay on top of your day. Try asking about:</div>
+          </div>
+          <div class="guide-cards" id="cards-seamless"></div>
+        </div>
+      </div>
+      <div class="chat-input-bar">
+        <input class="chat-input" type="text" placeholder="Ask about your schedule..." />
+        <span class="chat-input-hint">⏎</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     VARIANT B — "Tinted"
+     ════════════════════════════════════════════════════════════ -->
+
+<div class="variant-header hidden" id="label-tinted">
+  <span class="variant-name">B — Tinted</span>
+  <span class="variant-desc">Contextual cards get a subtle accent tint to signal "this is personalized right now."</span>
+</div>
+
+<div class="overlay-frame hidden tinted" id="variant-tinted">
+  <div class="flint-header">
+    <span class="flint-header-icon">⚡</span>
+    <span class="flint-header-label">FLINT</span>
+    <span class="flint-header-model">gpt-4.1</span>
+  </div>
+  <div class="split-body">
+    <div class="split-left">
+      <div class="attention-panel">
+        <div class="attention-label">ATTENTION</div>
+        <div class="attention-list" id="attention-tinted"></div>
+      </div>
+    </div>
+    <div class="split-right">
+      <div class="empty-state">
+        <div class="guide-body">
+          <div class="guide-header">
+            <div class="guide-greeting" id="greeting-tinted">Good morning</div>
+            <div class="guide-subtitle">I can help you stay on top of your day. Try asking about:</div>
+          </div>
+          <div class="guide-cards" id="cards-tinted"></div>
+        </div>
+      </div>
+      <div class="chat-input-bar">
+        <input class="chat-input" type="text" placeholder="Ask about your schedule..." />
+        <span class="chat-input-hint">⏎</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     VARIANT C — "Sectioned"
+     ════════════════════════════════════════════════════════════ -->
+
+<div class="variant-header hidden" id="label-sectioned">
+  <span class="variant-name">C — Sectioned</span>
+  <span class="variant-desc">Contextual cards grouped under "Right now", static ones under "Or try". Explicit separation.</span>
+</div>
+
+<div class="overlay-frame hidden sectioned" id="variant-sectioned">
+  <div class="flint-header">
+    <span class="flint-header-icon">⚡</span>
+    <span class="flint-header-label">FLINT</span>
+    <span class="flint-header-model">gpt-4.1</span>
+  </div>
+  <div class="split-body">
+    <div class="split-left">
+      <div class="attention-panel">
+        <div class="attention-label">ATTENTION</div>
+        <div class="attention-list" id="attention-sectioned"></div>
+      </div>
+    </div>
+    <div class="split-right">
+      <div class="empty-state">
+        <div class="guide-body">
+          <div class="guide-header">
+            <div class="guide-greeting" id="greeting-sectioned">Good morning</div>
+            <div class="guide-subtitle">I can help you stay on top of your day.</div>
+          </div>
+          <div class="guide-cards" id="cards-sectioned"></div>
+        </div>
+      </div>
+      <div class="chat-input-bar">
+        <input class="chat-input" type="text" placeholder="Ask about your schedule..." />
+        <span class="chat-input-hint">⏎</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Notes ──────────────────────────────────────────────── -->
+<div class="notes">
+  <h2>NOTES</h2>
+  <ul>
+    <li><strong>What this explores:</strong> How <code>buildSuggestions()</code> output blends with the current Guide empty state across different calendar scenarios.</li>
+    <li><strong>Calendar states:</strong>
+      <em>No meetings</em> — pure static defaults (current production behavior).
+      <em>Imminent</em> — "Design Review" in 8 min → contextual "Prepare me for Design Review" card replaces the generic.
+      <em>Busy day</em> — 5 meetings today → "Summarize today's schedule" promoted to position 1.
+      <em>Both</em> — imminent + busy combined.
+    </li>
+    <li><strong>A (Seamless)</strong> — Zero visual difference. The text just changes. Pro: no new concepts, no UI complexity. Con: user may not notice the suggestions are personalized.</li>
+    <li><strong>B (Tinted)</strong> — Subtle accent wash on contextual cards. Pro: user sees "this is about me right now" without it being loud. Con: adds visual weight, could feel promotional.</li>
+    <li><strong>C (Sectioned)</strong> — Explicit grouping: "Right now" and "Or try". Pro: very clear what's contextual vs generic, works well when you have 2+ contextual cards. Con: heavier, more chrome, may feel over-structured for 1 card.</li>
+    <li><strong>Fidelity gap:</strong> DM Sans font not loaded — using system fallback. Emoji icons instead of Lucide SVGs.</li>
+    <li><strong>Critical path preserved:</strong> All variants read from existing renderer state. <code>buildSuggestions(items)</code> is a pure function — no IPC, no network, no disk I/O.</li>
+  </ul>
+</div>
+
+<script>
+// ── Data ──────────────────────────────────────────────────
+
+const STATIC_SUGGESTIONS = [
+  { icon: '📅', title: 'What are my next meetings?', desc: 'See upcoming meetings, times, and attendees', contextual: false },
+  { icon: '📋', title: 'Prepare me for my next meeting', desc: 'Get agenda, attendee context, and talking points', contextual: false },
+  { icon: '⚠️', title: 'Any conflicts this week?', desc: 'Find overlapping or back-to-back meetings', contextual: false },
+  { icon: '📊', title: 'Summarize today\'s schedule', desc: 'Quick overview of your day at a glance', contextual: false },
+];
+
+const MEETINGS = {
+  imminent: { title: 'Design Review — Overlay UX', attendees: 'Sarah, James, + 2 others', time: 'in 8 min', imminent: true },
+  m2: { title: '1:1 with Alex', attendees: 'Alex Chen', time: '11:00', imminent: false },
+  m3: { title: 'Sprint Planning', attendees: 'Team Ember', time: '14:30', imminent: false },
+  m4: { title: 'Product Sync', attendees: 'Lisa, Mike', time: '15:00', imminent: false },
+  m5: { title: 'Eng Standup', attendees: 'Platform team', time: '16:30', imminent: false },
+};
+
+const STATES = {
+  empty: {
+    meetings: [],
+    suggestions: [...STATIC_SUGGESTIONS],
+    contextualSuggestions: [],
+  },
+  imminent: {
+    meetings: [MEETINGS.imminent, MEETINGS.m2, MEETINGS.m3],
+    suggestions: null, // computed below
+    contextualSuggestions: null,
+  },
+  busy: {
+    meetings: [MEETINGS.m2, MEETINGS.m3, MEETINGS.m4, MEETINGS.m5, { title: 'All-Hands', attendees: 'Engineering org', time: '17:00', imminent: false }],
+    suggestions: null,
+    contextualSuggestions: null,
+  },
+  both: {
+    meetings: [MEETINGS.imminent, MEETINGS.m2, MEETINGS.m3, MEETINGS.m4, MEETINGS.m5],
+    suggestions: null,
+    contextualSuggestions: null,
+  },
+};
+
+// Simulate buildSuggestions() logic
+function buildSuggestions(meetings) {
+  const contextual = [];
+  const base = [...STATIC_SUGGESTIONS];
+
+  const hasImminent = meetings.find(m => m.imminent);
+  const isBusy = meetings.length >= 3;
+
+  if (hasImminent) {
+    // Replace generic "Prepare me for my next meeting" with specific one
+    const idx = base.findIndex(s => s.title.includes('Prepare me for my next meeting'));
+    const replacement = {
+      icon: '📋',
+      title: `Prepare me for ${hasImminent.title}`,
+      desc: `Agenda, attendee context, and talking points for your meeting in ${hasImminent.time.replace('in ', '')}`,
+      contextual: true,
+    };
+    if (idx !== -1) base[idx] = replacement;
+    contextual.push(replacement);
+  }
+
+  if (isBusy) {
+    // Promote "Summarize today's schedule" to first position
+    const idx = base.findIndex(s => s.title.includes('Summarize today'));
+    if (idx > 0) {
+      const card = { ...base[idx], contextual: true, desc: `${meetings.length} meetings today — get the overview` };
+      base.splice(idx, 1);
+      base.unshift(card);
+      contextual.push(card);
+    }
+  }
+
+  return { all: base, contextual };
+}
+
+// Pre-compute
+for (const key of ['imminent', 'busy', 'both']) {
+  const result = buildSuggestions(STATES[key].meetings);
+  STATES[key].suggestions = result.all;
+  STATES[key].contextualSuggestions = result.contextual;
+}
+STATES.empty.contextualSuggestions = [];
+
+// ── Rendering ────────────────────────────────────────────
+
+const variants = ['seamless', 'tinted', 'sectioned'];
+let currentVariant = 'seamless';
+let currentState = 'empty';
+
+function renderAttention(containerId, meetings) {
+  const el = document.getElementById(containerId);
+  if (!meetings.length) {
+    el.innerHTML = '<div style="padding: 32px 16px; text-align: center; color: var(--text-placeholder); font-size: var(--font-sm);">No upcoming meetings</div>';
+    return;
+  }
+  el.innerHTML = meetings.map(m => `
+    <div class="attention-card ${m.imminent ? 'imminent' : ''}">
+      <div class="attention-card-icon"><span>📅</span></div>
+      <div class="attention-card-body">
+        <div class="attention-card-title">${m.title}</div>
+        <div class="attention-card-meta">${m.attendees}</div>
+      </div>
+      <div class="attention-card-time">${m.time}</div>
+    </div>
+  `).join('');
+}
+
+function renderCards(containerId, suggestions, contextualSuggestions, variant) {
+  const el = document.getElementById(containerId);
+
+  if (variant === 'sectioned' && contextualSuggestions.length > 0) {
+    // Split into contextual and static
+    const contextualTitles = new Set(contextualSuggestions.map(s => s.title));
+    const staticCards = suggestions.filter(s => !contextualTitles.has(s.title));
+    const contextCards = suggestions.filter(s => contextualTitles.has(s.title));
+
+    let html = '<div class="section-label">Right now</div>';
+    html += contextCards.map(s => cardHtml(s, true)).join('');
+    html += '<div class="section-label">Or try</div>';
+    html += staticCards.map(s => cardHtml(s, false)).join('');
+    el.innerHTML = html;
+  } else {
+    el.innerHTML = suggestions.map(s => cardHtml(s, s.contextual)).join('');
+  }
+}
+
+function cardHtml(s, isContextual) {
+  return `
+    <button class="guide-card ${isContextual ? 'contextual' : ''}" onclick="fillInput(this, '${s.title.replace(/'/g, "\\'")}')">
+      <span class="guide-card-icon" aria-hidden="true">${s.icon}</span>
+      <div class="guide-card-body">
+        <span class="guide-card-title">${s.title}</span>
+        <span class="guide-card-desc">${s.desc}</span>
+      </div>
+    </button>
+  `;
+}
+
+function renderAll() {
+  const state = STATES[currentState];
+  for (const v of variants) {
+    renderAttention('attention-' + v, state.meetings);
+    renderCards('cards-' + v, state.suggestions, state.contextualSuggestions, v);
+  }
+}
+
+function showVariant(id) {
+  currentVariant = id;
+  variants.forEach(v => {
+    document.getElementById('variant-' + v).classList.toggle('hidden', v !== id);
+    document.getElementById('label-' + v).classList.toggle('hidden', v !== id);
+  });
+  // Update button states
+  document.querySelectorAll('.control-group:first-of-type button').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent.toLowerCase().includes(id));
+  });
+}
+
+function setState(id) {
+  currentState = id;
+  renderAll();
+  // Update button states
+  document.querySelectorAll('[data-state]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.state === id);
+  });
+}
+
+function fillInput(chip, text) {
+  const frame = chip.closest('.overlay-frame');
+  const input = frame.querySelector('.chat-input');
+  if (input) {
+    input.value = text;
+    input.focus();
+  }
+}
+
+// ── Init ─────────────────────────────────────────────────
+
+(function init() {
+  // Set greeting
+  const hour = new Date().getHours();
+  let greeting = 'Good morning';
+  if (hour >= 12 && hour < 18) greeting = 'Good afternoon';
+  else if (hour >= 18) greeting = 'Good evening';
+  for (const v of variants) {
+    document.getElementById('greeting-' + v).textContent = greeting;
+  }
+  renderAll();
+})();
+</script>
+</body>
+</html>

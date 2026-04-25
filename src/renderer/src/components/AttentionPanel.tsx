@@ -6,11 +6,12 @@ import styles from "./AttentionPanel.module.css";
 interface AttentionPanelProps {
   items: AttentionItem[];
   selectedIds: Set<string>;
+  keyboardFocusedIndex?: number | null;
   onSelect: (id: string) => void;
   onOpen: (id: string) => void;
 }
 
-export function AttentionPanel({ items, selectedIds, onSelect, onOpen }: AttentionPanelProps) {
+export function AttentionPanel({ items, selectedIds, keyboardFocusedIndex, onSelect, onOpen }: AttentionPanelProps) {
   if (items.length === 0) {
     return (
       <div className={styles.panel} data-testid="attention-panel">
@@ -28,11 +29,12 @@ export function AttentionPanel({ items, selectedIds, onSelect, onOpen }: Attenti
     <div className={styles.panel} data-testid="attention-panel">
       <div className={styles.label}>ATTENTION</div>
       <div className={styles.list}>
-        {items.map((item) => (
+        {items.map((item, index) => (
           <AttentionCard
             key={item.id}
             item={item}
             isSelected={selectedIds.has(item.id)}
+            isKeyboardFocused={keyboardFocusedIndex === index}
             onSelect={onSelect}
             onOpen={onOpen}
           />

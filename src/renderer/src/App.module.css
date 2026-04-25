@@ -74,6 +74,28 @@
   color: var(--text-primary);
 }
 
+/* ── Bottom bar hints ────────────────────────────────────────── */
+
+.hints {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.hintLabel {
+  font-size: var(--font-xs);
+  color: var(--text-placeholder);
+  font-family: var(--font-sans);
+}
+
+.hintSeparator {
+  font-size: var(--font-xs);
+  color: var(--text-placeholder);
+  margin: 0 var(--space-xs);
+}
+
 /* ── Split layout ─────────────────────────────────────────── */
 
 .splitBody {
