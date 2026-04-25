@@ -27,7 +27,7 @@ export function AttentionPanel({ items, selectedIds, onSelect, onOpen }: Attenti
   return (
     <div className={styles.panel} data-testid="attention-panel">
       <div className={styles.label}>ATTENTION</div>
-      <div className={styles.list} role="list">
+      <div className={styles.list}>
         {items.map((item) => (
           <AttentionCard
             key={item.id}
