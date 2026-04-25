@@ -1,11 +1,13 @@
 import { approveAll, type CopilotSession, type Tool } from '@github/copilot-sdk'
 import type { CopilotClient } from '@github/copilot-sdk'
+import { CHAT_SYSTEM_PROMPT } from './system-prompt'
 
 const CHAT_TIMEOUT_MS = 60_000 // 60s timeout for chat
 const MONITOR_TIMEOUT_MS = 90_000 // 90s timeout for monitor (MCP startup can be slow)
 
 interface SessionManagerConfig {
   client: CopilotClient
+  getModel: () => string
   monitorTools?: Tool[]
   chatTools?: Tool[]
   onChatDelta: (delta: string) => void
@@ -16,6 +18,8 @@ interface SessionManagerConfig {
 export interface SessionManager {
   sendChatMessage(prompt: string): Promise<void>
   sendMonitorPoll(): Promise<void>
+  resetChat(): Promise<void>
+  getChatSession(): CopilotSession | null
 }
 
 export function createSessionManager(config: SessionManagerConfig): SessionManager {
@@ -33,17 +37,18 @@ export function createSessionManager(config: SessionManagerConfig): SessionManag
     }
   }
 
-  async function getChatSession(): Promise<CopilotSession> {
+  async function ensureChatSession(): Promise<CopilotSession> {
     if (chatSession) return chatSession
 
-    console.log('[sessions] Creating chat session...')
+    const model = config.getModel()
+    console.log('[sessions] Creating chat session with model:', model)
     chatSession = await config.client.createSession({
       sessionId: 'flint-main',
-      model: 'gpt-4.1',
+      model,
       onPermissionRequest: approveAll,
       streaming: true,
       systemMessage: {
-        content: 'You are Flint, a work assistant. Help the user with questions about their schedule, meetings, and work context. Be concise and helpful.',
+        content: CHAT_SYSTEM_PROMPT,
       },
       tools: config.chatTools,
     })
@@ -63,10 +68,11 @@ export function createSessionManager(config: SessionManagerConfig): SessionManag
   async function getMonitorSession(): Promise<CopilotSession> {
     if (monitorSession) return monitorSession
 
-    console.log('[sessions] Creating monitor session...')
+    const model = config.getModel()
+    console.log('[sessions] Creating monitor session with model:', model)
     monitorSession = await config.client.createSession({
       sessionId: 'flint-monitor',
-      model: 'gpt-4.1',
+      model,
       onPermissionRequest: approveAll,
       tools: config.monitorTools,
     })
@@ -78,7 +84,7 @@ export function createSessionManager(config: SessionManagerConfig): SessionManag
   return {
     async sendChatMessage(prompt: string): Promise<void> {
       try {
-        const session = await getChatSession()
+        const session = await ensureChatSession()
         console.log('[chat] Sending:', prompt)
         await session.sendAndWait({ prompt }, CHAT_TIMEOUT_MS)
       } catch (err) {
@@ -104,6 +110,22 @@ export function createSessionManager(config: SessionManagerConfig): SessionManag
         console.error('[monitor] Poll error:', err instanceof Error ? err.message : err)
         // Don't surface monitor errors to user — just log and retry next cycle
       }
+    },
+
+    async resetChat(): Promise<void> {
+      if (chatSession) {
+        try {
+          await chatSession.abort()
+        } catch {
+          // session may not have an active request
+        }
+        chatSession = null
+        console.log('[sessions] Chat session reset')
+      }
+    },
+
+    getChatSession(): CopilotSession | null {
+      return chatSession
     },
   }
 }

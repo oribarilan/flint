@@ -20,11 +20,6 @@ export function registerIpcHandlers(): void {
   configStore = createConfigStore()
   attentionStore = createAttentionStore()
 
-  ipcMain.on(IPC_CHANNELS.CHAT_SEND, (_event, prompt: string) => {
-    console.log('[ipc] chat:send', prompt)
-    // TODO: forward to Copilot session (Task 7)
-  })
-
   ipcMain.handle(IPC_CHANNELS.CONFIG_GET, (): FlintConfig => {
     return configStore.getAll()
   })

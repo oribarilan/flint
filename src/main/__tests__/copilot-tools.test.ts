@@ -25,16 +25,14 @@ const mockInvocation = {
 } as any;
 
 describe("Copilot Tools", () => {
-  it("creates 6 tools total", () => {
+  it("creates 5 tools total", () => {
     const tools = createAllTools({
-      onMeetings: vi.fn(),
       onShowOverlay: vi.fn(),
       onAttentionUpdate: vi.fn(),
     });
-    expect(tools).toHaveLength(6);
+    expect(tools).toHaveLength(5);
     expect(tools.map((t) => t.name)).toEqual([
       "ask_work_iq",
-      "report_meetings",
       "show_notification",
       "join_meeting",
       "show_overlay",
@@ -42,30 +40,9 @@ describe("Copilot Tools", () => {
     ]);
   });
 
-  it("report_meetings calls onMeetings callback", async () => {
-    const onMeetings = vi.fn();
-    const tools = createAllTools({
-      onMeetings,
-      onShowOverlay: vi.fn(),
-      onAttentionUpdate: vi.fn(),
-    });
-    const report = tools.find((t) => t.name === "report_meetings")!;
-    const meeting = {
-      id: "1",
-      title: "Test",
-      startTime: "",
-      endTime: "",
-      attendees: [],
-      organizer: "",
-    };
-    await report.handler({ meetings: [meeting] }, mockInvocation);
-    expect(onMeetings).toHaveBeenCalledWith([meeting]);
-  });
-
   it("set_attention_items calls onAttentionUpdate callback", async () => {
     const onAttentionUpdate = vi.fn();
     const tools = createAllTools({
-      onMeetings: vi.fn(),
       onShowOverlay: vi.fn(),
       onAttentionUpdate,
     });
@@ -80,7 +57,6 @@ describe("Copilot Tools", () => {
   it("show_overlay calls onShowOverlay callback", async () => {
     const onShowOverlay = vi.fn();
     const tools = createAllTools({
-      onMeetings: vi.fn(),
       onShowOverlay,
       onAttentionUpdate: vi.fn(),
     });
@@ -89,15 +65,25 @@ describe("Copilot Tools", () => {
     expect(onShowOverlay).toHaveBeenCalledWith("abc");
   });
 
-  it("getMonitorTools returns only report_meetings", () => {
-    const tools = getMonitorTools({ onMeetings: vi.fn() });
-    expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe("report_meetings");
+  it("getMonitorTools returns ask_work_iq, set_attention_items, show_notification", () => {
+    const tools = getMonitorTools({ onAttentionUpdate: vi.fn() });
+    expect(tools).toHaveLength(3);
+    expect(tools.map((t) => t.name).sort()).toEqual([
+      "ask_work_iq",
+      "set_attention_items",
+      "show_notification",
+    ]);
   });
 
-  it("getChatTools returns everything except report_meetings", () => {
+  it("getChatTools returns all tools", () => {
     const tools = getChatTools({ onShowOverlay: vi.fn(), onAttentionUpdate: vi.fn() });
     expect(tools).toHaveLength(5);
-    expect(tools.map((t) => t.name)).not.toContain("report_meetings");
+    expect(tools.map((t) => t.name)).toEqual([
+      "ask_work_iq",
+      "show_notification",
+      "join_meeting",
+      "show_overlay",
+      "set_attention_items",
+    ]);
   });
 });

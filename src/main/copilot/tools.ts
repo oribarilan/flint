@@ -1,9 +1,8 @@
 import { Notification, shell } from "electron";
 import { defineTool, type Tool } from "@github/copilot-sdk";
-import type { AttentionItem, Meeting } from "../types";
+import type { AttentionItem } from "../types";
 
 interface ToolCallbacks {
-  onMeetings: (meetings: Meeting[]) => void;
   onShowOverlay: (meetingId?: string) => void;
   onAttentionUpdate: (items: AttentionItem[]) => void;
 }
@@ -170,37 +169,6 @@ export function createAllTools(callbacks: ToolCallbacks): Tool[] {
     },
   });
 
-  const reportMeetings = defineTool("report_meetings", {
-    description: "Report a list of upcoming meetings with structured data.",
-    parameters: {
-      type: "object",
-      properties: {
-        meetings: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              id: { type: "string" },
-              title: { type: "string" },
-              startTime: { type: "string" },
-              endTime: { type: "string" },
-              attendees: { type: "array", items: { type: "string" } },
-              organizer: { type: "string" },
-              joinUrl: { type: "string" },
-              agenda: { type: "string" },
-            },
-            required: ["id", "title", "startTime", "endTime", "attendees", "organizer"],
-          },
-        },
-      },
-      required: ["meetings"],
-    },
-    handler: async (args) => {
-      callbacks.onMeetings((args as { meetings: Meeting[] }).meetings);
-      return "ok";
-    },
-  });
-
   const showNotification = defineTool("show_notification", {
     description: "Show a native OS notification.",
     parameters: {
@@ -290,20 +258,19 @@ export function createAllTools(callbacks: ToolCallbacks): Tool[] {
     },
   });
 
-  return [askWorkIq, reportMeetings, showNotification, joinMeeting, showOverlay, setAttentionItems];
+  return [askWorkIq, showNotification, joinMeeting, showOverlay, setAttentionItems];
 }
 
-export function getMonitorTools(callbacks: Pick<ToolCallbacks, "onMeetings">): Tool[] {
+export function getMonitorTools(callbacks: Pick<ToolCallbacks, "onAttentionUpdate">): Tool[] {
   const all = createAllTools({
     ...callbacks,
     onShowOverlay: () => {},
-    onAttentionUpdate: () => {},
   });
-  return all.filter((t) => t.name === "report_meetings");
+  return all.filter(
+    (t) => t.name === "ask_work_iq" || t.name === "set_attention_items" || t.name === "show_notification",
+  );
 }
 
-export function getChatTools(callbacks: Omit<ToolCallbacks, "onMeetings">): Tool[] {
-  const all = createAllTools({ onMeetings: () => {}, ...callbacks });
-  // Exclude report_meetings (monitor-only) and get_meetings (replaced by Work IQ MCP)
-  return all.filter((t) => t.name !== "report_meetings");
+export function getChatTools(callbacks: ToolCallbacks): Tool[] {
+  return createAllTools(callbacks);
 }
