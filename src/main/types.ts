@@ -17,7 +17,7 @@ export interface FlintConfig {
 }
 
 export const DEFAULT_CONFIG: FlintConfig = {
-  hotkey: 'Ctrl+Alt+CommandOrControl+Space',
+  hotkey: 'CommandOrControl+Shift+Space',
   alertMinutes: 5,
   launchAtLogin: true,
   showTrayIcon: true,
