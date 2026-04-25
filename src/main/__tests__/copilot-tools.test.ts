@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { ToolInvocation } from "@github/copilot-sdk";
 
 vi.mock("electron", () => ({
@@ -319,6 +319,18 @@ describe("parseTimeScope", () => {
 });
 
 describe("ask_work_iq time-scoped queries", () => {
+  // Pin to noon on a Monday so time-scoped queries are deterministic
+  const NOON_MONDAY = new Date("2026-04-27T12:00:00");
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOON_MONDAY);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("filters emails by time scope", async () => {
     // "since" a time far in the future should return 0 emails
     const result = await queryEmails("emails since 23:59");
@@ -327,7 +339,7 @@ describe("ask_work_iq time-scoped queries", () => {
 
   it("returns all emails when time scope is far in the past", async () => {
     const result = await queryEmails("emails since 0:00");
-    // At minimum the 2h-ago email should be present (unless test runs at midnight)
+    // All 3 mock emails are within today (2h, 5h ago — both after midnight)
     expect(result.results.length).toBeGreaterThan(0);
   });
 
@@ -340,7 +352,7 @@ describe("ask_work_iq time-scoped queries", () => {
     // Meetings after 23:59 today — none of our mock meetings start that late
     const result = await queryMeetings("meetings since 23:59");
     // Only tomorrow's and weekend meetings should survive (their dates are > today 23:59)
-    const titles = result.results.map((r) => r.title);
+    const titles = result.results.map((r: MockMeeting) => r.title);
     expect(titles).not.toContain("Q4 Planning Review");
     expect(titles).not.toContain("1:1 with Jordan");
     expect(titles).not.toContain("Sprint Retro");
