@@ -1,89 +1,103 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi } from "vitest";
 
-vi.mock('electron', () => ({
+vi.mock("electron", () => ({
   Notification: vi.fn().mockImplementation(() => ({
     show: vi.fn(),
     on: vi.fn(),
   })),
   shell: { openExternal: vi.fn() },
-}))
+}));
 
-vi.mock('@github/copilot-sdk', () => ({
+vi.mock("@github/copilot-sdk", () => ({
   defineTool: (name: string, config: Record<string, unknown>) => ({
     name,
     ...config,
   }),
-}))
+}));
 
-import { createAllTools, getMonitorTools, getChatTools } from '../copilot/tools'
+import { createAllTools, getMonitorTools, getChatTools } from "../copilot/tools";
 
 const mockInvocation = {
-  sessionId: 'test',
-  toolCallId: 'tc-1',
-  toolName: '',
+  sessionId: "test",
+  toolCallId: "tc-1",
+  toolName: "",
   arguments: {},
-} as any
+} as any;
 
-describe('Copilot Tools', () => {
-  it('creates 6 tools total', () => {
+describe("Copilot Tools", () => {
+  it("creates 6 tools total", () => {
     const tools = createAllTools({
       onMeetings: vi.fn(),
       onShowOverlay: vi.fn(),
       onAttentionUpdate: vi.fn(),
-    })
-    expect(tools).toHaveLength(6)
+    });
+    expect(tools).toHaveLength(6);
     expect(tools.map((t) => t.name)).toEqual([
-      'ask_work_iq',
-      'report_meetings',
-      'show_notification',
-      'join_meeting',
-      'show_overlay',
-      'set_attention_items',
-    ])
-  })
+      "ask_work_iq",
+      "report_meetings",
+      "show_notification",
+      "join_meeting",
+      "show_overlay",
+      "set_attention_items",
+    ]);
+  });
 
-  it('report_meetings calls onMeetings callback', async () => {
-    const onMeetings = vi.fn()
-    const tools = createAllTools({ onMeetings, onShowOverlay: vi.fn(), onAttentionUpdate: vi.fn() })
-    const report = tools.find((t) => t.name === 'report_meetings')!
+  it("report_meetings calls onMeetings callback", async () => {
+    const onMeetings = vi.fn();
+    const tools = createAllTools({
+      onMeetings,
+      onShowOverlay: vi.fn(),
+      onAttentionUpdate: vi.fn(),
+    });
+    const report = tools.find((t) => t.name === "report_meetings")!;
     const meeting = {
-      id: '1',
-      title: 'Test',
-      startTime: '',
-      endTime: '',
+      id: "1",
+      title: "Test",
+      startTime: "",
+      endTime: "",
       attendees: [],
-      organizer: '',
-    }
-    await report.handler({ meetings: [meeting] }, mockInvocation)
-    expect(onMeetings).toHaveBeenCalledWith([meeting])
-  })
+      organizer: "",
+    };
+    await report.handler({ meetings: [meeting] }, mockInvocation);
+    expect(onMeetings).toHaveBeenCalledWith([meeting]);
+  });
 
-  it('set_attention_items calls onAttentionUpdate callback', async () => {
-    const onAttentionUpdate = vi.fn()
-    const tools = createAllTools({ onMeetings: vi.fn(), onShowOverlay: vi.fn(), onAttentionUpdate })
-    const setItems = tools.find((t) => t.name === 'set_attention_items')!
-    const items = [{ id: '1', icon: 'calendar', title: 'Meeting', description: 'Test', metadata: {} }]
-    await setItems.handler({ items }, mockInvocation)
-    expect(onAttentionUpdate).toHaveBeenCalledWith(items)
-  })
+  it("set_attention_items calls onAttentionUpdate callback", async () => {
+    const onAttentionUpdate = vi.fn();
+    const tools = createAllTools({
+      onMeetings: vi.fn(),
+      onShowOverlay: vi.fn(),
+      onAttentionUpdate,
+    });
+    const setItems = tools.find((t) => t.name === "set_attention_items")!;
+    const items = [
+      { id: "1", icon: "calendar", title: "Meeting", description: "Test", metadata: {} },
+    ];
+    await setItems.handler({ items }, mockInvocation);
+    expect(onAttentionUpdate).toHaveBeenCalledWith(items);
+  });
 
-  it('show_overlay calls onShowOverlay callback', async () => {
-    const onShowOverlay = vi.fn()
-    const tools = createAllTools({ onMeetings: vi.fn(), onShowOverlay, onAttentionUpdate: vi.fn() })
-    const overlay = tools.find((t) => t.name === 'show_overlay')!
-    await overlay.handler({ meetingId: 'abc' }, mockInvocation)
-    expect(onShowOverlay).toHaveBeenCalledWith('abc')
-  })
+  it("show_overlay calls onShowOverlay callback", async () => {
+    const onShowOverlay = vi.fn();
+    const tools = createAllTools({
+      onMeetings: vi.fn(),
+      onShowOverlay,
+      onAttentionUpdate: vi.fn(),
+    });
+    const overlay = tools.find((t) => t.name === "show_overlay")!;
+    await overlay.handler({ meetingId: "abc" }, mockInvocation);
+    expect(onShowOverlay).toHaveBeenCalledWith("abc");
+  });
 
-  it('getMonitorTools returns only report_meetings', () => {
-    const tools = getMonitorTools({ onMeetings: vi.fn() })
-    expect(tools).toHaveLength(1)
-    expect(tools[0].name).toBe('report_meetings')
-  })
+  it("getMonitorTools returns only report_meetings", () => {
+    const tools = getMonitorTools({ onMeetings: vi.fn() });
+    expect(tools).toHaveLength(1);
+    expect(tools[0].name).toBe("report_meetings");
+  });
 
-  it('getChatTools returns everything except report_meetings', () => {
-    const tools = getChatTools({ onShowOverlay: vi.fn(), onAttentionUpdate: vi.fn() })
-    expect(tools).toHaveLength(5)
-    expect(tools.map((t) => t.name)).not.toContain('report_meetings')
-  })
-})
+  it("getChatTools returns everything except report_meetings", () => {
+    const tools = getChatTools({ onShowOverlay: vi.fn(), onAttentionUpdate: vi.fn() });
+    expect(tools).toHaveLength(5);
+    expect(tools.map((t) => t.name)).not.toContain("report_meetings");
+  });
+});

@@ -1,39 +1,39 @@
-import { useRef, useEffect, useCallback } from 'react'
-import styles from './ChatPanel.module.css'
+import { useRef, useEffect, useCallback } from "react";
+import styles from "./ChatPanel.module.css";
 
 interface ChatMessage {
-  role: 'user' | 'assistant'
-  content: string
+  role: "user" | "assistant";
+  content: string;
 }
 
 interface ChatPanelProps {
-  messages: ChatMessage[]
-  streamingContent: string
-  isStreaming: boolean
+  messages: ChatMessage[];
+  streamingContent: string;
+  isStreaming: boolean;
 }
 
-const SCROLL_THRESHOLD = 50
+const SCROLL_THRESHOLD = 50;
 
 export function ChatPanel({ messages, streamingContent, isStreaming }: ChatPanelProps) {
-  const panelRef = useRef<HTMLDivElement>(null)
-  const isNearBottomRef = useRef(true)
+  const panelRef = useRef<HTMLDivElement>(null);
+  const isNearBottomRef = useRef(true);
 
   const handleScroll = useCallback(() => {
-    const el = panelRef.current
-    if (!el) return
-    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
-    isNearBottomRef.current = distanceFromBottom <= SCROLL_THRESHOLD
-  }, [])
+    const el = panelRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    isNearBottomRef.current = distanceFromBottom <= SCROLL_THRESHOLD;
+  }, []);
 
   useEffect(() => {
-    if (!isNearBottomRef.current) return
-    const el = panelRef.current
+    if (!isNearBottomRef.current) return;
+    const el = panelRef.current;
     if (el) {
-      el.scrollTop = el.scrollHeight
+      el.scrollTop = el.scrollHeight;
     }
-  })
+  });
 
-  if (messages.length === 0 && !isStreaming) return null
+  if (messages.length === 0 && !isStreaming) return null;
 
   return (
     <div className={styles.panel} ref={panelRef} onScroll={handleScroll}>
@@ -50,5 +50,5 @@ export function ChatPanel({ messages, streamingContent, isStreaming }: ChatPanel
         </div>
       )}
     </div>
-  )
+  );
 }

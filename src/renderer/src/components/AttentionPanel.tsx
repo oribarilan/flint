@@ -1,13 +1,13 @@
-import { Zap } from 'lucide-react'
-import type { AttentionItem } from '../../../main/types'
-import { AttentionCard } from './AttentionCard'
-import styles from './AttentionPanel.module.css'
+import { Zap } from "lucide-react";
+import type { AttentionItem } from "../../../main/types";
+import { AttentionCard } from "./AttentionCard";
+import styles from "./AttentionPanel.module.css";
 
 interface AttentionPanelProps {
-  items: AttentionItem[]
-  selectedIds: Set<string>
-  onSelect: (id: string) => void
-  onOpen: (id: string) => void
+  items: AttentionItem[];
+  selectedIds: Set<string>;
+  onSelect: (id: string) => void;
+  onOpen: (id: string) => void;
 }
 
 export function AttentionPanel({ items, selectedIds, onSelect, onOpen }: AttentionPanelProps) {
@@ -15,11 +15,13 @@ export function AttentionPanel({ items, selectedIds, onSelect, onOpen }: Attenti
     return (
       <div className={styles.panel} data-testid="attention-panel">
         <div className={styles.empty}>
-          <span className={styles.emptyIcon}><Zap size={24} /></span>
+          <span className={styles.emptyIcon}>
+            <Zap size={24} />
+          </span>
           <span className={styles.emptyText}>No items yet</span>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -37,5 +39,5 @@ export function AttentionPanel({ items, selectedIds, onSelect, onOpen }: Attenti
         ))}
       </div>
     </div>
-  )
+  );
 }
