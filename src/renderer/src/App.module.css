@@ -12,6 +12,7 @@
 }
 
 .bottomBar {
+  position: relative;
   padding: var(--space-xs) var(--space-lg);
   display: flex;
   align-items: center;
@@ -28,6 +29,14 @@
   padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.modelIndicator:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .modelName {
@@ -38,6 +47,11 @@
 
 .modelChevron {
   color: var(--text-placeholder);
+  transition: transform var(--transition-fast);
+}
+
+.modelChevronOpen {
+  transform: rotate(180deg);
 }
 
 .settingsButton {

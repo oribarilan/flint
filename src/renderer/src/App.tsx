@@ -7,6 +7,7 @@ import { useModelStore } from "./stores/modelStore";
 import { AttentionPanel } from "./components/AttentionPanel";
 import { ChatPanel } from "./components/ChatPanel";
 import { ChatInput } from "./components/ChatInput";
+import { ModelPicker } from "./components/ModelPicker";
 import { Settings } from "./components/Settings";
 import styles from "./App.module.css";
 
@@ -17,9 +18,14 @@ export default function App() {
   const currentModel = useModelStore((s) => s.currentModel);
   const setCurrentModel = useModelStore((s) => s.setCurrentModel);
   const [showSettings, setShowSettings] = useState(false);
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
 
   const toggleSettings = useCallback(() => {
     setShowSettings((prev) => !prev);
+  }, []);
+
+  const togglePicker = useCallback(() => {
+    setIsPickerOpen((prev) => !prev);
   }, []);
 
   useEffect(() => {
@@ -32,7 +38,9 @@ export default function App() {
 
       if (e.key === "Escape") {
         e.preventDefault();
-        if (showSettings) {
+        if (isPickerOpen) {
+          setIsPickerOpen(false);
+        } else if (showSettings) {
           setShowSettings(false);
         } else {
           window.flint?.hideOverlay();
@@ -41,7 +49,7 @@ export default function App() {
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [toggleSettings, showSettings]);
+  }, [toggleSettings, showSettings, isPickerOpen]);
 
   // Sync model from config on init + subscribe to model:changed from main
   useEffect(() => {
@@ -96,15 +104,21 @@ export default function App() {
       </div>
 
       <footer className={styles.bottomBar}>
-        <div
+        <button
           className={styles.modelIndicator}
-          role="status"
+          onClick={togglePicker}
           aria-label={`Current model: ${currentModel}`}
+          aria-expanded={isPickerOpen}
+          type="button"
         >
           <Cpu size={16} aria-hidden="true" />
           <span className={styles.modelName}>{currentModel}</span>
-          <ChevronUp size={12} className={styles.modelChevron} aria-hidden="true" />
-        </div>
+          <ChevronUp
+            size={12}
+            className={`${styles.modelChevron} ${isPickerOpen ? styles.modelChevronOpen : ""}`}
+            aria-hidden="true"
+          />
+        </button>
         <button
           className={styles.settingsButton}
           onClick={toggleSettings}
@@ -113,6 +127,7 @@ export default function App() {
         >
           <SettingsIcon size={16} />
         </button>
+        {isPickerOpen && <ModelPicker onClose={() => setIsPickerOpen(false)} />}
       </footer>
 
       {showSettings && isLoaded && (

@@ -130,15 +130,85 @@ describe("Escape stack", () => {
 
     expect(mockHideOverlay).toHaveBeenCalledTimes(1);
   });
+
+  it("closes model picker instead of hiding overlay when picker is open", async () => {
+    const { getByLabelText, queryByTestId } = render(<App />);
+
+    // Click model indicator to open picker
+    const indicator = getByLabelText("Current model: gpt-4.1");
+    await act(async () => {
+      fireEvent.click(indicator);
+    });
+
+    // Picker should be in the DOM
+    expect(queryByTestId("model-picker")).toBeTruthy();
+
+    // ESC should close picker, not hide overlay
+    pressEscape();
+
+    expect(queryByTestId("model-picker")).toBeNull();
+    expect(mockHideOverlay).not.toHaveBeenCalled();
+  });
+
+  it("closes model picker before settings in escape stack", async () => {
+    const { getByLabelText, queryByTestId } = render(<App />);
+
+    // Open settings first
+    pressCmd(",");
+    expect(document.querySelector('[role="dialog"]')).toBeTruthy();
+
+    // Open model picker
+    const indicator = getByLabelText("Current model: gpt-4.1");
+    await act(async () => {
+      fireEvent.click(indicator);
+    });
+
+    // Picker is open
+    expect(queryByTestId("model-picker")).toBeTruthy();
+
+    // First ESC closes picker, not settings
+    pressEscape();
+    expect(queryByTestId("model-picker")).toBeNull();
+    expect(document.querySelector('[role="dialog"]')).toBeTruthy();
+
+    // Second ESC closes settings
+    pressEscape();
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    expect(mockHideOverlay).not.toHaveBeenCalled();
+  });
 });
 
 describe("Model indicator", () => {
-  it("renders model name in bottom bar", () => {
+  it("renders model name in bottom bar as a button", () => {
     const { getByLabelText } = render(<App />);
 
     const indicator = getByLabelText("Current model: gpt-4.1");
     expect(indicator).toBeTruthy();
+    expect(indicator.tagName).toBe("BUTTON");
     expect(indicator.textContent).toContain("gpt-4.1");
+    expect(indicator.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("toggles picker open on click", async () => {
+    const { getByLabelText, queryByTestId } = render(<App />);
+
+    const indicator = getByLabelText("Current model: gpt-4.1");
+
+    // Click to open
+    await act(async () => {
+      fireEvent.click(indicator);
+    });
+
+    expect(indicator.getAttribute("aria-expanded")).toBe("true");
+    expect(queryByTestId("model-picker")).toBeTruthy();
+
+    // Click to close
+    await act(async () => {
+      fireEvent.click(indicator);
+    });
+
+    expect(indicator.getAttribute("aria-expanded")).toBe("false");
+    expect(queryByTestId("model-picker")).toBeNull();
   });
 
   it("reflects model store changes", () => {

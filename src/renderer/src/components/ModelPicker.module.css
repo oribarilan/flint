@@ -1,0 +1,62 @@
+/* ── Model Picker Popover ──────────────────────────────────── */
+
+.popover {
+  position: absolute;
+  bottom: 100%;
+  left: var(--space-sm);
+  margin-bottom: var(--space-xs);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 100;
+  min-width: 180px;
+}
+
+.list {
+  max-height: 240px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-xs) 0;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  cursor: pointer;
+  color: var(--text-primary);
+  font-size: var(--font-sm);
+  user-select: none;
+}
+
+.option:hover,
+.focused {
+  background: var(--bg-hover);
+}
+
+.checkSlot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--icon-sm);
+  flex-shrink: 0;
+}
+
+.checkIcon {
+  color: var(--accent);
+}
+
+.optionName {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.loading {
+  padding: var(--space-md);
+  color: var(--text-secondary);
+  font-size: var(--font-sm);
+  text-align: center;
+}
