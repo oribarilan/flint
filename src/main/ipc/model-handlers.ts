@@ -1,14 +1,10 @@
 import type { ConfigStore } from '../config'
+import type { ModelInfo } from '../types'
 
 export interface RawModelInfo {
   id: string
   name: string
   policy?: { state: string }
-}
-
-export interface ModelInfo {
-  id: string
-  name: string
 }
 
 export function filterModels(models: RawModelInfo[]): ModelInfo[] {

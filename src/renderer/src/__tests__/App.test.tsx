@@ -136,9 +136,9 @@ describe("Model indicator", () => {
   it("renders model name in bottom bar", () => {
     const { getByLabelText } = render(<App />);
 
-    const button = getByLabelText("Current model: gpt-4.1");
-    expect(button).toBeTruthy();
-    expect(button.textContent).toContain("gpt-4.1");
+    const indicator = getByLabelText("Current model: gpt-4.1");
+    expect(indicator).toBeTruthy();
+    expect(indicator.textContent).toContain("gpt-4.1");
   });
 
   it("reflects model store changes", () => {
@@ -149,9 +149,9 @@ describe("Model indicator", () => {
       useModelStore.getState().setCurrentModel("claude-sonnet-4");
     });
 
-    const button = getByLabelText("Current model: claude-sonnet-4");
-    expect(button).toBeTruthy();
-    expect(button.textContent).toContain("claude-sonnet-4");
+    const indicator = getByLabelText("Current model: claude-sonnet-4");
+    expect(indicator).toBeTruthy();
+    expect(indicator.textContent).toContain("claude-sonnet-4");
   });
 
   it("subscribes to onModelChanged on mount", () => {

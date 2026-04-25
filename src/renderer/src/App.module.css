@@ -20,21 +20,14 @@
   border-top: 1px solid var(--border-subtle);
 }
 
-.modelButton {
+.modelIndicator {
   display: flex;
   align-items: center;
   gap: var(--space-xs);
-  min-height: 44px;
+  min-height: var(--icon-container);
   padding: var(--space-xs) var(--space-sm);
-  background: none;
-  border: none;
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.modelButton:hover {
-  background: var(--bg-hover);
 }
 
 .modelName {

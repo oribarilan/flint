@@ -1,9 +1,5 @@
 import { create } from 'zustand'
-
-export interface ModelInfo {
-  id: string
-  name: string
-}
+import type { ModelInfo } from '../../../main/types'
 
 interface ModelState {
   currentModel: string

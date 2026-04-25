@@ -38,4 +38,9 @@ export interface AttentionItem {
   metadata: Record<string, string>; // Context injected into chat on selection
 }
 
+export interface ModelInfo {
+  id: string;
+  name: string;
+}
+
 export type ConnectionStatus = "connected" | "reconnecting" | "disconnected";

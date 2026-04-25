@@ -96,15 +96,15 @@ export default function App() {
       </div>
 
       <footer className={styles.bottomBar}>
-        <button
-          className={styles.modelButton}
+        <div
+          className={styles.modelIndicator}
+          role="status"
           aria-label={`Current model: ${currentModel}`}
-          type="button"
         >
           <Cpu size={16} aria-hidden="true" />
           <span className={styles.modelName}>{currentModel}</span>
           <ChevronUp size={12} className={styles.modelChevron} aria-hidden="true" />
-        </button>
+        </div>
         <button
           className={styles.settingsButton}
           onClick={toggleSettings}

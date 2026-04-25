@@ -1,9 +1,4 @@
-import type { FlintConfig, ConnectionStatus, AttentionItem } from '../../../main/types'
-
-export interface ModelInfo {
-  id: string
-  name: string
-}
+import type { FlintConfig, ConnectionStatus, AttentionItem, ModelInfo } from '../../../main/types'
 
 interface FlintAPI {
   platform: string
