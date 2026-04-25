@@ -2,18 +2,16 @@
 import { afterEach, describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, cleanup } from "@testing-library/react";
 import type { AttentionItem } from "../../../../main/types";
-
-// Must mock ChatEmptyState module before importing useKeyboardNav
-vi.mock("../../components/ChatEmptyState", () => ({
-  SUGGESTIONS: [
-    { icon: "calendar", title: "What are my next meetings?", description: "desc1" },
-    { icon: "clipboard-list", title: "Prepare me for my next meeting", description: "desc2" },
-    { icon: "alert-triangle", title: "Any conflicts this week?", description: "desc3" },
-    { icon: "bar-chart-3", title: "Summarize today's schedule", description: "desc4" },
-  ],
-}));
+import type { Suggestion } from "../../utils/suggestions";
 
 import { useKeyboardNav } from "../useKeyboardNav";
+
+const TEST_SUGGESTIONS: Suggestion[] = [
+  { icon: "calendar", title: "What are my next meetings?", description: "desc1" },
+  { icon: "clipboard-list", title: "Prepare me for my next meeting", description: "desc2" },
+  { icon: "alert-triangle", title: "Any conflicts this week?", description: "desc3" },
+  { icon: "bar-chart-3", title: "Summarize today's schedule", description: "desc4" },
+];
 
 function makeItem(id: string): AttentionItem {
   return {
@@ -28,6 +26,7 @@ function makeItem(id: string): AttentionItem {
 function createDefaultOptions(overrides: Partial<Parameters<typeof useKeyboardNav>[0]> = {}) {
   return {
     items: [makeItem("1"), makeItem("2"), makeItem("3")],
+    suggestions: TEST_SUGGESTIONS,
     hasMessages: false,
     isStreaming: false,
     chatPanelRef: { current: null },

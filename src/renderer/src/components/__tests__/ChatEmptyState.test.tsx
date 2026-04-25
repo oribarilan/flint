@@ -2,6 +2,14 @@
 import { afterEach, describe, it, expect, vi } from "vitest";
 import { cleanup, render, screen, fireEvent } from "@testing-library/react";
 import { ChatEmptyState, getGreeting } from "../ChatEmptyState";
+import { STATIC_SUGGESTIONS } from "../../utils/suggestions";
+
+vi.mock("../../stores/attentionStore", () => ({
+  useAttentionStore: vi.fn((selector) => {
+    const state = { items: [] };
+    return typeof selector === "function" ? selector(state) : state;
+  }),
+}));
 
 afterEach(cleanup);
 
@@ -46,6 +54,11 @@ describe("ChatEmptyState", () => {
     expect(onSend).toHaveBeenCalledWith("Summarize today's schedule");
 
     expect(onSend).toHaveBeenCalledTimes(2);
+  });
+
+  it("exports STATIC_SUGGESTIONS from suggestions utility", () => {
+    expect(STATIC_SUGGESTIONS).toHaveLength(4);
+    expect(STATIC_SUGGESTIONS[0].title).toBe("What are my next meetings?");
   });
 });
 

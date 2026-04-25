@@ -1,34 +1,7 @@
 import { AttentionIcon } from "./AttentionIcon";
+import { useAttentionStore } from "../stores/attentionStore";
+import { buildSuggestions } from "../utils/suggestions";
 import styles from "./ChatEmptyState.module.css";
-
-interface Suggestion {
-  icon: string;
-  title: string;
-  description: string;
-}
-
-export const SUGGESTIONS: Suggestion[] = [
-  {
-    icon: "calendar",
-    title: "What are my next meetings?",
-    description: "See upcoming meetings, times, and attendees",
-  },
-  {
-    icon: "clipboard-list",
-    title: "Prepare me for my next meeting",
-    description: "Get agenda, attendee context, and talking points",
-  },
-  {
-    icon: "alert-triangle",
-    title: "Any conflicts this week?",
-    description: "Find overlapping or back-to-back meetings",
-  },
-  {
-    icon: "bar-chart-3",
-    title: "Summarize today's schedule",
-    description: "Quick overview of your day at a glance",
-  },
-];
 
 export function getGreeting(hour: number): string {
   if (hour < 12) return "Good morning";
@@ -43,6 +16,8 @@ interface ChatEmptyStateProps {
 
 export function ChatEmptyState({ onSend, keyboardFocusedIndex }: ChatEmptyStateProps) {
   const greeting = getGreeting(new Date().getHours());
+  const attentionItems = useAttentionStore((s) => s.items);
+  const suggestions = buildSuggestions(attentionItems);
 
   return (
     <div className={styles.container}>
@@ -51,7 +26,7 @@ export function ChatEmptyState({ onSend, keyboardFocusedIndex }: ChatEmptyStateP
         <p className={styles.subtitle}>I can help you stay on top of your day. Try asking about:</p>
       </div>
       <div className={styles.cards} role="group" aria-label="Suggested prompts">
-        {SUGGESTIONS.map((suggestion, index) => (
+        {suggestions.map((suggestion, index) => (
           <button
             key={suggestion.title}
             className={`${styles.card} ${keyboardFocusedIndex === index ? styles.keyboardFocused : ""}`}
