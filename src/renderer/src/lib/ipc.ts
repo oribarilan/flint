@@ -3,6 +3,7 @@ import type { FlintConfig, ConnectionStatus, AttentionItem, ModelInfo } from '..
 interface FlintAPI {
   platform: string
   chatSend: (prompt: string) => void
+  chatReset: () => Promise<void>
   onChatDelta: (callback: (delta: string) => void) => () => void
   onChatDone: (callback: () => void) => () => void
   getConfig: () => Promise<FlintConfig>

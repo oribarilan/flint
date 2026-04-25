@@ -6,10 +6,12 @@ import { cleanup, render, fireEvent, act, screen } from "@testing-library/react"
 
 // Mock window.flint API
 const mockHideOverlay = vi.fn();
+const mockChatReset = vi.fn(() => Promise.resolve());
 const mockOnModelChanged = vi.fn(() => vi.fn());
 const mockFlint = {
   platform: "darwin",
   chatSend: vi.fn(),
+  chatReset: mockChatReset,
   onChatDelta: vi.fn(() => vi.fn()),
   onChatDone: vi.fn(() => vi.fn()),
   getConfig: vi.fn(() =>
@@ -43,12 +45,15 @@ vi.mock("../hooks/useAttention", () => ({
   }),
 }));
 
+const mockClearMessages = vi.fn();
+
 vi.mock("../hooks/useChat", () => ({
   useChat: () => ({
     messages: [],
     streamingContent: "",
     isStreaming: false,
     sendMessage: vi.fn(),
+    clearMessages: mockClearMessages,
   }),
 }));
 
@@ -68,11 +73,13 @@ vi.mock("../hooks/useConfig", () => ({
 
 import App from "../App";
 import { useModelStore } from "../stores/modelStore";
+import { useAttentionStore } from "../stores/attentionStore";
 
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
   useModelStore.setState({ currentModel: "gpt-4.1", models: [] });
+  useAttentionStore.setState({ items: [], selectedIds: new Set() });
 });
 
 function pressEscape(): void {
@@ -337,9 +344,9 @@ describe("Bottom bar hints", () => {
     const footer = container.querySelector("footer");
     const text = footer!.textContent!;
 
-    // Three middle-dot separators
+    // Four middle-dot separators (new chat · navigate · scroll · open · select)
     const dots = text.match(/·/g);
-    expect(dots).toHaveLength(3);
+    expect(dots).toHaveLength(4);
   });
 
   it("hints section is aria-hidden", () => {
@@ -347,5 +354,87 @@ describe("Bottom bar hints", () => {
 
     const hints = container.querySelector("[aria-hidden='true']");
     expect(hints).toBeTruthy();
+  });
+});
+
+describe("Cmd+N new session", () => {
+  it("calls chatReset and clearMessages on Cmd+N", () => {
+    render(<App />);
+
+    pressCmd("n");
+
+    expect(mockChatReset).toHaveBeenCalledTimes(1);
+    expect(mockClearMessages).toHaveBeenCalledTimes(1);
+  });
+
+  it("clears attention selection on Cmd+N", () => {
+    // Pre-select some items
+    useAttentionStore.setState({ selectedIds: new Set(["item-1", "item-2"]) });
+
+    render(<App />);
+
+    pressCmd("n");
+
+    expect(useAttentionStore.getState().selectedIds.size).toBe(0);
+  });
+
+  it("focuses chat input after Cmd+N", () => {
+    render(<App />);
+
+    // Blur any focused element
+    (document.activeElement as HTMLElement)?.blur();
+
+    pressCmd("n");
+
+    const input = screen.getByPlaceholderText(/Ask about your schedule/);
+    expect(document.activeElement).toBe(input);
+  });
+
+  it("prevents default browser behavior for Cmd+N", () => {
+    render(<App />);
+
+    const event = new KeyboardEvent("keydown", {
+      key: "n",
+      metaKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    const preventSpy = vi.spyOn(event, "preventDefault");
+    document.dispatchEvent(event);
+
+    expect(preventSpy).toHaveBeenCalled();
+  });
+});
+
+describe("Bottom bar new chat hint", () => {
+  it("renders ⌘N new chat hint in bottom bar", () => {
+    const { container } = render(<App />);
+
+    const footer = container.querySelector("footer");
+    const text = footer!.textContent!;
+
+    expect(text).toContain("new chat");
+  });
+
+  it("renders Cmd and N kbd elements in the hint", () => {
+    const { container } = render(<App />);
+
+    const footer = container.querySelector("footer");
+    const kbds = footer!.querySelectorAll("kbd");
+    const keyTexts = Array.from(kbds).map((kbd) => kbd.textContent);
+
+    expect(keyTexts).toContain("Cmd");
+    expect(keyTexts).toContain("N");
+  });
+
+  it("has a separator between new chat and navigation hints", () => {
+    const { container } = render(<App />);
+
+    const footer = container.querySelector("footer");
+    const text = footer!.textContent!;
+
+    // Should now have 4 separators (new chat · navigate · scroll · open · select)
+    const dots = text.match(/·/g);
+    expect(dots).toHaveLength(4);
   });
 });

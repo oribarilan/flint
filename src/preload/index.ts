@@ -6,6 +6,7 @@ const flintAPI = {
   chatSend: (prompt: string): void => {
     ipcRenderer.send('chat:send', prompt)
   },
+  chatReset: (): Promise<void> => ipcRenderer.invoke('chat:reset') as Promise<void>,
   onChatDelta: (callback: (delta: string) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, delta: string): void => {
       callback(delta)

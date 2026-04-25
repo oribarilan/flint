@@ -5,6 +5,7 @@ import { useChat } from "./hooks/useChat";
 import { useConfig } from "./hooks/useConfig";
 import { useKeyboardNav } from "./hooks/useKeyboardNav";
 import { useModelStore } from "./stores/modelStore";
+import { useAttentionStore } from "./stores/attentionStore";
 import { AttentionPanel } from "./components/AttentionPanel";
 import { ChatPanel } from "./components/ChatPanel";
 import { ChatInput } from "./components/ChatInput";
@@ -15,7 +16,7 @@ import styles from "./App.module.css";
 
 export default function App() {
   const { items, selectedIds, toggleSelect } = useAttention();
-  const { messages, streamingContent, isStreaming, sendMessage } = useChat();
+  const { messages, streamingContent, isStreaming, sendMessage, clearMessages } = useChat();
   const { config, isLoaded, updateConfig } = useConfig();
   const currentModel = useModelStore((s) => s.currentModel);
   const setCurrentModel = useModelStore((s) => s.setCurrentModel);
@@ -58,6 +59,15 @@ export default function App() {
         return;
       }
 
+      if (e.metaKey && e.key === "n") {
+        e.preventDefault();
+        window.flint?.chatReset();
+        clearMessages();
+        useAttentionStore.getState().clearSelection();
+        chatInputRef.current?.focus();
+        return;
+      }
+
       if (e.key === "Escape") {
         e.preventDefault();
         if (isPickerOpen) {
@@ -85,7 +95,7 @@ export default function App() {
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [toggleSettings, showSettings, isPickerOpen, resetFocus]);
+  }, [toggleSettings, showSettings, isPickerOpen, resetFocus, clearMessages]);
 
   // Sync model from config on init + subscribe to model:changed from main
   useEffect(() => {
@@ -161,6 +171,9 @@ export default function App() {
           />
         </button>
         <div className={styles.hints} aria-hidden="true">
+          <HotkeyHint keys={["cmd", "n"]} />
+          <span className={styles.hintLabel}>new chat</span>
+          <span className={styles.hintSeparator}>·</span>
           <HotkeyGroup modifier="ctrl" keys={["h", "j", "k", "l"]} />
           <span className={styles.hintLabel}>navigate</span>
           <span className={styles.hintSeparator}>·</span>

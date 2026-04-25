@@ -18,13 +18,13 @@ With keyboard shortcuts implemented, users need discoverability. The bottom bar 
 
 ## Acceptance Criteria
 
-- [ ] Bottom bar shows navigation hints between the model indicator (left) and settings button (right)
-- [ ] Hints render as: `⌃J ⌃K navigate · ⌃U ⌃D scroll · / chat` using `HotkeyHint` components + label text
-- [ ] Hint text uses `--text-placeholder` color, `--font-xs` size — subtle, non-competing
-- [ ] The `·` separator is a middle dot in `--text-placeholder` color
-- [ ] Hints section is horizontally centered (or positioned to avoid crowding the model indicator and settings button)
-- [ ] On narrow overlays, hints gracefully hide or truncate (not overflow)
-- [ ] Unit test: bottom bar renders hotkey hint elements with correct key text
+- [x] Bottom bar shows navigation hints between the model indicator (left) and settings button (right)
+- [x] Hints render as: `Ctrl+H/J/K/L navigate · Ctrl+U/D scroll · ↵ open · Space select` using `HotkeyHint` components + label text (changed from original spec per user direction: modifier symbols → word labels, added enter/space actions, removed `/` chat hint which now appears as a styled `<kbd>` in the chat input instead)
+- [x] Hint text uses `--text-placeholder` color, `--font-xs` size — subtle, non-competing
+- [x] The `·` separator is a middle dot in `--text-placeholder` color
+- [x] Hints section is horizontally centered (or positioned to avoid crowding the model indicator and settings button)
+- [x] On narrow overlays, hints gracefully hide or truncate (not overflow)
+- [x] Unit test: bottom bar renders hotkey hint elements with correct key text
 
 ## Verification
 

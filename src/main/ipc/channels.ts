@@ -1,6 +1,7 @@
 export const IPC_CHANNELS = {
   // renderer → main
   CHAT_SEND: 'chat:send',
+  CHAT_RESET: 'chat:reset',
   CONFIG_GET: 'config:get',
   CONFIG_SET: 'config:set',
   OVERLAY_HIDE: 'overlay:hide',

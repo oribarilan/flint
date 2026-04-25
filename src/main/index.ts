@@ -63,6 +63,19 @@ app.whenReady().then(async () => {
     }
   });
 
+  // Wire chat:reset — destroy session so next chat:send creates a fresh one
+  ipcMain.handle(IPC_CHANNELS.CHAT_RESET, async () => {
+    if (chatSession) {
+      try {
+        await chatSession.abort();
+      } catch {
+        // session may not have an active request
+      }
+      chatSession = null;
+      console.log("[ipc] chat session reset");
+    }
+  });
+
   // Wire chat:send — create session lazily on first message
   ipcMain.removeAllListeners(IPC_CHANNELS.CHAT_SEND);
   ipcMain.on(IPC_CHANNELS.CHAT_SEND, async (_event, prompt: string) => {
