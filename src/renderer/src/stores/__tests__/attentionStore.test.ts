@@ -14,7 +14,7 @@ describe('attentionStore', () => {
 
   it('setItems replaces all items', () => {
     useAttentionStore.getState().setItems([
-      { id: '1', icon: '📅', title: 'Test', description: 'Desc', metadata: {} },
+      { id: '1', icon: 'calendar', title: 'Test', description: 'Desc', metadata: {} },
     ])
     expect(useAttentionStore.getState().items).toHaveLength(1)
   })
@@ -35,8 +35,8 @@ describe('attentionStore', () => {
 
   it('getSelectedItems returns only selected', () => {
     useAttentionStore.getState().setItems([
-      { id: 'a', icon: '📅', title: 'A', description: '', metadata: {} },
-      { id: 'b', icon: '💬', title: 'B', description: '', metadata: {} },
+      { id: 'a', icon: 'calendar', title: 'A', description: '', metadata: {} },
+      { id: 'b', icon: 'message-circle', title: 'B', description: '', metadata: {} },
     ])
     useAttentionStore.getState().toggleSelect('b')
     expect(useAttentionStore.getState().getSelectedItems()).toHaveLength(1)

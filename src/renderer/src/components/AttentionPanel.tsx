@@ -1,3 +1,4 @@
+import { Zap } from 'lucide-react'
 import type { AttentionItem } from '../../../main/types'
 import { AttentionCard } from './AttentionCard'
 import styles from './AttentionPanel.module.css'
@@ -14,7 +15,7 @@ export function AttentionPanel({ items, selectedIds, onSelect, onOpen }: Attenti
     return (
       <div className={styles.panel} data-testid="attention-panel">
         <div className={styles.empty}>
-          <span className={styles.emptyIcon}>⚡</span>
+          <span className={styles.emptyIcon}><Zap size={24} /></span>
           <span className={styles.emptyText}>No items yet</span>
         </div>
       </div>

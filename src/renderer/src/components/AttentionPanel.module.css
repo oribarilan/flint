@@ -35,7 +35,6 @@
 }
 
 .emptyIcon {
-  font-size: var(--font-xl);
   color: var(--text-secondary);
   opacity: 0.5;
 }

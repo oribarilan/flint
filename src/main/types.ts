@@ -25,7 +25,7 @@ export const DEFAULT_CONFIG: FlintConfig = {
 
 export interface AttentionItem {
   id: string
-  icon: string // Emoji (📅 💬 📧 📄)
+  icon: string // Lucide icon name (calendar, message-circle, mail, file-text)
   title: string
   description: string
   timestamp?: string // ISO 8601 — for time badge display

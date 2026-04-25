@@ -1,4 +1,5 @@
 import type { AttentionItem } from '../../../main/types'
+import { AttentionIcon } from './AttentionIcon'
 import styles from './AttentionCard.module.css'
 
 interface AttentionCardProps {
@@ -43,7 +44,7 @@ export function AttentionCard({ item, isSelected, onSelect, onOpen }: AttentionC
 
   return (
     <div className={cardClassName} data-testid={`attention-card-${item.id}`}>
-      <div className={styles.icon}>{item.icon}</div>
+      <div className={styles.icon}><AttentionIcon name={item.icon} size={16} /></div>
 
       <div className={styles.body}>
         <div className={styles.title}>{item.title}</div>
