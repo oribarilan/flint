@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flint — Markdown Rendering Showcase</title>
+<style>
+  /* ── Reset ───────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ── Flint Design Tokens (Dark) ──────────────── */
+  :root {
+    --bg-primary: oklch(14% 0.006 60);
+    --bg-secondary: oklch(19% 0.007 60);
+    --bg-hover: oklch(23% 0.008 60);
+    --bg-selected: oklch(25% 0.01 60);
+    --text-primary: oklch(93% 0.006 60);
+    --text-secondary: oklch(62% 0.008 60);
+    --text-on-accent: oklch(16% 0.02 65);
+    --accent: oklch(74% 0.15 65);
+    --accent-hover: oklch(70% 0.14 65);
+    --border-subtle: oklch(23% 0.006 60);
+    --border-hover: oklch(28% 0.008 60);
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 12px;
+    --space-lg: 16px;
+    --space-xl: 20px;
+    --space-2xl: 24px;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --font-xs: 0.75rem;
+    --font-sm: 0.8125rem;
+    --font-base: 0.875rem;
+    --font-md: 1rem;
+    --font-lg: 1.125rem;
+    --font-xl: 1.5rem;
+    --font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    --font-mono: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", Menlo, Consolas, monospace;
+    --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
+    --transition-fast: 120ms var(--ease-out);
+    --transition-normal: 200ms var(--ease-out);
+
+    /* ── Variant-specific tokens (overridden per variant) ── */
+    --md-bold-color: var(--text-primary);
+    --md-bold-weight: 600;
+    --md-bold-style: normal;
+    --md-italic-color: var(--text-primary);
+    --md-italic-weight: 400;
+    --md-italic-style: italic;
+  }
+
+  @font-face {
+    font-family: "DM Sans";
+    src: local("DM Sans");
+    font-weight: 400 700;
+    font-display: swap;
+  }
+
+  body {
+    background: oklch(10% 0.004 60);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: var(--font-base);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    padding: 24px;
+  }
+
+  /* ── Showcase Controls ──────────────────────── */
+  .controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: oklch(10% 0.004 60);
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .controls button {
+    font-family: var(--font-sans);
+    font-size: var(--font-sm);
+    font-weight: 500;
+    padding: 6px 14px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+  .controls button:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: var(--border-hover);
+  }
+  .controls button.active {
+    background: var(--accent);
+    color: var(--text-on-accent);
+    border-color: var(--accent);
+  }
+  .controls button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .page-title {
+    font-size: var(--font-xl);
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+  }
+  .page-subtitle {
+    font-size: var(--font-base);
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+    line-height: 1.6;
+  }
+
+  /* ── Variant Grid ───────────────────────────── */
+  .variant-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .variant-card {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .variant-card.highlight {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+
+  .variant-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .variant-name {
+    font-size: var(--font-md);
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .variant-tag {
+    font-size: var(--font-xs);
+    font-weight: 500;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .variant-desc {
+    font-size: var(--font-sm);
+    color: var(--text-secondary);
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    line-height: 1.5;
+  }
+
+  /* ── Chat Panel (matches Flint exactly) ─────── */
+  .chat-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-lg);
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    max-height: 520px;
+  }
+
+  .message {
+    max-width: 85%;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-md);
+    font-size: var(--font-md);
+    line-height: 1.6;
+    word-break: break-word;
+  }
+
+  .message.user {
+    align-self: flex-end;
+    background: var(--accent);
+    color: var(--text-on-accent);
+    border-bottom-right-radius: var(--radius-sm);
+    white-space: pre-wrap;
+  }
+
+  .message.assistant {
+    align-self: flex-start;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border-bottom-left-radius: var(--radius-sm);
+  }
+
+  /* ── Markdown Rendering (shared across variants) ── */
+  .message.assistant p {
+    margin-bottom: var(--space-sm);
+  }
+  .message.assistant p:last-child {
+    margin-bottom: 0;
+  }
+
+  .message.assistant h2 {
+    font-size: var(--font-lg);
+    font-weight: 600;
+    margin-top: var(--space-md);
+    margin-bottom: var(--space-xs);
+    color: var(--text-primary);
+    line-height: 1.2;
+  }
+  .message.assistant h2:first-child {
+    margin-top: 0;
+  }
+
+  .message.assistant h3 {
+    font-size: var(--font-md);
+    font-weight: 600;
+    margin-top: var(--space-sm);
+    margin-bottom: var(--space-xs);
+    color: var(--text-primary);
+    line-height: 1.2;
+  }
+
+  .message.assistant ul,
+  .message.assistant ol {
+    padding-left: var(--space-lg);
+    margin-bottom: var(--space-sm);
+  }
+  .message.assistant ul:last-child,
+  .message.assistant ol:last-child {
+    margin-bottom: 0;
+  }
+  .message.assistant li {
+    margin-bottom: var(--space-xs);
+    color: var(--text-primary);
+  }
+  .message.assistant li::marker {
+    color: var(--text-secondary);
+  }
+
+  .message.assistant code:not(pre code) {
+    font-family: var(--font-mono);
+    font-size: var(--font-sm);
+    background: var(--bg-hover);
+    padding: 1px 5px;
+    border-radius: var(--radius-sm);
+  }
+
+  .message.assistant pre {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: var(--space-sm) var(--space-md);
+    margin-bottom: var(--space-sm);
+    overflow-x: auto;
+  }
+  .message.assistant pre:last-child {
+    margin-bottom: 0;
+  }
+  .message.assistant pre code {
+    font-family: var(--font-mono);
+    font-size: var(--font-sm);
+    line-height: 1.5;
+    background: none;
+    padding: 0;
+  }
+
+  .message.assistant a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-color: oklch(74% 0.15 65 / 0.4);
+    text-underline-offset: 2px;
+  }
+  .message.assistant a:hover {
+    text-decoration-color: var(--accent);
+  }
+
+  /* ═══════════════════════════════════════════════
+     VARIANT A — Traditional (baseline)
+     Bold = weight 600, Italic = font-style italic
+     ═══════════════════════════════════════════════ */
+  .variant-a .message.assistant strong {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .variant-a .message.assistant em {
+    font-style: italic;
+    color: var(--text-primary);
+  }
+
+  /* ═══════════════════════════════════════════════
+     VARIANT B — Accent Colors
+     Bold = accent amber, Italic = elevated warm white
+     No weight/style changes — pure color differentiation
+     ═══════════════════════════════════════════════ */
+  .variant-b .message.assistant strong {
+    font-weight: 400;
+    color: var(--accent);
+  }
+  .variant-b .message.assistant em {
+    font-style: normal;
+    color: oklch(78% 0.04 65);
+  }
+
+  /* ═══════════════════════════════════════════════
+     VARIANT C — Warm Tints
+     Bold = bright warm white (higher L, slight chroma)
+     Italic = muted warm tone (lower L, more chroma)
+     Subtle weight on bold (500) for scanability
+     ═══════════════════════════════════════════════ */
+  .variant-c .message.assistant strong {
+    font-weight: 500;
+    color: oklch(97% 0.02 65);
+  }
+  .variant-c .message.assistant em {
+    font-style: normal;
+    color: oklch(72% 0.06 60);
+  }
+
+  /* ═══════════════════════════════════════════════
+     VARIANT D — Hybrid
+     Bold = weight 600 + accent color
+     Italic = italic style + elevated warm tint
+     Best of both worlds — combines signals
+     ═══════════════════════════════════════════════ */
+  .variant-d .message.assistant strong {
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .variant-d .message.assistant em {
+    font-style: italic;
+    color: oklch(78% 0.04 65);
+  }
+
+  /* ── Single view mode ─────────────────────────── */
+  .variant-grid.single-view {
+    grid-template-columns: 1fr;
+    max-width: 560px;
+    margin: 0 auto;
+  }
+  .variant-grid.single-view .variant-card {
+    display: none;
+  }
+  .variant-grid.single-view .variant-card.visible {
+    display: flex;
+  }
+
+  /* ── View toggle ────────────────────────────── */
+  .view-controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .view-controls button {
+    font-family: var(--font-sans);
+    font-size: var(--font-sm);
+    font-weight: 500;
+    padding: 6px 14px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+  .view-controls button:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: var(--border-hover);
+  }
+  .view-controls button.active {
+    background: var(--accent);
+    color: var(--text-on-accent);
+    border-color: var(--accent);
+  }
+
+  /* ── Notes ──────────────────────────────────── */
+  .notes {
+    margin-top: 24px;
+    padding: 16px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-subtle);
+  }
+  .notes h3 {
+    font-size: var(--font-md);
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .notes p {
+    font-size: var(--font-sm);
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 6px;
+  }
+  .notes p:last-child { margin-bottom: 0; }
+</style>
+</head>
+<body>
+
+<h1 class="page-title">Markdown Bold/Italic Rendering</h1>
+<p class="page-subtitle">Comparing how <code style="font-family: var(--font-mono); font-size: var(--font-sm); background: var(--bg-hover); padding: 1px 5px; border-radius: var(--radius-sm);">**bold**</code> and <code style="font-family: var(--font-mono); font-size: var(--font-sm); background: var(--bg-hover); padding: 1px 5px; border-radius: var(--radius-sm);">*italic*</code> render in assistant chat messages. Headers, lists, code, and links are identical across all variants.</p>
+
+<div class="view-controls">
+  <button class="active" onclick="setView('grid')">Side by Side</button>
+  <button onclick="setView('single')">Single View</button>
+</div>
+
+<div class="controls" id="single-controls" style="display: none;">
+  <button class="active" data-variant="a" onclick="showVariant('a')">A. Traditional</button>
+  <button data-variant="b" onclick="showVariant('b')">B. Accent Colors</button>
+  <button data-variant="c" onclick="showVariant('c')">C. Warm Tints</button>
+  <button data-variant="d" onclick="showVariant('d')">D. Hybrid</button>
+</div>
+
+<div class="variant-grid" id="variant-grid">
+
+  <!-- ═══ VARIANT A: Traditional ═══ -->
+  <div class="variant-card variant-a visible" data-variant="a">
+    <div class="variant-header">
+      <span class="variant-name">A. Traditional</span>
+      <span class="variant-tag">Baseline</span>
+    </div>
+    <div class="variant-desc">
+      Bold = font-weight 600. Italic = font-style italic. Standard typographic rendering.
+    </div>
+    <div class="chat-panel" id="chat-a"></div>
+  </div>
+
+  <!-- ═══ VARIANT B: Accent Colors ═══ -->
+  <div class="variant-card variant-b visible" data-variant="b">
+    <div class="variant-header">
+      <span class="variant-name">B. Accent Colors</span>
+    </div>
+    <div class="variant-desc">
+      Bold = amber accent color (no weight change). Italic = warm elevated white (no style change). Pure color differentiation.
+    </div>
+    <div class="chat-panel" id="chat-b"></div>
+  </div>
+
+  <!-- ═══ VARIANT C: Warm Tints ═══ -->
+  <div class="variant-card variant-c visible" data-variant="c">
+    <div class="variant-header">
+      <span class="variant-name">C. Warm Tints</span>
+    </div>
+    <div class="variant-desc">
+      Bold = bright warm white (L97%, slight chroma) + weight 500. Italic = muted warm tone (L72%, more chroma). Subtle, ambient.
+    </div>
+    <div class="chat-panel" id="chat-c"></div>
+  </div>
+
+  <!-- ═══ VARIANT D: Hybrid ═══ -->
+  <div class="variant-card variant-d visible" data-variant="d">
+    <div class="variant-header">
+      <span class="variant-name">D. Hybrid</span>
+    </div>
+    <div class="variant-desc">
+      Bold = weight 600 + accent color. Italic = italic style + warm elevated tint. Combines weight, style, and color signals.
+    </div>
+    <div class="chat-panel" id="chat-d"></div>
+  </div>
+
+</div>
+
+<div class="notes">
+  <h3>Design Notes</h3>
+  <p><strong style="font-weight:600;">Headers, lists, code blocks, and links</strong> are styled identically across all four variants. Only <code style="font-family: var(--font-mono); font-size: var(--font-sm); background: var(--bg-hover); padding: 1px 5px; border-radius: var(--radius-sm);">strong</code> and <code style="font-family: var(--font-mono); font-size: var(--font-sm); background: var(--bg-hover); padding: 1px 5px; border-radius: var(--radius-sm);">em</code> rendering differs.</p>
+  <p>All colors use OKLCH and sit within Flint's warm-tinted neutral palette (hue 60-65). No pure grays.</p>
+  <p>User messages (amber bubbles) are always plain text with no markdown rendering.</p>
+</div>
+
+<script>
+// ── Chat content (realistic Flint conversation with markdown) ──
+
+const chatMessages = [
+  { role: 'user', content: 'What do I have coming up today?' },
+  { role: 'assistant', content: `
+<h2>Your Afternoon</h2>
+<p>You have <strong>3 meetings</strong> remaining today. Here's the breakdown:</p>
+<ul>
+  <li><strong>2:00 PM</strong> \u2014 Design Review with <em>Sarah Chen</em> and <em>Marcus Webb</em>. They shared a <a href="#">Figma link</a> in the invite.</li>
+  <li><strong>3:30 PM</strong> \u2014 Sprint Planning. <em>No agenda attached yet.</em></li>
+  <li><strong>5:00 PM</strong> \u2014 1:1 with <strong>Alex Rivera</strong>. You have <em>carry-over notes</em> from last week.</li>
+</ul>
+<p>The <strong>design review</strong> has a conflict \u2014 it overlaps with a <em>tentative</em> hold on your calendar from 1:45\u20132:15.</p>
+  ` },
+  { role: 'user', content: 'Help me prepare for the design review' },
+  { role: 'assistant', content: `
+<h2>Design Review Prep</h2>
+<p>Based on the invite and recent threads, here's what you should know:</p>
+<h3>Context</h3>
+<p><strong>Sarah</strong> is presenting the <em>updated navigation flow</em> for the mobile app. The last review flagged <strong>two issues</strong>: inconsistent icon sizing and a <em>missing back-navigation pattern</em> on the settings screen.</p>
+<h3>Your Action Items</h3>
+<ul>
+  <li>Review the <strong>Figma prototype</strong> \u2014 specifically frames 12\u201318 covering the <em>onboarding sequence</em></li>
+  <li>Check if the <strong>accessibility audit</strong> results from last sprint were addressed</li>
+  <li>Prepare feedback on the <em>color token migration</em> \u2014 Sarah asked for your input on this</li>
+</ul>
+<h3>Quick Reference</h3>
+<p>The component API they're proposing looks like:</p>
+<pre><code>interface NavConfig {
+  backAction: 'pop' | 'dismiss' | 'custom';
+  title: string;
+  showSearch?: boolean;
+}</code></pre>
+<p>Let me know if you want me to pull up the <em>previous review notes</em> or the <strong>accessibility report</strong>.</p>
+  ` },
+];
+
+// ── Render chat into each variant ──
+
+function renderChat(containerId) {
+  const container = document.getElementById(containerId);
+  chatMessages.forEach(msg => {
+    const div = document.createElement('div');
+    div.className = `message ${msg.role}`;
+    if (msg.role === 'user') {
+      div.textContent = msg.content;
+    } else {
+      div.innerHTML = msg.content.trim();
+    }
+    container.appendChild(div);
+  });
+}
+
+['chat-a', 'chat-b', 'chat-c', 'chat-d'].forEach(renderChat);
+
+// ── View controls ──
+
+function setView(mode) {
+  const grid = document.getElementById('variant-grid');
+  const singleControls = document.getElementById('single-controls');
+  const viewButtons = document.querySelectorAll('.view-controls button');
+
+  viewButtons.forEach(b => b.classList.remove('active'));
+
+  if (mode === 'single') {
+    grid.classList.add('single-view');
+    singleControls.style.display = 'flex';
+    viewButtons[1].classList.add('active');
+    showVariant('a');
+  } else {
+    grid.classList.remove('single-view');
+    singleControls.style.display = 'none';
+    viewButtons[0].classList.add('active');
+    document.querySelectorAll('.variant-card').forEach(c => c.classList.add('visible'));
+  }
+}
+
+function showVariant(id) {
+  document.querySelectorAll('.variant-card').forEach(c => c.classList.remove('visible'));
+  document.querySelector(`.variant-card[data-variant="${id}"]`).classList.add('visible');
+
+  document.querySelectorAll('#single-controls button').forEach(b => {
+    b.classList.toggle('active', b.dataset.variant === id);
+  });
+}
+</script>
+
+</body>
+</html>

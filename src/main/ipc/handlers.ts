@@ -47,4 +47,17 @@ export function registerIpcHandlers(): void {
       shell.openExternal(item.openAction.url)
     }
   })
+
+  ipcMain.on(IPC_CHANNELS.LINK_OPEN, (_event, url: string) => {
+    try {
+      const parsed = new URL(url)
+      if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+        shell.openExternal(url)
+      } else {
+        console.warn('[ipc] link:open blocked non-http URL:', url)
+      }
+    } catch {
+      console.warn('[ipc] link:open invalid URL:', url)
+    }
+  })
 }

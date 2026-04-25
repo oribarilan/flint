@@ -9,6 +9,7 @@ export const IPC_CHANNELS = {
 
   ATTENTION_GET: 'attention:get',
   ATTENTION_OPEN: 'attention:open',
+  LINK_OPEN: 'link:open',
 
   // main → renderer
   CHAT_DELTA: 'chat:delta',

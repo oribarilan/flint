@@ -1,5 +1,6 @@
 import { useRef, useEffect, useCallback, forwardRef } from "react";
 import { ChatEmptyState } from "./ChatEmptyState";
+import { MarkdownContent } from "./MarkdownContent";
 import styles from "./ChatPanel.module.css";
 
 interface ChatMessage {
@@ -66,13 +67,23 @@ export const ChatPanel = forwardRef<HTMLDivElement, ChatPanelProps>(
       <div className={styles.panel} ref={setRefs} onScroll={handleScroll}>
         {messages.map((msg, i) => (
           <div key={i} className={`${styles.message} ${styles[msg.role]}`}>
-            <div className={styles.content}>{msg.content}</div>
+            <div className={styles.content}>
+              {msg.role === "assistant" ? (
+                <MarkdownContent content={msg.content} />
+              ) : (
+                msg.content
+              )}
+            </div>
           </div>
         ))}
         {isStreaming && (
           <div className={`${styles.message} ${styles.assistant}`}>
             <div className={styles.content}>
-              {streamingContent || <span className={styles.thinking}>Thinking…</span>}
+              {streamingContent ? (
+                <MarkdownContent content={streamingContent} />
+              ) : (
+                <span className={styles.thinking}>Thinking…</span>
+              )}
             </div>
           </div>
         )}
