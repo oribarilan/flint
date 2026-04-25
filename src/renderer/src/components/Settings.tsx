@@ -73,6 +73,44 @@ export function Settings({ config, onUpdate, onClose }: SettingsProps) {
           </div>
         </div>
 
+        {/* Background Agent */}
+        <div className={styles.section}>
+          <div className={styles.sectionLabel}>Background Agent</div>
+          <div className={styles.row}>
+            <span className={styles.label}>Background polling</span>
+            <button
+              className={styles.toggle}
+              type="button"
+              role="switch"
+              aria-checked={config.pollEnabled}
+              aria-label="Background polling"
+              onClick={() => onUpdate({ pollEnabled: !config.pollEnabled })}
+            >
+              <span className={styles.toggleKnob} />
+            </button>
+          </div>
+          <div className={styles.row} style={{ opacity: config.pollEnabled ? 1 : 0.5 }}>
+            <span className={styles.label}>Poll frequency</span>
+            <select
+              className={styles.select}
+              value={config.pollFrequency}
+              onChange={(e) =>
+                onUpdate({ pollFrequency: e.target.value as FlintConfig['pollFrequency'] })
+              }
+              disabled={!config.pollEnabled}
+              aria-label="Poll frequency"
+            >
+              <option value="relaxed">Relaxed</option>
+              <option value="normal">Normal</option>
+              <option value="aggressive">Aggressive</option>
+            </select>
+          </div>
+          <div className={styles.row}>
+            <span className={styles.label}>Poll model</span>
+            <span className={styles.value}>{config.pollModel}</span>
+          </div>
+        </div>
+
         {/* System */}
         <div className={styles.section}>
           <div className={styles.sectionLabel}>System</div>

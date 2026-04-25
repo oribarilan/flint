@@ -6,6 +6,9 @@ export interface FlintConfig {
   launchAtLogin: boolean
   showTrayIcon: boolean
   model: string
+  pollEnabled: boolean
+  pollFrequency: 'relaxed' | 'normal' | 'aggressive'
+  pollModel: string
 }
 
 const DEFAULT_CONFIG: FlintConfig = {
@@ -14,6 +17,9 @@ const DEFAULT_CONFIG: FlintConfig = {
   launchAtLogin: true,
   showTrayIcon: true,
   model: 'gpt-4.1',
+  pollEnabled: true,
+  pollFrequency: 'normal',
+  pollModel: 'gpt-4.1-mini',
 }
 
 export function useConfig() {
