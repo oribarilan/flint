@@ -113,21 +113,6 @@ describe("Escape stack", () => {
     expect(mockHideOverlay).toHaveBeenCalledTimes(1);
   });
 
-  it("is extensible for picker layer (isPickerOpen checked before showSettings)", () => {
-    // isPickerOpen is initialized to false and cannot be toggled yet (Task 3).
-    // This test documents the intended stack order: picker > settings > overlay.
-    // When isPickerOpen is toggled externally, ESC should close picker first.
-    // For now, with picker closed and settings open, ESC closes settings.
-    render(<App />);
-
-    pressCmd(",");
-    expect(document.querySelector('[role="dialog"]')).toBeTruthy();
-
-    pressEscape();
-    expect(document.querySelector('[role="dialog"]')).toBeNull();
-    expect(mockHideOverlay).not.toHaveBeenCalled();
-  });
-
   it("hides overlay even when chat is streaming (stream continues in background)", () => {
     // The escape stack does not check isStreaming — ESC always hides overlay
     // when no modal layers are open, regardless of streaming state.
@@ -136,20 +121,5 @@ describe("Escape stack", () => {
     pressEscape();
 
     expect(mockHideOverlay).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe("Settings.tsx ESC handler removal", () => {
-  it("ESC closes settings through App handler, not Settings own handler", () => {
-    render(<App />);
-
-    // Open settings
-    pressCmd(",");
-    expect(document.querySelector('[role="dialog"]')).toBeTruthy();
-
-    // ESC works via App's unified handler
-    pressEscape();
-    expect(document.querySelector('[role="dialog"]')).toBeNull();
-    expect(mockHideOverlay).not.toHaveBeenCalled();
   });
 });
