@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { Settings as SettingsIcon } from 'lucide-react'
 import { useAttention } from './hooks/useAttention'
 import { useChat } from './hooks/useChat'
 import { useConfig } from './hooks/useConfig'
@@ -43,19 +44,6 @@ export default function App() {
 
   return (
     <div className={styles.root} data-testid="app-root">
-      <header className={styles.header}>
-        <span className={styles.headerIcon}>⚡</span>
-        <span className={styles.headerLabel}>FLINT</span>
-        <button
-          className={styles.settingsButton}
-          onClick={toggleSettings}
-          aria-label="Open settings"
-          type="button"
-        >
-          ⚙
-        </button>
-      </header>
-
       <div className={styles.splitBody}>
         {/* Left panel: attention */}
         <div className={styles.splitLeft}>
@@ -77,6 +65,17 @@ export default function App() {
           />
         </div>
       </div>
+
+      <footer className={styles.bottomBar}>
+        <button
+          className={styles.settingsButton}
+          onClick={toggleSettings}
+          aria-label="Open settings"
+          type="button"
+        >
+          <SettingsIcon size={16} />
+        </button>
+      </footer>
 
       {showSettings && isLoaded && (
         <Settings config={config} onUpdate={updateConfig} onClose={() => setShowSettings(false)} />

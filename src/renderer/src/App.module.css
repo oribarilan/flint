@@ -11,23 +11,13 @@
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6), 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
-.header {
-  padding: var(--space-md) var(--space-lg);
+.bottomBar {
+  padding: var(--space-xs) var(--space-lg);
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  justify-content: flex-end;
   flex-shrink: 0;
-}
-
-.headerIcon {
-  font-size: var(--font-md);
-}
-
-.headerLabel {
-  color: var(--text-secondary);
-  font-size: var(--font-xs);
-  font-weight: 600;
-  letter-spacing: 0.5px;
+  border-top: 1px solid var(--border-subtle);
 }
 
 .settingsButton {
@@ -56,7 +46,6 @@
   flex: 1;
   display: flex;
   min-height: 0;
-  border-top: 1px solid var(--border-subtle);
 }
 
 .splitLeft {
