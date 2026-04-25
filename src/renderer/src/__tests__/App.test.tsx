@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 import { afterEach, describe, it, expect, vi } from "vitest";
-import { cleanup, render, fireEvent } from "@testing-library/react";
+import { cleanup, render, fireEvent, act } from "@testing-library/react";
 
 // --- Mocks must be set up before importing App ---
 
 // Mock window.flint API
 const mockHideOverlay = vi.fn();
+const mockOnModelChanged = vi.fn(() => vi.fn());
 const mockFlint = {
   platform: "darwin",
   chatSend: vi.fn(),
@@ -17,6 +18,7 @@ const mockFlint = {
       alertMinutes: 5,
       launchAtLogin: true,
       showTrayIcon: true,
+      model: "gpt-4.1",
     }),
   ),
   setConfig: vi.fn(),
@@ -25,6 +27,9 @@ const mockFlint = {
   getAttentionItems: vi.fn(() => Promise.resolve([])),
   onAttentionUpdate: vi.fn(() => vi.fn()),
   openAttentionItem: vi.fn(),
+  listModels: vi.fn(() => Promise.resolve([])),
+  setModel: vi.fn(),
+  onModelChanged: mockOnModelChanged,
 };
 
 Object.defineProperty(window, "flint", { value: mockFlint, writable: true });
@@ -54,6 +59,7 @@ vi.mock("../hooks/useConfig", () => ({
       alertMinutes: 5,
       launchAtLogin: true,
       showTrayIcon: true,
+      model: "gpt-4.1",
     },
     isLoaded: true,
     updateConfig: vi.fn(),
@@ -61,10 +67,12 @@ vi.mock("../hooks/useConfig", () => ({
 }));
 
 import App from "../App";
+import { useModelStore } from "../stores/modelStore";
 
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  useModelStore.setState({ currentModel: "gpt-4.1", models: [] });
 });
 
 function pressEscape(): void {
@@ -121,5 +129,35 @@ describe("Escape stack", () => {
     pressEscape();
 
     expect(mockHideOverlay).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("Model indicator", () => {
+  it("renders model name in bottom bar", () => {
+    const { getByLabelText } = render(<App />);
+
+    const button = getByLabelText("Current model: gpt-4.1");
+    expect(button).toBeTruthy();
+    expect(button.textContent).toContain("gpt-4.1");
+  });
+
+  it("reflects model store changes", () => {
+    const { getByLabelText } = render(<App />);
+
+    // Update model store directly (simulates model:changed IPC)
+    act(() => {
+      useModelStore.getState().setCurrentModel("claude-sonnet-4");
+    });
+
+    const button = getByLabelText("Current model: claude-sonnet-4");
+    expect(button).toBeTruthy();
+    expect(button.textContent).toContain("claude-sonnet-4");
+  });
+
+  it("subscribes to onModelChanged on mount", () => {
+    render(<App />);
+
+    expect(mockOnModelChanged).toHaveBeenCalledTimes(1);
+    expect(typeof mockOnModelChanged.mock.calls[0][0]).toBe("function");
   });
 });

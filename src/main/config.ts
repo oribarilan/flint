@@ -19,6 +19,7 @@ export function createConfigStore(): ConfigStore {
         alertMinutes: store.get('alertMinutes', DEFAULT_CONFIG.alertMinutes) as number,
         launchAtLogin: store.get('launchAtLogin', DEFAULT_CONFIG.launchAtLogin) as boolean,
         showTrayIcon: store.get('showTrayIcon', DEFAULT_CONFIG.showTrayIcon) as boolean,
+        model: store.get('model', DEFAULT_CONFIG.model) as string,
       }
     },
 

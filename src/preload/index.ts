@@ -57,6 +57,21 @@ const flintAPI = {
   openAttentionItem: (id: string): void => {
     ipcRenderer.send('attention:open', id)
   },
+
+  listModels: (): Promise<{ id: string; name: string }[]> =>
+    ipcRenderer.invoke('model:list') as Promise<{ id: string; name: string }[]>,
+  setModel: (id: string): void => {
+    ipcRenderer.send('model:set', id)
+  },
+  onModelChanged: (callback: (modelId: string) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, modelId: string): void => {
+      callback(modelId)
+    }
+    ipcRenderer.on('model:changed', handler)
+    return () => {
+      ipcRenderer.removeListener('model:changed', handler)
+    }
+  },
 }
 
 contextBridge.exposeInMainWorld('flint', flintAPI)

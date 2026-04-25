@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Settings as SettingsIcon } from "lucide-react";
+import { Settings as SettingsIcon, Cpu, ChevronUp } from "lucide-react";
 import { useAttention } from "./hooks/useAttention";
 import { useChat } from "./hooks/useChat";
 import { useConfig } from "./hooks/useConfig";
+import { useModelStore } from "./stores/modelStore";
 import { AttentionPanel } from "./components/AttentionPanel";
 import { ChatPanel } from "./components/ChatPanel";
 import { ChatInput } from "./components/ChatInput";
@@ -13,6 +14,8 @@ export default function App() {
   const { items, selectedIds, toggleSelect } = useAttention();
   const { messages, streamingContent, isStreaming, sendMessage } = useChat();
   const { config, isLoaded, updateConfig } = useConfig();
+  const currentModel = useModelStore((s) => s.currentModel);
+  const setCurrentModel = useModelStore((s) => s.setCurrentModel);
   const [showSettings, setShowSettings] = useState(false);
 
   const toggleSettings = useCallback(() => {
@@ -39,6 +42,20 @@ export default function App() {
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [toggleSettings, showSettings]);
+
+  // Sync model from config on init + subscribe to model:changed from main
+  useEffect(() => {
+    if (isLoaded && config.model) {
+      setCurrentModel(config.model);
+    }
+  }, [isLoaded, config.model, setCurrentModel]);
+
+  useEffect(() => {
+    const unsub = window.flint?.onModelChanged((modelId: string) => {
+      setCurrentModel(modelId);
+    });
+    return () => unsub?.();
+  }, [setCurrentModel]);
 
   const handleOpen = (id: string): void => {
     window.flint?.openAttentionItem(id);
@@ -79,6 +96,15 @@ export default function App() {
       </div>
 
       <footer className={styles.bottomBar}>
+        <button
+          className={styles.modelButton}
+          aria-label={`Current model: ${currentModel}`}
+          type="button"
+        >
+          <Cpu size={16} aria-hidden="true" />
+          <span className={styles.modelName}>{currentModel}</span>
+          <ChevronUp size={12} className={styles.modelChevron} aria-hidden="true" />
+        </button>
         <button
           className={styles.settingsButton}
           onClick={toggleSettings}
