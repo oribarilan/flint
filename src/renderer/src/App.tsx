@@ -20,6 +20,7 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const modelButtonRef = useRef<HTMLButtonElement>(null);
+  const chatInputRef = useRef<HTMLInputElement>(null);
 
   const toggleSettings = useCallback(() => {
     setShowSettings((prev) => !prev);
@@ -47,6 +48,19 @@ export default function App() {
           setShowSettings(false);
         } else {
           window.flint?.hideOverlay();
+        }
+        return;
+      }
+
+      if (e.key === "/") {
+        const el = document.activeElement;
+        const isText =
+          el instanceof HTMLInputElement ||
+          el instanceof HTMLTextAreaElement ||
+          (el instanceof HTMLElement && el.isContentEditable);
+        if (!isText) {
+          e.preventDefault();
+          chatInputRef.current?.focus();
         }
       }
     };
@@ -99,6 +113,7 @@ export default function App() {
             onSend={sendMessage}
           />
           <ChatInput
+            ref={chatInputRef}
             onSend={sendMessage}
             disabled={isStreaming}
             selectedItems={selectedItemSummaries}

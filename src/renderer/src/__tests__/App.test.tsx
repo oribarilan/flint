@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, it, expect, vi } from "vitest";
-import { cleanup, render, fireEvent, act } from "@testing-library/react";
+import { cleanup, render, fireEvent, act, screen } from "@testing-library/react";
 
 // --- Mocks must be set up before importing App ---
 
@@ -81,6 +81,10 @@ function pressEscape(): void {
 
 function pressCmd(key: string): void {
   fireEvent.keyDown(document, { key, metaKey: true });
+}
+
+function pressSlash(): void {
+  fireEvent.keyDown(document, { key: "/" });
 }
 
 describe("Escape stack", () => {
@@ -230,5 +234,59 @@ describe("Model indicator", () => {
 
     expect(mockOnModelChanged).toHaveBeenCalledTimes(1);
     expect(typeof mockOnModelChanged.mock.calls[0][0]).toBe("function");
+  });
+});
+
+describe("Slash-to-focus shortcut", () => {
+  it("focuses chat input when nothing is focused", () => {
+    render(<App />);
+
+    // Blur any focused element so nothing has focus
+    (document.activeElement as HTMLElement)?.blur();
+
+    pressSlash();
+
+    const input = screen.getByPlaceholderText(/Ask about your schedule/);
+    expect(document.activeElement).toBe(input);
+  });
+
+  it("does not intercept / when the chat input already has focus", () => {
+    render(<App />);
+
+    const input = screen.getByPlaceholderText(/Ask about your schedule/);
+    input.focus();
+
+    // The keydown event should not call preventDefault
+    const event = new KeyboardEvent("keydown", { key: "/", bubbles: true, cancelable: true });
+    const preventSpy = vi.spyOn(event, "preventDefault");
+    document.dispatchEvent(event);
+
+    expect(preventSpy).not.toHaveBeenCalled();
+  });
+
+  it("does not intercept / when another text input has focus", () => {
+    render(<App />);
+
+    // Add a standalone input to the DOM and focus it
+    const otherInput = document.createElement("input");
+    otherInput.type = "text";
+    document.body.appendChild(otherInput);
+    otherInput.focus();
+
+    const event = new KeyboardEvent("keydown", { key: "/", bubbles: true, cancelable: true });
+    const preventSpy = vi.spyOn(event, "preventDefault");
+    document.dispatchEvent(event);
+
+    expect(preventSpy).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(otherInput);
+
+    document.body.removeChild(otherInput);
+  });
+
+  it("placeholder text includes / hint", () => {
+    render(<App />);
+
+    const input = screen.getByPlaceholderText(/\/$/);
+    expect(input).toBeTruthy();
   });
 });

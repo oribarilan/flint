@@ -1,4 +1,4 @@
-import { useState, useCallback, type KeyboardEvent } from 'react'
+import { useState, useCallback, forwardRef, type KeyboardEvent } from 'react'
 import styles from './ChatInput.module.css'
 
 interface SelectedItemSummary {
@@ -21,12 +21,10 @@ function formatSelectedLabel(items: SelectedItemSummary[]): string {
   return remainder > 0 ? `${visible.join(', ')}...` : visible.join(', ')
 }
 
-export function ChatInput({
-  onSend,
-  disabled,
-  placeholder = 'Ask about your schedule...',
-  selectedItems = [],
-}: ChatInputProps) {
+export const ChatInput = forwardRef<HTMLInputElement, ChatInputProps>(function ChatInput(
+  { onSend, disabled, placeholder = 'Ask about your schedule…  /', selectedItems = [] },
+  ref
+) {
   const [value, setValue] = useState('')
 
   const handleSubmit = useCallback(() => {
@@ -49,6 +47,7 @@ export function ChatInput({
   return (
     <div className={styles.container}>
       <input
+        ref={ref}
         className={styles.input}
         type="text"
         value={value}
@@ -64,4 +63,4 @@ export function ChatInput({
       )}
     </div>
   )
-}
+})
