@@ -1,0 +1,97 @@
+/* ── Chat empty state ──────────────────────────────────────── */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-2xl) var(--space-lg);
+  gap: var(--space-xl);
+}
+
+/* ── Header ───────────────────────────────────────────────── */
+
+.header {
+  text-align: center;
+}
+
+.greeting {
+  font-size: var(--font-xl);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-xs);
+}
+
+.subtitle {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* ── Suggestion cards ─────────────────────────────────────── */
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  width: 100%;
+  max-width: 380px;
+}
+
+.card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.card:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-hover);
+}
+
+.card:focus-visible {
+  background: var(--bg-hover);
+  border-color: var(--border-hover);
+}
+
+/* ── Card content ─────────────────────────────────────────── */
+
+.cardIcon {
+  flex-shrink: 0;
+  width: var(--icon-container);
+  height: var(--icon-container);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-lg);
+}
+
+.cardText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.cardTitle {
+  font-size: var(--font-md);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.cardDescription {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  line-height: 1.4;
+}

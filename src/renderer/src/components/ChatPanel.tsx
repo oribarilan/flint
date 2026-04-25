@@ -1,4 +1,5 @@
 import { useRef, useEffect, useCallback } from "react";
+import { ChatEmptyState } from "./ChatEmptyState";
 import styles from "./ChatPanel.module.css";
 
 interface ChatMessage {
@@ -10,11 +11,12 @@ interface ChatPanelProps {
   messages: ChatMessage[];
   streamingContent: string;
   isStreaming: boolean;
+  onSend: (message: string) => void;
 }
 
 const SCROLL_THRESHOLD = 50;
 
-export function ChatPanel({ messages, streamingContent, isStreaming }: ChatPanelProps) {
+export function ChatPanel({ messages, streamingContent, isStreaming, onSend }: ChatPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
 
@@ -33,7 +35,7 @@ export function ChatPanel({ messages, streamingContent, isStreaming }: ChatPanel
     }
   });
 
-  if (messages.length === 0 && !isStreaming) return null;
+  if (messages.length === 0 && !isStreaming) return <ChatEmptyState onSend={onSend} />;
 
   return (
     <div className={styles.panel} ref={panelRef} onScroll={handleScroll}>

@@ -58,6 +58,7 @@ export default function App() {
             messages={messages}
             streamingContent={streamingContent}
             isStreaming={isStreaming}
+            onSend={sendMessage}
           />
           <ChatInput
             onSend={sendMessage}

@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flint — Chat Empty State Showcase</title>
+<style>
+/* ── Reset ──────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Page ───────────────────────────────────────────────── */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  background: #1a1a1c;
+  color: #e0ddd8;
+  padding: 32px 40px 60px;
+  min-height: 100vh;
+}
+
+/* ── Controls bar ───────────────────────────────────────── */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+.controls h1 {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: #b0a890;
+  margin-right: auto;
+}
+.controls button {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid #333;
+  background: transparent;
+  color: #999;
+  cursor: pointer;
+  transition: all 120ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+.controls button:hover {
+  background: #2a2a2c;
+  color: #ccc;
+}
+.controls button.active {
+  background: oklch(74% 0.15 65 / 0.12);
+  border-color: oklch(74% 0.15 65 / 0.3);
+  color: oklch(82% 0.1 65);
+}
+
+/* ── Variant labels ─────────────────────────────────────── */
+.variant-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 12px;
+  margin-top: 36px;
+}
+.variant-header:first-of-type { margin-top: 0; }
+.variant-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: oklch(74% 0.15 65);
+  letter-spacing: 0.03em;
+}
+.variant-desc {
+  font-size: 11px;
+  color: #777;
+  font-weight: 400;
+}
+
+/* ── Fidelity: Overlay frame ────────────────────────────── */
+.overlay-frame {
+  width: 1032px;
+  height: 520px;
+  border-radius: 12px;
+  border: 1px solid oklch(23% 0.006 60);
+  overflow: hidden;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 1px rgba(255,255,255,0.1);
+  display: flex;
+  flex-direction: column;
+  /* Flint tokens */
+  --font-xs: 0.625rem;
+  --font-sm: 0.6875rem;
+  --font-base: 0.75rem;
+  --font-md: 0.8125rem;
+  --font-lg: 1rem;
+  --font-xl: 1.25rem;
+  --bg-primary: oklch(14% 0.006 60);
+  --bg-secondary: oklch(19% 0.007 60);
+  --bg-hover: oklch(23% 0.008 60);
+  --bg-selected: oklch(25% 0.01 60);
+  --bg-accent-subtle: oklch(74% 0.15 65 / 0.1);
+  --text-primary: oklch(93% 0.006 60);
+  --text-secondary: oklch(62% 0.008 60);
+  --text-placeholder: oklch(43% 0.006 60);
+  --text-on-accent: oklch(16% 0.02 65);
+  --accent: oklch(74% 0.15 65);
+  --accent-hover: oklch(70% 0.14 65);
+  --border-subtle: oklch(23% 0.006 60);
+  --border-hover: oklch(28% 0.008 60);
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 20px;
+  --space-2xl: 24px;
+  --space-3xl: 32px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+  --icon-container: 30px;
+  --shadow-sm: 0 1px 3px oklch(4% 0.01 60 / 0.3);
+  --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
+  --transition-fast: 120ms cubic-bezier(0.25, 1, 0.5, 1);
+  --transition-normal: 200ms cubic-bezier(0.25, 1, 0.5, 1);
+
+  font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  font-size: var(--font-base);
+  line-height: 1.5;
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  background: var(--bg-primary);
+}
+
+/* ── Light theme override ───────────────────────────────── */
+.overlay-frame.light {
+  --bg-primary: oklch(98% 0.005 65);
+  --bg-secondary: oklch(94% 0.008 65);
+  --bg-hover: oklch(91% 0.01 65);
+  --bg-selected: oklch(89% 0.012 65);
+  --bg-accent-subtle: oklch(58% 0.15 60 / 0.08);
+  --text-primary: oklch(21% 0.01 60);
+  --text-secondary: oklch(47% 0.01 60);
+  --text-placeholder: oklch(63% 0.008 60);
+  --text-on-accent: oklch(98% 0.005 60);
+  --accent: oklch(58% 0.15 60);
+  --accent-hover: oklch(53% 0.14 60);
+  --border-subtle: oklch(88% 0.008 65);
+  --border-hover: oklch(82% 0.01 65);
+  --shadow-sm: 0 1px 3px oklch(50% 0.02 60 / 0.06);
+  box-shadow: 0 12px 28px oklch(50% 0.02 60 / 0.1), 0 0 1px rgba(0,0,0,0.08);
+}
+
+/* ── Header ─────────────────────────────────────────────── */
+.flint-header {
+  padding: var(--space-md) var(--space-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+.flint-header-icon { font-size: var(--font-md); }
+.flint-header-label {
+  color: var(--text-secondary);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.flint-header-settings {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--icon-container);
+  height: var(--icon-container);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: var(--font-md);
+}
+
+/* ── Split layout ───────────────────────────────────────── */
+.split-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  border-top: 1px solid var(--border-subtle);
+}
+.split-left {
+  width: 40%;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+}
+.split-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* ── Attention panel (mock) ─────────────────────────────── */
+.attention-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.attention-label {
+  font-size: var(--font-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.05em;
+  padding: var(--space-md) var(--space-lg) var(--space-xs);
+}
+.attention-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-xs) 0;
+}
+.attention-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-lg);
+  cursor: default;
+}
+.attention-card-icon {
+  width: var(--icon-container);
+  height: var(--icon-container);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.attention-card-body { min-width: 0; flex: 1; }
+.attention-card-title {
+  font-size: var(--font-md);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.attention-card-meta {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.attention-card-time {
+  font-size: var(--font-xs);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.attention-card.imminent .attention-card-icon {
+  background: var(--accent);
+}
+.attention-card.imminent .attention-card-icon span {
+  filter: brightness(0.2);
+}
+.attention-card.imminent .attention-card-time {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* ── Chat input (shared) ────────────────────────────────── */
+.chat-input-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
+  border-top: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+.chat-input {
+  flex: 1;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--font-md);
+  color: var(--text-primary);
+  outline: none;
+  font-family: inherit;
+}
+.chat-input::placeholder { color: var(--text-placeholder); }
+.chat-input:focus { border-color: var(--accent); }
+.chat-input-hint {
+  flex-shrink: 0;
+  font-size: var(--font-xs);
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+/* ── Empty state area ───────────────────────────────────── */
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ════════════════════════════════════════════════════════════
+   VARIANT A — "Whisper"
+   Minimal. No greeting. Ghost-border chips centered.
+   ════════════════════════════════════════════════════════════ */
+
+.whisper-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+}
+.whisper-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  justify-content: center;
+  max-width: 420px;
+}
+.whisper-chip {
+  font: inherit;
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+.whisper-chip:hover {
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+.whisper-chip:active {
+  transform: scale(0.97);
+}
+
+/* ════════════════════════════════════════════════════════════
+   VARIANT B — "Spark"
+   Balanced. Small icon, one-line greeting, horizontal pills.
+   ════════════════════════════════════════════════════════════ */
+
+.spark-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-lg);
+  padding: var(--space-lg);
+}
+.spark-icon {
+  font-size: 20px;
+  opacity: 0.6;
+}
+.spark-greeting {
+  font-size: var(--font-md);
+  color: var(--text-secondary);
+  text-align: center;
+}
+.spark-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  justify-content: center;
+  max-width: 440px;
+}
+.spark-chip {
+  font: inherit;
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+.spark-chip:hover {
+  background: var(--bg-accent-subtle);
+  color: var(--text-primary);
+  border-color: oklch(74% 0.15 65 / 0.15);
+}
+.overlay-frame.light .spark-chip:hover {
+  border-color: oklch(58% 0.15 60 / 0.15);
+}
+.spark-chip:active {
+  transform: scale(0.97);
+}
+
+/* ════════════════════════════════════════════════════════════
+   VARIANT C — "Guide"
+   Rich. Time-aware greeting, vertical cards with descriptions.
+   ════════════════════════════════════════════════════════════ */
+
+.guide-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-xl) var(--space-2xl);
+  gap: var(--space-lg);
+  overflow-y: auto;
+}
+.guide-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+.guide-greeting {
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.guide-subtitle {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.guide-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.guide-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  border: none;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  width: 100%;
+}
+.guide-card:hover {
+  background: var(--bg-hover);
+}
+.guide-card:active {
+  transform: scale(0.995);
+}
+.guide-card-icon {
+  width: var(--icon-container);
+  height: var(--icon-container);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.guide-card-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.guide-card-title {
+  font-size: var(--font-md);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+.guide-card-desc {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* ════════════════════════════════════════════════════════════
+   VARIANT D — "Strike"
+   Personality-forward. Bold greeting, staggered chips, kbd hint.
+   ════════════════════════════════════════════════════════════ */
+
+.strike-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: var(--space-xl) var(--space-2xl);
+  gap: var(--space-lg);
+}
+.strike-greeting {
+  font-size: var(--font-lg);
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+.strike-greeting em {
+  font-style: normal;
+  color: var(--accent);
+}
+.strike-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: flex-start;
+}
+.strike-chip {
+  font: inherit;
+  font-size: var(--font-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+.strike-chip:hover {
+  border-color: var(--accent);
+  background: var(--bg-accent-subtle);
+}
+.strike-chip:active {
+  transform: scale(0.97);
+}
+.strike-hint {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--font-xs);
+  color: var(--text-placeholder);
+  margin-top: var(--space-xs);
+}
+.strike-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  line-height: 1;
+}
+
+/* ── Hidden utility ─────────────────────────────────────── */
+.hidden { display: none !important; }
+
+/* ── Page-level notes ───────────────────────────────────── */
+.notes {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid #333;
+  font-size: 12px;
+  color: #666;
+  max-width: 720px;
+  line-height: 1.6;
+}
+.notes h2 {
+  font-size: 12px;
+  font-weight: 600;
+  color: #999;
+  letter-spacing: 0.03em;
+  margin-bottom: 8px;
+}
+.notes ul { padding-left: 16px; }
+.notes li { margin-bottom: 4px; }
+.notes strong { color: #888; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- ── Controls ───────────────────────────────────────────── -->
+<div class="controls">
+  <h1>CHAT EMPTY STATE</h1>
+  <button class="active" onclick="showVariant('whisper')">A — Whisper</button>
+  <button onclick="showVariant('spark')">B — Spark</button>
+  <button onclick="showVariant('guide')">C — Guide</button>
+  <button onclick="showVariant('strike')">D — Strike</button>
+  <span style="width: 1px; height: 20px; background: #333; margin: 0 4px;"></span>
+  <button onclick="toggleTheme(this)">Light Theme</button>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     VARIANT A — "Whisper"
+     ════════════════════════════════════════════════════════════ -->
+
+<div class="variant-header" id="label-whisper">
+  <span class="variant-name">A — Whisper</span>
+  <span class="variant-desc">Minimal. No greeting. Ghost-border pills. The input already says enough.</span>
+</div>
+
+<div class="overlay-frame" id="variant-whisper">
+  <div class="flint-header">
+    <span class="flint-header-icon">⚡</span>
+    <span class="flint-header-label">FLINT</span>
+    <span class="flint-header-settings">⚙</span>
+  </div>
+  <div class="split-body">
+    <div class="split-left">
+      <div class="attention-panel">
+        <div class="attention-label">ATTENTION</div>
+        <div class="attention-list">
+          <div class="attention-card imminent">
+            <div class="attention-card-icon"><span>📅</span></div>
+            <div class="attention-card-body">
+              <div class="attention-card-title">Design Review — Overlay UX</div>
+              <div class="attention-card-meta">Sarah, James, + 2 others</div>
+            </div>
+            <div class="attention-card-time">in 8 min</div>
+          </div>
+          <div class="attention-card">
+            <div class="attention-card-icon"><span>📅</span></div>
+            <div class="attention-card-body">
+              <div class="attention-card-title">1:1 with Alex</div>
+              <div class="attention-card-meta">Alex Chen</div>
+            </div>
+            <div class="attention-card-time">11:00</div>
+          </div>
+          <div class="attention-card">
+            <div class="attention-card-icon"><span>📅</span></div>
+            <div class="attention-card-body">
+              <div class="attention-card-title">Sprint Planning</div>
+              <div class="attention-card-meta">Team Ember</div>
+            </div>
+            <div class="attention-card-time">14:30</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="split-right">
+      <div class="empty-state">
+        <div class="whisper-body">
+          <div class="whisper-chips">
+            <button class="whisper-chip" onclick="fillInput(this, 'What are my next meetings?')">What are my next meetings?</button>
+            <button class="whisper-chip" onclick="fillInput(this, 'Summarize today\'s schedule')">Summarize today's schedule</button>
+            <button class="whisper-chip" onclick="fillInput(this, 'Any conflicts this week?')">Any conflicts this week?</button>
+            <button class="whisper-chip" onclick="fillInput(this, 'Prepare me for my next meeting')">Prepare me for my next meeting</button>
+          </div>
+        </div>
+      </div>
+      <div class="chat-input-bar">
+        <input class="chat-input" type="text" placeholder="Ask about your schedule..." />
+        <span class="chat-input-hint">⏎</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     VARIANT B — "Spark"
+     ════════════════════════════════════════════════════════════ -->
+
+<div class="variant-header hidden" id="label-spark">
+  <span class="variant-name">B — Spark</span>
+  <span class="variant-desc">Balanced. Icon + greeting + accent-tinted pills. Clean, inviting default.</span>
+</div>
+
+<div class="overlay-frame hidden" id="variant-spark">
+  <div class="flint-header">
+    <span class="flint-header-icon">⚡</span>
+    <span class="flint-header-label">FLINT</span>
+    <span class="flint-header-settings">⚙</span>
+  </div>
+  <div class="split-body">
+    <div class="split-left">
+      <div class="attention-panel">
+        <div class="attention-label">ATTENTION</div>
+        <div class="attention-list">
+          <div class="attention-card imminent">
+            <div class="attention-card-icon"><span>📅</span></div>
+            <div class="attention-card-body">
+              <div class="attention-card-title">Design Review — Overlay UX</div>
+              <div class="attention-card-meta">Sarah, James, + 2 others</div>
+            </div>
+            <div class="attention-card-time">in 8 min</div>
+          </div>
+          <div class="attention-card">
+            <div class="attention-card-icon"><span>📅</span></div>
+            <div class="attention-card-body">
+              <div class="attention-card-title">1:1 with Alex</div>
+              <div class="attention-card-meta">Alex Chen</div>
+            </div>
+            <div class="attention-card-time">11:00</div>
+          </div>
+          <div class="attention-card">
+            <div class="attention-card-icon"><span>📅</span></div>
+            <div class="attention-card-body">
+              <div class="attention-card-title">Sprint Planning</div>
+              <div class="attention-card-meta">Team Ember</div>
+            </div>
+            <div class="attention-card-time">14:30</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="split-right">
+      <div class="empty-state">
+        <div class="spark-body">
+          <div class="spark-icon">⚡</div>
+          <div class="spark-greeting">What can I help with?</div>
+          <div class="spark-chips">
+            <button class="spark-chip" onclick="fillInput(this, 'What are my next meetings?')">What are my next meetings?</button>
+            <button class="spark-chip" onclick="fillInput(this, 'Summarize today\'s schedule')">Summarize today's schedule</button>
+            <button class="spark-chip" onclick="fillInput(this, 'Prepare me for my next meeting')">Prepare me for my next meeting</button>
+            <button class="spark-chip" onclick="fillInput(this, 'Any conflicts this week?')">Any conflicts this week?</button>
+            <button class="spark-chip" onclick="fillInput(this, 'Who am I meeting with today?')">Who am I meeting with today?</button>
+          </div>
+        </div>
+      </div>
+      <div class="chat-input-bar">
+        <input class="chat-input" type="text" placeholder="Ask about your schedule..." />
+        <span class="chat-input-hint">⏎</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     VARIANT C — "Guide"
+     ════════════════════════════════════════════════════════════ -->
+
+<div class="variant-header hidden" id="label-guide">
+  <span class="variant-name">C — Guide</span>
+  <span class="variant-desc">Rich. Time-aware greeting, icon-cards with descriptions. Onboarding-first.</span>
+</div>
+
+<div class="overlay-frame hidden" id="variant-guide">
+  <div class="flint-header">
+    <span class="flint-header-icon">⚡</span>
+    <span class="flint-header-label">FLINT</span>
+    <span class="flint-header-settings">⚙</span>
+  </div>
+  <div class="split-body">
+    <div class="split-left">
+      <div class="attention-panel">
+        <div class="attention-label">ATTENTION</div>
+        <div class="attention-list">
+          <div class="attention-card imminent">
+            <div class="attention-card-icon"><span>📅</span></div>
+            <div class="attention-card-body">
+              <div class="attention-card-title">Design Review — Overlay UX</div>
+              <div class="attention-card-meta">Sarah, James, + 2 others</div>
+            </div>
+            <div class="attention-card-time">in 8 min</div>
+          </div>
+          <div class="attention-card">
+            <div class="attention-card-icon"><span>📅</span></div>
+            <div class="attention-card-body">
+              <div class="attention-card-title">1:1 with Alex</div>
+              <div class="attention-card-meta">Alex Chen</div>
+            </div>
+            <div class="attention-card-time">11:00</div>
+          </div>
+          <div class="attention-card">
+            <div class="attention-card-icon"><span>📅</span></div>
+            <div class="attention-card-body">
+              <div class="attention-card-title">Sprint Planning</div>
+              <div class="attention-card-meta">Team Ember</div>
+            </div>
+            <div class="attention-card-time">14:30</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="split-right">
+      <div class="empty-state">
+        <div class="guide-body">
+          <div class="guide-header">
+            <div class="guide-greeting" id="guide-greeting-text">Good morning</div>
+            <div class="guide-subtitle">I can help you stay on top of your day. Try asking about:</div>
+          </div>
+          <div class="guide-cards">
+            <button class="guide-card" onclick="fillInput(this, 'What are my next meetings?')">
+              <div class="guide-card-icon">📅</div>
+              <div class="guide-card-body">
+                <div class="guide-card-title">What are my next meetings?</div>
+                <div class="guide-card-desc">See upcoming meetings, times, and attendees</div>
+              </div>
+            </button>
+            <button class="guide-card" onclick="fillInput(this, 'Prepare me for my next meeting')">
+              <div class="guide-card-icon">📋</div>
+              <div class="guide-card-body">
+                <div class="guide-card-title">Prepare me for my next meeting</div>
+                <div class="guide-card-desc">Get agenda, attendee context, and talking points</div>
+              </div>
+            </button>
+            <button class="guide-card" onclick="fillInput(this, 'Any conflicts this week?')">
+              <div class="guide-card-icon">⚠️</div>
+              <div class="guide-card-body">
+                <div class="guide-card-title">Any conflicts this week?</div>
+                <div class="guide-card-desc">Find overlapping or back-to-back meetings</div>
+              </div>
+            </button>
+            <button class="guide-card" onclick="fillInput(this, 'Summarize today\'s schedule')">
+              <div class="guide-card-icon">📊</div>
+              <div class="guide-card-body">
+                <div class="guide-card-title">Summarize today's schedule</div>
+                <div class="guide-card-desc">Quick overview of your day at a glance</div>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="chat-input-bar">
+        <input class="chat-input" type="text" placeholder="Ask about your schedule..." />
+        <span class="chat-input-hint">⏎</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     VARIANT D — "Strike"
+     ════════════════════════════════════════════════════════════ -->
+
+<div class="variant-header hidden" id="label-strike">
+  <span class="variant-name">D — Strike</span>
+  <span class="variant-desc">Personality-forward. Bold voice, angular chips, keyboard shortcut hint. Opinionated.</span>
+</div>
+
+<div class="overlay-frame hidden" id="variant-strike">
+  <div class="flint-header">
+    <span class="flint-header-icon">⚡</span>
+    <span class="flint-header-label">FLINT</span>
+    <span class="flint-header-settings">⚙</span>
+  </div>
+  <div class="split-body">
+    <div class="split-left">
+      <div class="attention-panel">
+        <div class="attention-label">ATTENTION</div>
+        <div class="attention-list">
+          <div class="attention-card imminent">
+            <div class="attention-card-icon"><span>📅</span></div>
+            <div class="attention-card-body">
+              <div class="attention-card-title">Design Review — Overlay UX</div>
+              <div class="attention-card-meta">Sarah, James, + 2 others</div>
+            </div>
+            <div class="attention-card-time">in 8 min</div>
+          </div>
+          <div class="attention-card">
+            <div class="attention-card-icon"><span>📅</span></div>
+            <div class="attention-card-body">
+              <div class="attention-card-title">1:1 with Alex</div>
+              <div class="attention-card-meta">Alex Chen</div>
+            </div>
+            <div class="attention-card-time">11:00</div>
+          </div>
+          <div class="attention-card">
+            <div class="attention-card-icon"><span>📅</span></div>
+            <div class="attention-card-body">
+              <div class="attention-card-title">Sprint Planning</div>
+              <div class="attention-card-meta">Team Ember</div>
+            </div>
+            <div class="attention-card-time">14:30</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="split-right">
+      <div class="empty-state">
+        <div class="strike-body">
+          <div class="strike-greeting">Your day, <em>sharpened.</em></div>
+          <div class="strike-chips">
+            <button class="strike-chip" onclick="fillInput(this, 'What are my next meetings?')">Next meetings</button>
+            <button class="strike-chip" onclick="fillInput(this, 'Summarize today\'s schedule')">Today's schedule</button>
+            <button class="strike-chip" onclick="fillInput(this, 'Prepare me for my next meeting')">Meeting prep</button>
+            <button class="strike-chip" onclick="fillInput(this, 'Any conflicts this week?')">Find conflicts</button>
+            <button class="strike-chip" onclick="fillInput(this, 'Who am I meeting with today?')">Today's people</button>
+            <button class="strike-chip" onclick="fillInput(this, 'What\'s on my calendar tomorrow?')">Tomorrow</button>
+          </div>
+          <div class="strike-hint">
+            <span class="strike-kbd">⌘</span>
+            <span class="strike-kbd">;</span>
+            <span>to toggle Flint anytime</span>
+          </div>
+        </div>
+      </div>
+      <div class="chat-input-bar">
+        <input class="chat-input" type="text" placeholder="Ask about your schedule..." />
+        <span class="chat-input-hint">⏎</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Notes ──────────────────────────────────────────────── -->
+<div class="notes">
+  <h2>NOTES</h2>
+  <ul>
+    <li><strong>Container:</strong> 1032×520px overlay, 40/60 split. Chat panel is ~619px wide.</li>
+    <li><strong>Interaction:</strong> Clicking a chip fills the input field (simulated). In production, it would send immediately or fill-and-focus.</li>
+    <li><strong>Fidelity gap:</strong> DM Sans font is not loaded in the showcase — using system sans-serif fallback. Production uses bundled DM Sans.</li>
+    <li><strong>Fidelity gap:</strong> Emoji icons are used in place of the actual SVG icon system.</li>
+    <li><strong>Theme:</strong> Toggle between dark (default) and light. Both use exact spec token values.</li>
+    <li><strong>A (Whisper)</strong> — Least visual weight. Lets the input placeholder and attention panel do the talking. Risk: may feel empty/broken to new users.</li>
+    <li><strong>B (Spark)</strong> — Safe default. Clear affordance. Risk: generic.</li>
+    <li><strong>C (Guide)</strong> — Most discoverable. Descriptions explain what each action does. Risk: heavy, may scroll on shorter overlays, repeats information visible in the attention panel.</li>
+    <li><strong>D (Strike)</strong> — Most personality. Short chip labels suggest action, not question. Keyboard hint reinforces power-user identity. Risk: too opinionated, greeting may feel forced.</li>
+  </ul>
+</div>
+
+<script>
+const variants = ['whisper', 'spark', 'guide', 'strike'];
+
+function showVariant(id) {
+  const isLight = document.querySelector('.overlay-frame:not(.hidden)')?.classList.contains('light');
+  variants.forEach(v => {
+    document.getElementById('variant-' + v).classList.toggle('hidden', v !== id);
+    document.getElementById('label-' + v).classList.toggle('hidden', v !== id);
+  });
+  if (isLight) {
+    document.getElementById('variant-' + id).classList.add('light');
+  }
+  // Update button states
+  document.querySelectorAll('.controls button').forEach(btn => {
+    if (btn.textContent.toLowerCase().includes(id)) {
+      btn.classList.add('active');
+    } else if (!btn.textContent.includes('Theme')) {
+      btn.classList.remove('active');
+    }
+  });
+}
+
+function toggleTheme(btn) {
+  const frames = document.querySelectorAll('.overlay-frame');
+  const isLight = frames[0].classList.contains('light');
+  frames.forEach(f => f.classList.toggle('light', !isLight));
+  btn.classList.toggle('active', !isLight);
+  btn.textContent = isLight ? 'Light Theme' : 'Dark Theme';
+}
+
+function fillInput(chip, text) {
+  const frame = chip.closest('.overlay-frame');
+  const input = frame.querySelector('.chat-input');
+  if (input) {
+    input.value = text;
+    input.focus();
+  }
+}
+
+// Time-aware greeting for Guide variant
+(function setGreeting() {
+  const hour = new Date().getHours();
+  let greeting = 'Good morning';
+  if (hour >= 12 && hour < 17) greeting = 'Good afternoon';
+  else if (hour >= 17) greeting = 'Good evening';
+  const el = document.getElementById('guide-greeting-text');
+  if (el) el.textContent = greeting;
+})();
+</script>
+</body>
+</html>
