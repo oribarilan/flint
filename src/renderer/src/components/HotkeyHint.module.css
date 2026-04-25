@@ -1,0 +1,20 @@
+.container {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 5px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  line-height: 1.4;
+  color: var(--text-placeholder);
+  user-select: none;
+}
