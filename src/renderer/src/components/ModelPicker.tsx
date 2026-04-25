@@ -15,8 +15,14 @@ export function ModelPicker({ onClose, triggerRef }: ModelPickerProps) {
   const [focusIndex, setFocusIndex] = useState(-1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  const filteredModels = searchQuery
+    ? models.filter((m) => m.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    : models;
 
   // Fetch models on first open if not cached
   useEffect(() => {
@@ -39,11 +45,13 @@ export function ModelPicker({ onClose, triggerRef }: ModelPickerProps) {
 
   // Set initial focus index to current model
   useEffect(() => {
-    if (models.length > 0) {
-      const idx = models.findIndex((m) => m.id === currentModel);
+    if (filteredModels.length > 0) {
+      const idx = filteredModels.findIndex((m) => m.id === currentModel);
       setFocusIndex(idx >= 0 ? idx : 0);
+    } else {
+      setFocusIndex(-1);
     }
-  }, [models, currentModel]);
+  }, [filteredModels, currentModel]);
 
   // Click outside to close (exclude trigger button to avoid race condition)
   useEffect(() => {
@@ -77,15 +85,15 @@ export function ModelPicker({ onClose, triggerRef }: ModelPickerProps) {
       if (e.key === "ArrowDown") {
         e.preventDefault();
         e.stopPropagation();
-        setFocusIndex((prev) => (prev < models.length - 1 ? prev + 1 : prev));
+        setFocusIndex((prev) => (prev < filteredModels.length - 1 ? prev + 1 : prev));
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         e.stopPropagation();
         setFocusIndex((prev) => (prev > 0 ? prev - 1 : prev));
-      } else if (e.key === "Enter" && focusIndex >= 0 && focusIndex < models.length) {
+      } else if (e.key === "Enter" && focusIndex >= 0 && focusIndex < filteredModels.length) {
         e.preventDefault();
         e.stopPropagation();
-        selectModel(models[focusIndex].id);
+        selectModel(filteredModels[focusIndex].id);
       } else if (e.key === "Tab") {
         // Trap focus inside popover
         e.preventDefault();
@@ -93,7 +101,7 @@ export function ModelPicker({ onClose, triggerRef }: ModelPickerProps) {
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [models, focusIndex, selectModel]);
+  }, [filteredModels, focusIndex, selectModel]);
 
   // Scroll focused item into view
   useEffect(() => {
@@ -107,16 +115,34 @@ export function ModelPicker({ onClose, triggerRef }: ModelPickerProps) {
   }, [focusIndex]);
 
   const activeDescendant =
-    focusIndex >= 0 && focusIndex < models.length
-      ? `model-option-${models[focusIndex].id}`
+    focusIndex >= 0 && focusIndex < filteredModels.length
+      ? `model-option-${filteredModels[focusIndex].id}`
       : undefined;
+
+  // Auto-focus the search input on mount
+  useEffect(() => {
+    searchRef.current?.focus();
+  }, []);
 
   return (
     <div ref={popoverRef} className={styles.popover} data-testid="model-picker">
+      {!isLoading && !error && models.length > 0 && (
+        <input
+          ref={searchRef}
+          type="text"
+          className={styles.searchInput}
+          placeholder="Search models…"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          aria-label="Search models"
+          aria-controls="model-listbox"
+        />
+      )}
       <div
         ref={listRef}
         className={styles.list}
         role="listbox"
+        id="model-listbox"
         aria-label="Select model"
         aria-activedescendant={activeDescendant}
         tabIndex={0}
@@ -133,7 +159,13 @@ export function ModelPicker({ onClose, triggerRef }: ModelPickerProps) {
         )}
         {!isLoading &&
           !error &&
-          models.map((model, index) => {
+          filteredModels.length === 0 &&
+          searchQuery && (
+            <div className={styles.noResults}>No models match</div>
+          )}
+        {!isLoading &&
+          !error &&
+          filteredModels.map((model, index) => {
             const isSelected = model.id === currentModel;
             const isFocused = index === focusIndex;
             return (

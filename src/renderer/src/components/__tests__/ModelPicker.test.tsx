@@ -288,4 +288,69 @@ describe("ModelPicker", () => {
     // Should not show loading anymore
     expect(screen.queryByText("Loading models…")).toBeNull();
   });
+
+  it("filters models by search query", () => {
+    useModelStore.setState({
+      currentModel: "gpt-4.1",
+      models: [
+        { id: "gpt-4.1", name: "GPT 4.1" },
+        { id: "claude-sonnet-4", name: "Claude Sonnet 4" },
+        { id: "o3-mini", name: "o3-mini" },
+      ],
+    });
+
+    const onClose = vi.fn();
+    render(<ModelPicker onClose={onClose} triggerRef={makeTriggerRef()} />);
+
+    const searchInput = screen.getByPlaceholderText("Search models…");
+    expect(searchInput).toBeTruthy();
+
+    fireEvent.change(searchInput, { target: { value: "claude" } });
+
+    expect(screen.queryByText("GPT 4.1")).toBeNull();
+    expect(screen.getByText("Claude Sonnet 4")).toBeTruthy();
+    expect(screen.queryByText("o3-mini")).toBeNull();
+  });
+
+  it("shows 'No models match' when search has no results", () => {
+    useModelStore.setState({
+      currentModel: "gpt-4.1",
+      models: [
+        { id: "gpt-4.1", name: "GPT 4.1" },
+        { id: "claude-sonnet-4", name: "Claude Sonnet 4" },
+      ],
+    });
+
+    const onClose = vi.fn();
+    render(<ModelPicker onClose={onClose} triggerRef={makeTriggerRef()} />);
+
+    const searchInput = screen.getByPlaceholderText("Search models…");
+    fireEvent.change(searchInput, { target: { value: "xyz" } });
+
+    expect(screen.getByText("No models match")).toBeTruthy();
+    expect(screen.queryAllByRole("option")).toHaveLength(0);
+  });
+
+  it("keyboard selects from filtered list", () => {
+    useModelStore.setState({
+      currentModel: "gpt-4.1",
+      models: [
+        { id: "gpt-4.1", name: "GPT 4.1" },
+        { id: "claude-sonnet-4", name: "Claude Sonnet 4" },
+        { id: "o3-mini", name: "o3-mini" },
+      ],
+    });
+
+    const onClose = vi.fn();
+    render(<ModelPicker onClose={onClose} triggerRef={makeTriggerRef()} />);
+
+    const searchInput = screen.getByPlaceholderText("Search models…");
+    fireEvent.change(searchInput, { target: { value: "o3" } });
+
+    // Only o3-mini should be visible, arrow down + enter selects it
+    fireEvent.keyDown(document, { key: "Enter" });
+
+    expect(mockSetModel).toHaveBeenCalledWith("o3-mini");
+    expect(onClose).toHaveBeenCalled();
+  });
 });
