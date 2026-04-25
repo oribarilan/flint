@@ -13,7 +13,13 @@ interface AttentionState {
 export const useAttentionStore = create<AttentionState>((set, get) => ({
   items: [],
   selectedIds: new Set(),
-  setItems: (items) => set({ items }),
+  setItems: (items) =>
+    set({
+      items: items.map((item) => ({
+        ...item,
+        metadata: item.metadata ?? {},
+      })),
+    }),
   toggleSelect: (id) =>
     set((state) => {
       const next = new Set(state.selectedIds)

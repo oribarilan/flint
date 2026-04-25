@@ -7,7 +7,8 @@ function buildContextPrefix(selectedItems: AttentionItem[]): string {
   if (selectedItems.length === 0) return ''
 
   const lines = selectedItems.map((item) => {
-    const metaParts = Object.entries(item.metadata).map(([k, v]) => `${k}=${v}`)
+    const metadata = item.metadata ?? {}
+    const metaParts = Object.entries(metadata).map(([k, v]) => `${k}=${v}`)
     const metaSuffix = metaParts.length > 0 ? `. ${metaParts.join(', ')}` : ''
     return `- ${item.icon} ${item.title}: ${item.description}${metaSuffix}`
   })
@@ -33,11 +34,16 @@ export function useChat() {
       if (!prompt.trim() || isStreaming) return
       addUserMessage(prompt)
 
-      const selectedItems = useAttentionStore.getState().getSelectedItems()
-      const prefix = buildContextPrefix(selectedItems)
-      window.flint?.chatSend(prefix + prompt)
+      try {
+        const selectedItems = useAttentionStore.getState().getSelectedItems()
+        const prefix = buildContextPrefix(selectedItems)
+        window.flint?.chatSend(prefix + prompt)
+      } catch (err) {
+        console.error('[chat] Failed to send message:', err)
+        finishStreaming()
+      }
     },
-    [addUserMessage, isStreaming]
+    [addUserMessage, isStreaming, finishStreaming]
   )
 
   return { messages, streamingContent, isStreaming, sendMessage, clearMessages }
