@@ -68,8 +68,8 @@
 /* ── Keyboard focus (vim-style navigation) ────────────────── */
 
 .keyboardFocused {
-  background: var(--bg-hover);
-  border-color: var(--border-hover);
+  background: var(--bg-selected);
+  border-color: var(--accent);
   transition: none;
 }
 

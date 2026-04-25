@@ -25,7 +25,8 @@
 /* ── Keyboard focus (vim-style navigation) ────────────────── */
 
 .keyboardFocused {
-  background: var(--bg-hover);
+  background: var(--bg-selected);
+  border-color: var(--accent);
 }
 
 /* ── Selected state ────────────────────────────────────────── */
