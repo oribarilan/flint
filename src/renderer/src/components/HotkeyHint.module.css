@@ -1,20 +1,48 @@
 .container {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-xs);
+  gap: 2px;
 }
 
-.key {
+/* Shared kbd badge style */
+.key,
+.modifier {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 1px 5px;
+  min-width: 20px;
+  padding: 2px 5px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
-  font-family: var(--font-mono);
   font-size: var(--font-xs);
   line-height: 1.4;
   color: var(--text-placeholder);
   user-select: none;
+}
+
+/* Regular keys: monospace */
+.key {
+  font-family: var(--font-mono);
+}
+
+/* Modifier keys: sans-serif text label */
+.modifier {
+  font-family: var(--font-sans);
+}
+
+/* "+" separator between modifier and key */
+.separator {
+  font-size: var(--font-xs);
+  color: var(--text-placeholder);
+  user-select: none;
+  line-height: 1;
+}
+
+/* "/" separator between alternative keys */
+.altSeparator {
+  font-size: var(--font-xs);
+  color: var(--text-placeholder);
+  user-select: none;
+  line-height: 1;
 }

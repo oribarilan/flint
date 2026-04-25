@@ -283,11 +283,18 @@ describe("Slash-to-focus shortcut", () => {
     document.body.removeChild(otherInput);
   });
 
-  it("placeholder text includes / hint", () => {
-    render(<App />);
+  it("shows styled slash hint when input is not focused", () => {
+    const { container } = render(<App />);
 
-    const input = screen.getByPlaceholderText(/\/$/);
-    expect(input).toBeTruthy();
+    // Blur the auto-focused input so the slash hint appears
+    const input = screen.getByPlaceholderText(/Ask about your schedule/);
+    fireEvent.blur(input);
+
+    // Find the kbd inside the input wrapper (not the footer hints)
+    const inputWrapper = input.parentElement!;
+    const kbd = inputWrapper.querySelector("kbd");
+    expect(kbd?.textContent).toBe("/");
+    expect(inputWrapper.textContent).toContain("to focus");
   });
 });
 
@@ -302,13 +309,14 @@ describe("Bottom bar hints", () => {
     const kbds = footer!.querySelectorAll("kbd");
     const keyTexts = Array.from(kbds).map((kbd) => kbd.textContent);
 
-    // ⌃J ⌃K navigate · ⌃U ⌃D scroll · / chat
-    expect(keyTexts).toContain("⌃");
+    // Ctrl+H/J/K/L navigate · Ctrl+U/D scroll · ↵ open · Space select
+    expect(keyTexts).toContain("Ctrl");
     expect(keyTexts).toContain("J");
     expect(keyTexts).toContain("K");
     expect(keyTexts).toContain("U");
     expect(keyTexts).toContain("D");
-    expect(keyTexts).toContain("/");
+    expect(keyTexts).toContain("↵");
+    expect(keyTexts).toContain("Space");
   });
 
   it("renders navigate, scroll, and chat labels", () => {
@@ -318,8 +326,9 @@ describe("Bottom bar hints", () => {
     const text = footer!.textContent!;
 
     expect(text).toContain("navigate");
+    expect(text).toContain("open");
+    expect(text).toContain("select");
     expect(text).toContain("scroll");
-    expect(text).toContain("chat");
   });
 
   it("renders middle dot separators", () => {
@@ -328,9 +337,9 @@ describe("Bottom bar hints", () => {
     const footer = container.querySelector("footer");
     const text = footer!.textContent!;
 
-    // Two middle-dot separators
+    // Three middle-dot separators
     const dots = text.match(/·/g);
-    expect(dots).toHaveLength(2);
+    expect(dots).toHaveLength(3);
   });
 
   it("hints section is aria-hidden", () => {

@@ -98,7 +98,7 @@
   position: absolute;
   top: var(--space-sm);
   right: var(--space-md);
-  font-size: 9px;
+  font-size: var(--font-xs);
   font-weight: 600;
   padding: 2px 7px;
   border-radius: var(--radius-full);

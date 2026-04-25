@@ -8,7 +8,7 @@ import { useModelStore } from "./stores/modelStore";
 import { AttentionPanel } from "./components/AttentionPanel";
 import { ChatPanel } from "./components/ChatPanel";
 import { ChatInput } from "./components/ChatInput";
-import { HotkeyHint } from "./components/HotkeyHint";
+import { HotkeyHint, HotkeyGroup } from "./components/HotkeyHint";
 import { ModelPicker } from "./components/ModelPicker";
 import { Settings } from "./components/Settings";
 import styles from "./App.module.css";
@@ -161,16 +161,17 @@ export default function App() {
           />
         </button>
         <div className={styles.hints} aria-hidden="true">
-          <HotkeyHint keys={["ctrl", "j"]} />
-          <HotkeyHint keys={["ctrl", "k"]} />
+          <HotkeyGroup modifier="ctrl" keys={["h", "j", "k", "l"]} />
           <span className={styles.hintLabel}>navigate</span>
           <span className={styles.hintSeparator}>·</span>
-          <HotkeyHint keys={["ctrl", "u"]} />
-          <HotkeyHint keys={["ctrl", "d"]} />
+          <HotkeyGroup modifier="ctrl" keys={["u", "d"]} />
           <span className={styles.hintLabel}>scroll</span>
           <span className={styles.hintSeparator}>·</span>
-          <HotkeyHint keys={["/"]} />
-          <span className={styles.hintLabel}>chat</span>
+          <HotkeyHint keys={["enter"]} />
+          <span className={styles.hintLabel}>open</span>
+          <span className={styles.hintSeparator}>·</span>
+          <HotkeyHint keys={["space"]} />
+          <span className={styles.hintLabel}>select</span>
         </div>
         <button
           className={styles.settingsButton}

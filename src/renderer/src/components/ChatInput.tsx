@@ -22,10 +22,13 @@ function formatSelectedLabel(items: SelectedItemSummary[]): string {
 }
 
 export const ChatInput = forwardRef<HTMLInputElement, ChatInputProps>(function ChatInput(
-  { onSend, disabled, placeholder = 'Ask about your schedule…  /', selectedItems = [] },
+  { onSend, disabled, placeholder = 'Ask about your schedule…', selectedItems = [] },
   ref
 ) {
   const [value, setValue] = useState('')
+  const [focused, setFocused] = useState(false)
+
+  const showSlashHint = !focused && value === ''
 
   const handleSubmit = useCallback(() => {
     const trimmed = value.trim()
@@ -46,17 +49,27 @@ export const ChatInput = forwardRef<HTMLInputElement, ChatInputProps>(function C
 
   return (
     <div className={styles.container}>
-      <input
-        ref={ref}
-        className={styles.input}
-        type="text"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder={placeholder}
-        disabled={disabled}
-        autoFocus
-      />
+      <div className={styles.inputWrapper}>
+        <input
+          ref={ref}
+          className={styles.input}
+          type="text"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          placeholder={placeholder}
+          disabled={disabled}
+          autoFocus
+        />
+        {showSlashHint && (
+          <span className={styles.slashHint} aria-hidden="true">
+            <kbd className={styles.slashKey}>/</kbd>
+            <span className={styles.slashLabel}>to focus</span>
+          </span>
+        )}
+      </div>
       <span className={styles.hint}>⏎</span>
       {selectedItems.length > 0 && (
         <div className={styles.withIndicator}>With: {formatSelectedLabel(selectedItems)}</div>
