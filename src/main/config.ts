@@ -10,6 +10,19 @@ export interface ConfigStore {
 export function createConfigStore(): ConfigStore {
   const store = new Store<FlintConfig>({
     defaults: DEFAULT_CONFIG,
+    migrations: {
+      '0.2.0': (s) => {
+        if (s.get('pollEnabled') === undefined) {
+          s.set('pollEnabled', DEFAULT_CONFIG.pollEnabled)
+        }
+        if (s.get('pollFrequency') === undefined) {
+          s.set('pollFrequency', DEFAULT_CONFIG.pollFrequency)
+        }
+        if (s.get('pollModel') === undefined) {
+          s.set('pollModel', DEFAULT_CONFIG.pollModel)
+        }
+      },
+    },
   })
 
   return {
@@ -20,6 +33,9 @@ export function createConfigStore(): ConfigStore {
         launchAtLogin: store.get('launchAtLogin', DEFAULT_CONFIG.launchAtLogin) as boolean,
         showTrayIcon: store.get('showTrayIcon', DEFAULT_CONFIG.showTrayIcon) as boolean,
         model: store.get('model', DEFAULT_CONFIG.model) as string,
+        pollEnabled: store.get('pollEnabled', DEFAULT_CONFIG.pollEnabled) as boolean,
+        pollFrequency: store.get('pollFrequency', DEFAULT_CONFIG.pollFrequency) as FlintConfig['pollFrequency'],
+        pollModel: store.get('pollModel', DEFAULT_CONFIG.pollModel) as string,
       }
     },
 
