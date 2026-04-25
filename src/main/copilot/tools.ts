@@ -250,7 +250,7 @@ export function createAllTools(callbacks: ToolCallbacks): Tool[] {
             type: 'object',
             properties: {
               id: { type: 'string' },
-              icon: { type: 'string', description: 'Emoji icon (📅 💬 📧 📄)' },
+              icon: { type: 'string', description: 'Lucide icon name: calendar, message-circle, mail, file-text' },
               title: { type: 'string' },
               description: { type: 'string' },
               timestamp: { type: 'string', description: 'ISO 8601 timestamp for time badge' },

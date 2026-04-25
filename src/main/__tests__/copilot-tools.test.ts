@@ -62,7 +62,7 @@ describe('Copilot Tools', () => {
     const onAttentionUpdate = vi.fn()
     const tools = createAllTools({ onMeetings: vi.fn(), onShowOverlay: vi.fn(), onAttentionUpdate })
     const setItems = tools.find((t) => t.name === 'set_attention_items')!
-    const items = [{ id: '1', icon: '📅', title: 'Meeting', description: 'Test', metadata: {} }]
+    const items = [{ id: '1', icon: 'calendar', title: 'Meeting', description: 'Test', metadata: {} }]
     await setItems.handler({ items }, mockInvocation)
     expect(onAttentionUpdate).toHaveBeenCalledWith(items)
   })
