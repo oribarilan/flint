@@ -1,7 +1,7 @@
 .container {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-2xs);
 }
 
 /* Shared kbd badge style */
@@ -11,7 +11,7 @@
   align-items: center;
   justify-content: center;
   min-width: 20px;
-  padding: 2px 5px;
+  padding: var(--space-2xs) var(--space-xs);
   background: var(--bg-secondary);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);

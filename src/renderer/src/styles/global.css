@@ -57,6 +57,10 @@
   --color-error: oklch(65% 0.2 25);
   --color-error-bg: oklch(65% 0.2 25 / 0.12);
   --color-warning: oklch(78% 0.15 85);
+  --color-warning-bg: oklch(78% 0.15 85 / 0.12);
+
+  /* Overlays */
+  --bg-backdrop: oklch(0% 0 0 / 0.5);
 
   /* Borders */
   --border-subtle: oklch(23% 0.006 60);
@@ -64,6 +68,7 @@
   --border-active: oklch(25% 0.007 60);
 
   /* ── Spacing ─────────────────────────────────────── */
+  --space-2xs: 2px;
   --space-xs: 4px;
   --space-sm: 8px;
   --space-md: 12px;
@@ -81,6 +86,7 @@
   /* ── Shadows ─────────────────────────────────────── */
   --shadow-lg: 0 25px 60px oklch(4% 0.01 60 / 0.5);
   --shadow-sm: 0 1px 3px oklch(4% 0.01 60 / 0.3);
+  --shadow-window: 0 24px 80px oklch(0% 0 0 / 0.6), 0 0 1px oklch(100% 0 0 / 0.1);
 
   /* ── Scrollbar ───────────────────────────────────── */
   --scrollbar-thumb: oklch(23% 0.006 60);

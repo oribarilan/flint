@@ -5,7 +5,7 @@
   align-items: flex-start;
   gap: var(--space-md);
   padding: var(--space-sm) var(--space-md);
-  margin: 0 var(--space-sm) 2px;
+  margin: 0 var(--space-sm) var(--space-2xs);
   background: none;
   border: 1px solid transparent;
   border-radius: var(--radius-md);
@@ -52,7 +52,7 @@
   justify-content: center;
   color: var(--text-secondary);
   flex-shrink: 0;
-  margin-top: 1px;
+  margin-top: var(--space-2xs);
 }
 
 .selected .icon {
@@ -67,7 +67,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: var(--space-2xs);
   padding-right: 70px;
 }
 
@@ -100,14 +100,14 @@
   right: var(--space-md);
   font-size: var(--font-xs);
   font-weight: 600;
-  padding: 2px 7px;
+  padding: var(--space-2xs) var(--space-sm);
   border-radius: var(--radius-full);
   white-space: nowrap;
   letter-spacing: 0.2px;
 }
 
 .timeBadgeFuture {
-  background: oklch(78% 0.15 85 / 0.12);
+  background: var(--color-warning-bg);
   color: var(--color-warning);
 }
 
@@ -130,14 +130,14 @@
   font-family: inherit;
   font-size: var(--font-xs);
   font-weight: 600;
-  padding: 3px 8px;
+  padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-sm);
   border: none;
   cursor: pointer;
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-xs);
   background: var(--accent);
   color: var(--text-on-accent);
 }

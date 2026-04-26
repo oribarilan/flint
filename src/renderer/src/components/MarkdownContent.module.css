@@ -75,7 +75,7 @@
   font-family: var(--font-mono);
   font-size: var(--font-sm);
   background: var(--bg-hover);
-  padding: 1px 5px;
+  padding: var(--space-2xs) var(--space-xs);
   border-radius: var(--radius-sm);
 }
 
