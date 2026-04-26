@@ -232,3 +232,26 @@
 .ghostButton:active {
   transform: scale(0.98);
 }
+
+/* ── Select dropdown ───────────────────────────────────────── */
+
+.select {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-sm);
+  font: inherit;
+  font-size: var(--font-md);
+  color: var(--text-primary);
+  cursor: pointer;
+  outline: none;
+  min-width: 120px;
+}
+
+.select:focus {
+  border-color: var(--accent);
+}
+
+.select:hover {
+  border-color: var(--border-hover);
+}

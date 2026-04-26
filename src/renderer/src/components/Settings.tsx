@@ -3,7 +3,7 @@ import { Sun, Cpu, Bell, Contrast } from 'lucide-react'
 import { SegmentedControl } from './SegmentedControl'
 import { ModelSelect } from './ModelSelect'
 import type { FlintConfig } from '../../../main/types'
-import type { FontSize, PollFrequency } from '../../../main/types'
+import type { PollFrequency } from '../../../main/types'
 import styles from './Settings.module.css'
 
 type SettingsTab = 'general' | 'ai' | 'notifications' | 'appearance'
@@ -26,13 +26,6 @@ const POLL_FREQUENCY_OPTIONS: { label: string; value: PollFrequency }[] = [
   { label: 'Aggressive', value: 'aggressive' },
 ]
 
-const FONT_SIZE_OPTIONS: { label: string; value: FontSize }[] = [
-  { label: 'XS', value: 'extra-small' },
-  { label: 'S', value: 'small' },
-  { label: 'M', value: 'medium' },
-  { label: 'L', value: 'large' },
-]
-
 export function Settings({ config, onUpdate }: SettingsProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>('general')
 
@@ -44,8 +37,18 @@ export function Settings({ config, onUpdate }: SettingsProps) {
     [onUpdate],
   )
 
+  const handleThemeChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>): void => {
+      const value = e.target.value as FlintConfig['theme']
+      document.documentElement.dataset.theme = value
+      onUpdate({ theme: value })
+    },
+    [onUpdate],
+  )
+
   const handleFontSizeChange = useCallback(
-    (value: FontSize): void => {
+    (e: React.ChangeEvent<HTMLSelectElement>): void => {
+      const value = e.target.value as FlintConfig['fontSize']
       document.documentElement.dataset.fontSize = value
       onUpdate({ fontSize: value })
     },
@@ -278,15 +281,16 @@ export function Settings({ config, onUpdate }: SettingsProps) {
                   <div className={styles.label}>Theme</div>
                   <div className={styles.description}>Choose your color scheme</div>
                 </div>
-                <SegmentedControl
-                  options={[
-                    { label: 'Dark', value: 'dark' },
-                    { label: 'Light', value: 'light', disabled: true, disabledLabel: 'Soon' },
-                  ]}
-                  value="dark"
-                  onChange={() => {}}
-                  ariaLabel="Theme"
-                />
+                <select
+                  className={styles.select}
+                  value={config.theme}
+                  onChange={handleThemeChange}
+                  aria-label="Theme"
+                >
+                  <option value="dark">Dark</option>
+                  <option value="light">Light</option>
+                  <option value="system">System</option>
+                </select>
               </div>
             </div>
 
@@ -296,12 +300,17 @@ export function Settings({ config, onUpdate }: SettingsProps) {
                   <div className={styles.label}>Font size</div>
                   <div className={styles.description}>Adjust text size across the interface</div>
                 </div>
-                <SegmentedControl
-                  options={FONT_SIZE_OPTIONS}
+                <select
+                  className={styles.select}
                   value={config.fontSize}
                   onChange={handleFontSizeChange}
-                  ariaLabel="Font size"
-                />
+                  aria-label="Font size"
+                >
+                  <option value="extra-small">Extra Small</option>
+                  <option value="small">Small</option>
+                  <option value="medium">Medium</option>
+                  <option value="large">Large</option>
+                </select>
               </div>
             </div>
           </div>
