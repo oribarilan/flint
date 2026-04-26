@@ -36,9 +36,7 @@ const DEFAULT_TEST_CONFIG: FlintConfig = {
 function renderSettings(overrides: Partial<FlintConfig> = {}) {
   const config = { ...DEFAULT_TEST_CONFIG, ...overrides };
   const onUpdate = vi.fn();
-  const result = render(
-    <Settings config={config} onUpdate={onUpdate} />,
-  );
+  const result = render(<Settings config={config} onUpdate={onUpdate} />);
   return { ...result, onUpdate, config };
 }
 
@@ -77,7 +75,7 @@ describe("Settings layout", () => {
     renderSettings();
 
     expect(document.querySelector('[role="dialog"]')).toBeNull();
-    expect(document.querySelector('[aria-modal]')).toBeNull();
+    expect(document.querySelector("[aria-modal]")).toBeNull();
   });
 });
 
@@ -158,7 +156,7 @@ describe("AI & Models tab", () => {
 
     // Click chat model trigger
     const chatModelBtn = screen.getByLabelText("Chat model");
-    await act(async () => {
+    act(() => {
       fireEvent.click(chatModelBtn);
     });
 
@@ -215,7 +213,7 @@ describe("AI & Models tab", () => {
 
     // Click poll model trigger
     const pollModelBtn = screen.getByLabelText("Poll model");
-    await act(async () => {
+    act(() => {
       fireEvent.click(pollModelBtn);
     });
 
@@ -225,8 +223,12 @@ describe("AI & Models tab", () => {
 
     // Use the listbox option to avoid ambiguity with the chat model trigger
     const options = screen.getAllByRole("option");
-    const gpt41Option = options.find((opt) => opt.textContent?.includes("GPT 4.1") && !opt.textContent?.includes("Mini"));
-    fireEvent.click(gpt41Option!);
+    /* eslint-disable @typescript-eslint/no-unnecessary-condition -- textContent can be null at runtime */
+    const gpt41Option = options.find(
+      (opt) => opt.textContent?.includes("GPT 4.1") && !opt.textContent?.includes("Mini"),
+    );
+    /* eslint-enable @typescript-eslint/no-unnecessary-condition */
+    fireEvent.click(gpt41Option as HTMLElement);
 
     expect(onUpdate).toHaveBeenCalledWith({ pollModel: "gpt-4.1" });
   });
@@ -237,8 +239,8 @@ describe("Notifications tab", () => {
     renderSettings({ alertMinutes: 10 });
     fireEvent.click(screen.getByRole("tab", { name: /Notifications/ }));
 
-    const input = screen.getByLabelText("Minutes before meeting alert") as HTMLInputElement;
-    expect(input.value).toBe("10");
+    const input = screen.getByLabelText("Minutes before meeting alert");
+    expect((input as HTMLInputElement).value).toBe("10");
   });
 
   it("clamps alert minutes to valid range", () => {
@@ -266,16 +268,16 @@ describe("Appearance tab", () => {
     renderSettings({ theme: "dark" });
     fireEvent.click(screen.getByRole("tab", { name: /Appearance/ }));
 
-    const themeSelect = screen.getByLabelText("Theme") as HTMLSelectElement;
-    expect(themeSelect.value).toBe("dark");
+    const themeSelect = screen.getByLabelText("Theme");
+    expect((themeSelect as HTMLSelectElement).value).toBe("dark");
   });
 
   it("renders all theme options including System", () => {
     renderSettings();
     fireEvent.click(screen.getByRole("tab", { name: /Appearance/ }));
 
-    const themeSelect = screen.getByLabelText("Theme") as HTMLSelectElement;
-    const options = Array.from(themeSelect.options).map((o) => o.value);
+    const themeSelect = screen.getByLabelText("Theme");
+    const options = Array.from((themeSelect as HTMLSelectElement).options).map((o) => o.value);
     expect(options).toEqual(["dark", "light", "system"]);
   });
 
@@ -293,16 +295,16 @@ describe("Appearance tab", () => {
     renderSettings({ fontSize: "medium" });
     fireEvent.click(screen.getByRole("tab", { name: /Appearance/ }));
 
-    const fontSizeSelect = screen.getByLabelText("Font size") as HTMLSelectElement;
-    expect(fontSizeSelect.value).toBe("medium");
+    const fontSizeSelect = screen.getByLabelText("Font size");
+    expect((fontSizeSelect as HTMLSelectElement).value).toBe("medium");
   });
 
   it("renders all font size options", () => {
     renderSettings();
     fireEvent.click(screen.getByRole("tab", { name: /Appearance/ }));
 
-    const fontSizeSelect = screen.getByLabelText("Font size") as HTMLSelectElement;
-    const options = Array.from(fontSizeSelect.options).map((o) => o.value);
+    const fontSizeSelect = screen.getByLabelText("Font size");
+    const options = Array.from((fontSizeSelect as HTMLSelectElement).options).map((o) => o.value);
     expect(options).toEqual(["extra-small", "small", "medium", "large"]);
   });
 

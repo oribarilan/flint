@@ -1,37 +1,37 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const mockShouldUseDarkColors = vi.fn<() => boolean>()
+const mockShouldUseDarkColors = vi.fn<() => boolean>();
 
-vi.mock('electron', () => ({
+vi.mock("electron", () => ({
   nativeTheme: {
     get shouldUseDarkColors() {
-      return mockShouldUseDarkColors()
+      return mockShouldUseDarkColors();
     },
   },
-}))
+}));
 
-import { resolveTheme } from '../theme'
+import { resolveTheme } from "../theme";
 
-describe('resolveTheme', () => {
+describe("resolveTheme", () => {
   beforeEach(() => {
-    vi.clearAllMocks()
-  })
+    vi.clearAllMocks();
+  });
 
   it('returns "dark" for dark preference', () => {
-    expect(resolveTheme('dark')).toBe('dark')
-  })
+    expect(resolveTheme("dark")).toBe("dark");
+  });
 
   it('returns "light" for light preference', () => {
-    expect(resolveTheme('light')).toBe('light')
-  })
+    expect(resolveTheme("light")).toBe("light");
+  });
 
   it('returns "dark" for system preference when OS prefers dark', () => {
-    mockShouldUseDarkColors.mockReturnValue(true)
-    expect(resolveTheme('system')).toBe('dark')
-  })
+    mockShouldUseDarkColors.mockReturnValue(true);
+    expect(resolveTheme("system")).toBe("dark");
+  });
 
   it('returns "light" for system preference when OS prefers light', () => {
-    mockShouldUseDarkColors.mockReturnValue(false)
-    expect(resolveTheme('system')).toBe('light')
-  })
-})
+    mockShouldUseDarkColors.mockReturnValue(false);
+    expect(resolveTheme("system")).toBe("light");
+  });
+});

@@ -1,17 +1,17 @@
-import styles from './SegmentedControl.module.css'
+import styles from "./SegmentedControl.module.css";
 
 interface SegmentedOption<T extends string> {
-  label: string
-  value: T
-  disabled?: boolean
-  disabledLabel?: string
+  label: string;
+  value: T;
+  disabled?: boolean;
+  disabledLabel?: string;
 }
 
 interface SegmentedControlProps<T extends string> {
-  options: SegmentedOption<T>[]
-  value: T
-  onChange: (value: T) => void
-  ariaLabel: string
+  options: SegmentedOption<T>[];
+  value: T;
+  onChange: (value: T) => void;
+  ariaLabel: string;
 }
 
 export function SegmentedControl<T extends string>({
@@ -25,13 +25,15 @@ export function SegmentedControl<T extends string>({
       {options.map((opt) => (
         <button
           key={opt.value}
-          className={`${styles.option} ${opt.value === value ? styles.active : ''}`}
+          className={`${styles.option} ${opt.value === value ? styles.active : ""}`}
           type="button"
           role="radio"
           aria-checked={opt.value === value}
-          aria-disabled={opt.disabled || undefined}
+          aria-disabled={opt.disabled ?? undefined}
           disabled={opt.disabled}
-          onClick={() => onChange(opt.value)}
+          onClick={() => {
+            onChange(opt.value);
+          }}
         >
           {opt.label}
           {opt.disabled && opt.disabledLabel && (
@@ -40,5 +42,5 @@ export function SegmentedControl<T extends string>({
         </button>
       ))}
     </div>
-  )
+  );
 }

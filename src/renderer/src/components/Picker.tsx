@@ -15,7 +15,13 @@ export interface PickerProps {
   idPrefix?: string;
 }
 
-export function Picker({ items, selectedId, onSelect, label, idPrefix = "picker-option" }: PickerProps) {
+export function Picker({
+  items,
+  selectedId,
+  onSelect,
+  label,
+  idPrefix = "picker-option",
+}: PickerProps) {
   const [focusIndex, setFocusIndex] = useState(-1);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -62,7 +68,9 @@ export function Picker({ items, selectedId, onSelect, label, idPrefix = "picker-
       }
     };
     document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, [items, handleSelect]);
 
   // Scroll focused item into view
@@ -70,6 +78,7 @@ export function Picker({ items, selectedId, onSelect, label, idPrefix = "picker-
     if (focusIndex >= 0 && listRef.current) {
       const optionElements = listRef.current.querySelectorAll('[role="option"]');
       const item = optionElements[focusIndex];
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- index may exceed NodeList length; scrollIntoView may not exist in JSDOM
       if (item && typeof item.scrollIntoView === "function") {
         item.scrollIntoView({ block: "nearest" });
       }
@@ -100,13 +109,15 @@ export function Picker({ items, selectedId, onSelect, label, idPrefix = "picker-
             role="option"
             aria-selected={isSelected}
             className={`${styles.option} ${isFocused ? styles.focused : ""}`}
-            onClick={() => handleSelect(item.id)}
-            onMouseEnter={() => setFocusIndex(index)}
+            onClick={() => {
+              handleSelect(item.id);
+            }}
+            onMouseEnter={() => {
+              setFocusIndex(index);
+            }}
           >
             <span className={styles.checkSlot}>
-              {isSelected && (
-                <Check size={16} className={styles.checkIcon} aria-hidden="true" />
-              )}
+              {isSelected && <Check size={16} className={styles.checkIcon} aria-hidden="true" />}
             </span>
             <span className={styles.optionName}>{item.label}</span>
           </div>

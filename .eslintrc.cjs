@@ -10,7 +10,7 @@ module.exports = {
   ignorePatterns: ["dist", ".eslintrc.cjs", "*.d.ts", "simulator/**", "playwright.config.ts"],
   parser: "@typescript-eslint/parser",
   parserOptions: {
-    project: ["./tsconfig.json", "./tsconfig.node.json"],
+    project: ["./tsconfig.json", "./tsconfig.node.json", "./tsconfig.web.json"],
     tsconfigRootDir: __dirname,
   },
   rules: {
@@ -23,5 +23,7 @@ module.exports = {
       "error",
       { checksVoidReturn: { attributes: false } },
     ],
+    // Conflicts with no-non-null-assertion from strict preset
+    "@typescript-eslint/non-nullable-type-assertion-style": "off",
   },
 };

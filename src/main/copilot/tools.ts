@@ -3,7 +3,7 @@ import { defineTool, type Tool } from "@github/copilot-sdk";
 import type { AttentionItem } from "../types";
 
 interface ToolCallbacks {
-  onShowOverlay: (meetingId?: string) => void;
+  onShowOverlay: () => void;
   onAttentionUpdate: (items: AttentionItem[]) => void;
 }
 
@@ -46,6 +46,7 @@ export function createAllTools(callbacks: ToolCallbacks): Tool[] {
       },
       required: ["query"],
     },
+    // eslint-disable-next-line @typescript-eslint/require-await -- SDK tool handlers must be async
     handler: async (args) => {
       const { query } = args as { query: string };
       const q = query.toLowerCase();
@@ -217,6 +218,7 @@ export function createAllTools(callbacks: ToolCallbacks): Tool[] {
       },
       required: ["title", "body"],
     },
+    // eslint-disable-next-line @typescript-eslint/require-await -- SDK tool handlers must be async
     handler: async (args) => {
       const { title, body } = args as { title: string; body: string };
       const notification = new Notification({ title, body });
@@ -244,8 +246,9 @@ export function createAllTools(callbacks: ToolCallbacks): Tool[] {
       type: "object",
       properties: { meetingId: { type: "string" } },
     },
-    handler: async (args) => {
-      callbacks.onShowOverlay((args as { meetingId?: string }).meetingId);
+    // eslint-disable-next-line @typescript-eslint/require-await -- SDK tool handlers must be async
+    handler: async (_args) => {
+      callbacks.onShowOverlay();
       return "shown";
     },
   });
@@ -289,6 +292,7 @@ export function createAllTools(callbacks: ToolCallbacks): Tool[] {
       },
       required: ["items"],
     },
+    // eslint-disable-next-line @typescript-eslint/require-await -- SDK tool handlers must be async
     handler: async (args) => {
       const { items } = args as { items: AttentionItem[] };
       callbacks.onAttentionUpdate(items);
@@ -302,10 +306,14 @@ export function createAllTools(callbacks: ToolCallbacks): Tool[] {
 export function getMonitorTools(callbacks: Pick<ToolCallbacks, "onAttentionUpdate">): Tool[] {
   const all = createAllTools({
     ...callbacks,
+    // eslint-disable-next-line @typescript-eslint/no-empty-function -- intentional no-op for monitor tools
     onShowOverlay: () => {},
   });
   return all.filter(
-    (t) => t.name === "ask_work_iq" || t.name === "set_attention_items" || t.name === "show_notification",
+    (t) =>
+      t.name === "ask_work_iq" ||
+      t.name === "set_attention_items" ||
+      t.name === "show_notification",
   );
 }
 

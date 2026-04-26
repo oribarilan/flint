@@ -21,16 +21,16 @@ function formatRelativeTime(timestamp?: string): string | null {
 
   if (diff > 0) {
     if (minutes <= 1) return "now";
-    if (minutes < 60) return `in ${minutes}m`;
-    if (hours < 24) return `in ${hours}h`;
+    if (minutes < 60) return `in ${String(minutes)}m`;
+    if (hours < 24) return `in ${String(hours)}h`;
     if (days === 1) return "tomorrow";
-    return `in ${days}d`;
+    return `in ${String(days)}d`;
   } else {
     if (minutes < 1) return "just now";
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
+    if (minutes < 60) return `${String(minutes)}m ago`;
+    if (hours < 24) return `${String(hours)}h ago`;
     if (days === 1) return "yesterday";
-    return `${days}d ago`;
+    return `${String(days)}d ago`;
   }
 }
 
@@ -39,7 +39,13 @@ function isFutureTimestamp(timestamp?: string): boolean {
   return new Date(timestamp).getTime() > Date.now();
 }
 
-export function AttentionCard({ item, isSelected, isKeyboardFocused, onSelect, onOpen }: AttentionCardProps) {
+export function AttentionCard({
+  item,
+  isSelected,
+  isKeyboardFocused,
+  onSelect,
+  onOpen,
+}: AttentionCardProps) {
   const relativeTime = formatRelativeTime(item.timestamp);
   const isFuture = isFutureTimestamp(item.timestamp);
   const cardClassName = `${styles.card} ${isSelected ? styles.selected : ""} ${isKeyboardFocused ? styles.keyboardFocused : ""}`;

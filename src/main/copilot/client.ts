@@ -1,82 +1,84 @@
-import { CopilotClient } from '@github/copilot-sdk'
-import type { ConnectionStatus } from '../types'
+import { CopilotClient } from "@github/copilot-sdk";
+import type { ConnectionStatus } from "../types";
 
-const FORCE_STOP_TIMEOUT_MS = 5_000
+const FORCE_STOP_TIMEOUT_MS = 5_000;
 
 export interface CopilotManager {
-  start(): Promise<void>
-  stop(): Promise<void>
-  getClient(): CopilotClient | null
-  getStatus(): ConnectionStatus
-  onStatusChange(callback: (status: ConnectionStatus) => void): () => void
+  start(): void;
+  stop(): Promise<void>;
+  getClient(): CopilotClient | null;
+  getStatus(): ConnectionStatus;
+  onStatusChange(callback: (status: ConnectionStatus) => void): () => void;
 }
 
 export function createCopilotManager(cliPath?: string): CopilotManager {
-  let client: CopilotClient | null = null
-  let status: ConnectionStatus = 'disconnected'
-  const listeners: Set<(status: ConnectionStatus) => void> = new Set()
+  let client: CopilotClient | null = null;
+  let status: ConnectionStatus = "disconnected";
+  const listeners = new Set<(status: ConnectionStatus) => void>();
 
   function setStatus(newStatus: ConnectionStatus): void {
-    status = newStatus
+    status = newStatus;
     for (const listener of listeners) {
-      listener(newStatus)
+      listener(newStatus);
     }
   }
 
   return {
-    async start(): Promise<void> {
+    start(): void {
       try {
-        setStatus('reconnecting')
-        client = new CopilotClient(cliPath ? { cliPath } : undefined)
-        console.log('[copilot] Client created, state:', client.state)
-        setStatus('connected')
+        setStatus("reconnecting");
+        client = new CopilotClient(cliPath ? { cliPath } : undefined);
+        console.log("[copilot] Client created");
+        setStatus("connected");
       } catch (err) {
-        console.error('[copilot] Failed to create client:', err)
-        client = null
-        setStatus('disconnected')
-        throw err
+        console.error("[copilot] Failed to create client:", err);
+        client = null;
+        setStatus("disconnected");
+        throw err;
       }
     },
 
     async stop(): Promise<void> {
       if (client) {
         try {
-          let timer: ReturnType<typeof setTimeout> | undefined
-          const stopPromise = client.stop()
+          let timer: ReturnType<typeof setTimeout> | undefined;
+          const stopPromise = client.stop();
           const timeout = new Promise<never>((_, reject) => {
-            timer = setTimeout(() => { reject(new Error('Stop timeout')) }, FORCE_STOP_TIMEOUT_MS)
-          })
+            timer = setTimeout(() => {
+              reject(new Error("Stop timeout"));
+            }, FORCE_STOP_TIMEOUT_MS);
+          });
           try {
-            await Promise.race([stopPromise, timeout])
+            await Promise.race([stopPromise, timeout]);
           } finally {
-            clearTimeout(timer)
+            clearTimeout(timer);
           }
         } catch {
-          console.warn('[copilot] Graceful stop failed, force-stopping...')
+          console.warn("[copilot] Graceful stop failed, force-stopping...");
           try {
-            await client.forceStop()
+            await client.forceStop();
           } catch (forceErr) {
-            console.error('[copilot] Force-stop error:', forceErr)
+            console.error("[copilot] Force-stop error:", forceErr);
           }
         }
-        client = null
+        client = null;
       }
-      setStatus('disconnected')
+      setStatus("disconnected");
     },
 
     getClient(): CopilotClient | null {
-      return client
+      return client;
     },
 
     getStatus(): ConnectionStatus {
-      return status
+      return status;
     },
 
     onStatusChange(callback: (status: ConnectionStatus) => void): () => void {
-      listeners.add(callback)
+      listeners.add(callback);
       return () => {
-        listeners.delete(callback)
-      }
+        listeners.delete(callback);
+      };
     },
-  }
+  };
 }

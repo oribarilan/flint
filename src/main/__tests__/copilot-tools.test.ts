@@ -71,22 +71,30 @@ function getAskWorkIq() {
 
 async function queryMeetings(query: string): Promise<MockResult<MockMeeting>> {
   const tool = getAskWorkIq();
-  return JSON.parse(await tool.handler({ query }, mockInvocation)) as MockResult<MockMeeting>;
+  return JSON.parse(
+    (await tool.handler({ query }, mockInvocation)) as string,
+  ) as MockResult<MockMeeting>;
 }
 
 async function queryEmails(query: string): Promise<MockResult<MockEmail>> {
   const tool = getAskWorkIq();
-  return JSON.parse(await tool.handler({ query }, mockInvocation)) as MockResult<MockEmail>;
+  return JSON.parse(
+    (await tool.handler({ query }, mockInvocation)) as string,
+  ) as MockResult<MockEmail>;
 }
 
 async function queryTeams(query: string): Promise<MockResult<MockTeamsMessage>> {
   const tool = getAskWorkIq();
-  return JSON.parse(await tool.handler({ query }, mockInvocation)) as MockResult<MockTeamsMessage>;
+  return JSON.parse(
+    (await tool.handler({ query }, mockInvocation)) as string,
+  ) as MockResult<MockTeamsMessage>;
 }
 
 async function queryFallback(query: string): Promise<MockResult<unknown>> {
   const tool = getAskWorkIq();
-  return JSON.parse(await tool.handler({ query }, mockInvocation)) as MockResult<unknown>;
+  return JSON.parse(
+    (await tool.handler({ query }, mockInvocation)) as string,
+  ) as MockResult<unknown>;
 }
 
 describe("Copilot Tools", () => {
@@ -129,7 +137,7 @@ describe("Copilot Tools", () => {
     const overlay = tools.find((t) => t.name === "show_overlay");
     if (!overlay) throw new Error("show_overlay not found");
     await overlay.handler({ meetingId: "abc" }, mockInvocation);
-    expect(onShowOverlay).toHaveBeenCalledWith("abc");
+    expect(onShowOverlay).toHaveBeenCalledWith();
   });
 
   it("getMonitorTools returns ask_work_iq, set_attention_items, show_notification", () => {

@@ -11,7 +11,13 @@ interface AttentionPanelProps {
   onOpen: (id: string) => void;
 }
 
-export function AttentionPanel({ items, selectedIds, keyboardFocusedIndex, onSelect, onOpen }: AttentionPanelProps) {
+export function AttentionPanel({
+  items,
+  selectedIds,
+  keyboardFocusedIndex,
+  onSelect,
+  onOpen,
+}: AttentionPanelProps) {
   if (items.length === 0) {
     return (
       <div className={styles.panel} data-testid="attention-panel">

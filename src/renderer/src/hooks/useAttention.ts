@@ -1,19 +1,22 @@
-import { useEffect } from 'react'
-import { useAttentionStore } from '../stores/attentionStore'
-import type { AttentionItem } from '../../../main/types'
+import { useEffect } from "react";
+import { useAttentionStore } from "../stores/attentionStore";
 
 export function useAttention() {
   const { items, selectedIds, setItems, toggleSelect, clearSelection, getSelectedItems } =
-    useAttentionStore()
+    useAttentionStore();
 
   useEffect(() => {
-    window.flint?.getAttentionItems().then((raw) => setItems(raw as AttentionItem[]))
+    void window.flint?.getAttentionItems().then((raw) => {
+      setItems(raw);
+    });
 
-    const unsub = window.flint?.onAttentionUpdate((raw) => setItems(raw as AttentionItem[]))
+    const unsub = window.flint?.onAttentionUpdate((raw) => {
+      setItems(raw);
+    });
     return () => {
-      unsub?.()
-    }
-  }, [setItems])
+      unsub?.();
+    };
+  }, [setItems]);
 
-  return { items, selectedIds, toggleSelect, clearSelection, getSelectedItems }
+  return { items, selectedIds, toggleSelect, clearSelection, getSelectedItems };
 }

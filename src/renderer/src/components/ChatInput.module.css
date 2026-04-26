@@ -33,7 +33,7 @@
   border-color: var(--accent);
 }
 
-.input:disabled {
+.input[aria-disabled] {
   opacity: 0.5;
   cursor: not-allowed;
 }

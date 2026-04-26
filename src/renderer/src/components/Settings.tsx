@@ -1,59 +1,59 @@
-import { useState, useCallback } from 'react'
-import { Sun, Cpu, Bell, Contrast } from 'lucide-react'
-import { SegmentedControl } from './SegmentedControl'
-import { ModelSelect } from './ModelSelect'
-import type { FlintConfig } from '../../../main/types'
-import type { PollFrequency } from '../../../main/types'
-import styles from './Settings.module.css'
+import { useState, useCallback } from "react";
+import { Sun, Cpu, Bell, Contrast } from "lucide-react";
+import { SegmentedControl } from "./SegmentedControl";
+import { ModelSelect } from "./ModelSelect";
+import type { FlintConfig } from "../../../main/types";
+import type { PollFrequency } from "../../../main/types";
+import styles from "./Settings.module.css";
 
-type SettingsTab = 'general' | 'ai' | 'notifications' | 'appearance'
+type SettingsTab = "general" | "ai" | "notifications" | "appearance";
 
 interface SettingsProps {
-  config: FlintConfig
-  onUpdate: (partial: Partial<FlintConfig>) => void
+  config: FlintConfig;
+  onUpdate: (partial: Partial<FlintConfig>) => void;
 }
 
 const TABS: { id: SettingsTab; label: string; Icon: typeof Sun }[] = [
-  { id: 'general', label: 'General', Icon: Sun },
-  { id: 'ai', label: 'AI & Models', Icon: Cpu },
-  { id: 'notifications', label: 'Notifications', Icon: Bell },
-  { id: 'appearance', label: 'Appearance', Icon: Contrast },
-]
+  { id: "general", label: "General", Icon: Sun },
+  { id: "ai", label: "AI & Models", Icon: Cpu },
+  { id: "notifications", label: "Notifications", Icon: Bell },
+  { id: "appearance", label: "Appearance", Icon: Contrast },
+];
 
 const POLL_FREQUENCY_OPTIONS: { label: string; value: PollFrequency }[] = [
-  { label: 'Relaxed', value: 'relaxed' },
-  { label: 'Normal', value: 'normal' },
-  { label: 'Aggressive', value: 'aggressive' },
-]
+  { label: "Relaxed", value: "relaxed" },
+  { label: "Normal", value: "normal" },
+  { label: "Aggressive", value: "aggressive" },
+];
 
 export function Settings({ config, onUpdate }: SettingsProps) {
-  const [activeTab, setActiveTab] = useState<SettingsTab>('general')
+  const [activeTab, setActiveTab] = useState<SettingsTab>("general");
 
   const handleAlertChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>): void => {
-      const value = Math.max(1, Math.min(60, Number(e.target.value) || 1))
-      onUpdate({ alertMinutes: value })
+      const value = Math.max(1, Math.min(60, Number(e.target.value) || 1));
+      onUpdate({ alertMinutes: value });
     },
     [onUpdate],
-  )
+  );
 
   const handleThemeChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>): void => {
-      const value = e.target.value as FlintConfig['theme']
-      document.documentElement.dataset.theme = value
-      onUpdate({ theme: value })
+      const value = e.target.value as FlintConfig["theme"];
+      document.documentElement.dataset.theme = value;
+      onUpdate({ theme: value });
     },
     [onUpdate],
-  )
+  );
 
   const handleFontSizeChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>): void => {
-      const value = e.target.value as FlintConfig['fontSize']
-      document.documentElement.dataset.fontSize = value
-      onUpdate({ fontSize: value })
+      const value = e.target.value as FlintConfig["fontSize"];
+      document.documentElement.dataset.fontSize = value;
+      onUpdate({ fontSize: value });
     },
     [onUpdate],
-  )
+  );
 
   return (
     <div className={styles.layout} data-testid="settings-view">
@@ -64,13 +64,15 @@ export function Settings({ config, onUpdate }: SettingsProps) {
           {TABS.map((tab) => (
             <button
               key={tab.id}
-              className={`${styles.navItem} ${activeTab === tab.id ? styles.navItemActive : ''}`}
+              className={`${styles.navItem} ${activeTab === tab.id ? styles.navItemActive : ""}`}
               role="tab"
               aria-selected={activeTab === tab.id}
               aria-controls={`settings-panel-${tab.id}`}
               id={`settings-tab-${tab.id}`}
               type="button"
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                setActiveTab(tab.id);
+              }}
             >
               <tab.Icon size={16} aria-hidden="true" />
               {tab.label}
@@ -82,12 +84,8 @@ export function Settings({ config, onUpdate }: SettingsProps) {
       {/* Content */}
       <div className={styles.content}>
         {/* General */}
-        {activeTab === 'general' && (
-          <div
-            role="tabpanel"
-            id="settings-panel-general"
-            aria-labelledby="settings-tab-general"
-          >
+        {activeTab === "general" && (
+          <div role="tabpanel" id="settings-panel-general" aria-labelledby="settings-tab-general">
             <h3 className={styles.contentHeader}>General</h3>
 
             <div className={styles.card}>
@@ -107,12 +105,14 @@ export function Settings({ config, onUpdate }: SettingsProps) {
                   <div className={styles.description}>Start Flint when you log in</div>
                 </div>
                 <button
-                  className={`${styles.toggle} ${config.launchAtLogin ? styles.toggleOn : ''}`}
+                  className={`${styles.toggle} ${config.launchAtLogin ? styles.toggleOn : ""}`}
                   type="button"
                   role="switch"
                   aria-checked={config.launchAtLogin}
                   aria-label="Launch at login"
-                  onClick={() => onUpdate({ launchAtLogin: !config.launchAtLogin })}
+                  onClick={() => {
+                    onUpdate({ launchAtLogin: !config.launchAtLogin });
+                  }}
                 >
                   <span className={styles.toggleKnob} />
                 </button>
@@ -123,12 +123,14 @@ export function Settings({ config, onUpdate }: SettingsProps) {
                   <div className={styles.description}>Display Flint in the menu bar</div>
                 </div>
                 <button
-                  className={`${styles.toggle} ${config.showTrayIcon ? styles.toggleOn : ''}`}
+                  className={`${styles.toggle} ${config.showTrayIcon ? styles.toggleOn : ""}`}
                   type="button"
                   role="switch"
                   aria-checked={config.showTrayIcon}
                   aria-label="Show tray icon"
-                  onClick={() => onUpdate({ showTrayIcon: !config.showTrayIcon })}
+                  onClick={() => {
+                    onUpdate({ showTrayIcon: !config.showTrayIcon });
+                  }}
                 >
                   <span className={styles.toggleKnob} />
                 </button>
@@ -138,12 +140,8 @@ export function Settings({ config, onUpdate }: SettingsProps) {
         )}
 
         {/* AI & Models */}
-        {activeTab === 'ai' && (
-          <div
-            role="tabpanel"
-            id="settings-panel-ai"
-            aria-labelledby="settings-tab-ai"
-          >
+        {activeTab === "ai" && (
+          <div role="tabpanel" id="settings-panel-ai" aria-labelledby="settings-tab-ai">
             <h3 className={styles.contentHeader}>AI &amp; Models</h3>
 
             <div className={styles.card}>
@@ -156,8 +154,8 @@ export function Settings({ config, onUpdate }: SettingsProps) {
                 <ModelSelect
                   value={config.model}
                   onChange={(id) => {
-                    onUpdate({ model: id })
-                    window.flint?.setModel(id)
+                    onUpdate({ model: id });
+                    window.flint?.setModel(id);
                   }}
                   ariaLabel="Chat model"
                 />
@@ -174,20 +172,19 @@ export function Settings({ config, onUpdate }: SettingsProps) {
                   </div>
                 </div>
                 <button
-                  className={`${styles.toggle} ${config.pollEnabled ? styles.toggleOn : ''}`}
+                  className={`${styles.toggle} ${config.pollEnabled ? styles.toggleOn : ""}`}
                   type="button"
                   role="switch"
                   aria-checked={config.pollEnabled}
                   aria-label="Background polling"
-                  onClick={() => onUpdate({ pollEnabled: !config.pollEnabled })}
+                  onClick={() => {
+                    onUpdate({ pollEnabled: !config.pollEnabled });
+                  }}
                 >
                   <span className={styles.toggleKnob} />
                 </button>
               </div>
-              <div
-                className={styles.row}
-                style={{ opacity: config.pollEnabled ? 1 : 0.5 }}
-              >
+              <div className={`${styles.row} ${!config.pollEnabled ? styles.rowDisabled : ""}`}>
                 <div>
                   <div className={styles.label}>Poll frequency</div>
                 </div>
@@ -197,7 +194,9 @@ export function Settings({ config, onUpdate }: SettingsProps) {
                     disabled: !config.pollEnabled,
                   }))}
                   value={config.pollFrequency}
-                  onChange={(v) => onUpdate({ pollFrequency: v })}
+                  onChange={(v) => {
+                    onUpdate({ pollFrequency: v });
+                  }}
                   ariaLabel="Poll frequency"
                 />
               </div>
@@ -208,7 +207,9 @@ export function Settings({ config, onUpdate }: SettingsProps) {
                 </div>
                 <ModelSelect
                   value={config.pollModel}
-                  onChange={(id) => onUpdate({ pollModel: id })}
+                  onChange={(id) => {
+                    onUpdate({ pollModel: id });
+                  }}
                   ariaLabel="Poll model"
                 />
               </div>
@@ -217,7 +218,7 @@ export function Settings({ config, onUpdate }: SettingsProps) {
         )}
 
         {/* Notifications */}
-        {activeTab === 'notifications' && (
+        {activeTab === "notifications" && (
           <div
             role="tabpanel"
             id="settings-panel-notifications"
@@ -257,7 +258,9 @@ export function Settings({ config, onUpdate }: SettingsProps) {
                 <button
                   className={styles.ghostButton}
                   type="button"
-                  onClick={() => window.flint?.testNotification()}
+                  onClick={() => {
+                    window.flint?.testNotification();
+                  }}
                 >
                   Send test
                 </button>
@@ -267,7 +270,7 @@ export function Settings({ config, onUpdate }: SettingsProps) {
         )}
 
         {/* Appearance */}
-        {activeTab === 'appearance' && (
+        {activeTab === "appearance" && (
           <div
             role="tabpanel"
             id="settings-panel-appearance"
@@ -317,5 +320,5 @@ export function Settings({ config, onUpdate }: SettingsProps) {
         )}
       </div>
     </div>
-  )
+  );
 }

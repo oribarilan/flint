@@ -26,6 +26,7 @@ export default function App() {
   const modelButtonRef = useRef<HTMLButtonElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
   const chatPanelRef = useRef<HTMLDivElement>(null);
+  const pendingFocusRef = useRef(false);
 
   const handleOpen = (id: string): void => {
     window.flint?.openAttentionItem(id);
@@ -54,7 +55,9 @@ export default function App() {
     setIsPickerOpen((prev) => !prev);
   }, []);
 
-  const closePicker = useCallback(() => setIsPickerOpen(false), []);
+  const closePicker = useCallback(() => {
+    setIsPickerOpen(false);
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
@@ -66,7 +69,7 @@ export default function App() {
 
       if (e.metaKey && e.key === "n") {
         e.preventDefault();
-        window.flint?.chatReset();
+        void window.flint?.chatReset();
         clearMessages();
         useAttentionStore.getState().clearSelection();
         chatInputRef.current?.focus();
@@ -99,8 +102,37 @@ export default function App() {
       }
     };
     document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, [toggleSettings, showSettings, isPickerOpen, resetFocus, clearMessages]);
+
+  // Reset to default state when overlay window regains focus (hotkey or tray).
+  // Close settings/picker, focus chat input. The BrowserWindow.focus() call
+  // propagates as a DOM 'focus' event. Synchronous — no work on the critical path.
+  useEffect(() => {
+    const handleWindowFocus = (): void => {
+      if (showSettings || isPickerOpen) {
+        setShowSettings(false);
+        setIsPickerOpen(false);
+        pendingFocusRef.current = true;
+      } else {
+        chatInputRef.current?.focus();
+      }
+    };
+    window.addEventListener("focus", handleWindowFocus);
+    return () => {
+      window.removeEventListener("focus", handleWindowFocus);
+    };
+  }, [showSettings, isPickerOpen]);
+
+  // Complete deferred focus after settings/picker close re-render
+  useEffect(() => {
+    if (pendingFocusRef.current && !showSettings) {
+      chatInputRef.current?.focus();
+      pendingFocusRef.current = false;
+    }
+  }, [showSettings]);
 
   // Sync model from config on init + subscribe to model:changed from main
   useEffect(() => {
@@ -111,14 +143,14 @@ export default function App() {
 
   // Apply font size from config on load
   useEffect(() => {
-    if (isLoaded && config.fontSize) {
+    if (isLoaded) {
       document.documentElement.dataset.fontSize = config.fontSize;
     }
   }, [isLoaded, config.fontSize]);
 
   // Apply theme from main process
   useEffect(() => {
-    const unsubTheme = window.flint?.onThemeChanged?.((theme: string) => {
+    const unsubTheme = window.flint?.onThemeChanged((theme: string) => {
       document.documentElement.dataset.theme = theme;
     });
     return () => {
@@ -130,7 +162,9 @@ export default function App() {
     const unsub = window.flint?.onModelChanged((modelId: string) => {
       setCurrentModel(modelId);
     });
-    return () => unsub?.();
+    return () => {
+      unsub?.();
+    };
   }, [setCurrentModel]);
 
   const selectedItemSummaries = useMemo(

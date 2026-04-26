@@ -5,15 +5,15 @@
   background: var(--bg-secondary);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
-  padding: 2px;
-  gap: 2px;
+  padding: var(--space-2xs);
+  gap: var(--space-2xs);
 }
 
 .option {
   padding: var(--space-xs) var(--space-md);
   border: none;
   background: none;
-  border-radius: 4px;
+  border-radius: var(--space-xs);
   font: inherit;
   font-size: var(--font-sm);
   font-weight: 500;

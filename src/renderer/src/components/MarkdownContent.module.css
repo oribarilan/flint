@@ -87,6 +87,7 @@
   padding: var(--space-sm) var(--space-md);
   margin-bottom: var(--space-sm);
   overflow-x: auto;
+  overscroll-behavior: contain;
 }
 
 .markdown pre:last-child {

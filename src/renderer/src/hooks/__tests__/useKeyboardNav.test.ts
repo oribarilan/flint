@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, describe, it, expect, vi, beforeEach } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import { renderHook, act, cleanup } from "@testing-library/react";
 import type { AttentionItem } from "../../../../main/types";
 import type { Suggestion } from "../../utils/suggestions";
@@ -71,7 +71,9 @@ describe("useKeyboardNav", () => {
       expect(result.current.focusedPanel).toBeNull();
       expect(result.current.focusedIndex).toBe(0);
 
-      act(() => pressCtrl("j"));
+      act(() => {
+        pressCtrl("j");
+      });
 
       expect(result.current.focusedPanel).toBe("attention");
       expect(result.current.focusedIndex).toBe(0);
@@ -81,7 +83,9 @@ describe("useKeyboardNav", () => {
       const options = createDefaultOptions();
       const { result } = renderHook(() => useKeyboardNav(options));
 
-      act(() => pressCtrl("k"));
+      act(() => {
+        pressCtrl("k");
+      });
 
       expect(result.current.focusedPanel).toBe("attention");
       expect(result.current.focusedIndex).toBe(0);
@@ -92,17 +96,25 @@ describe("useKeyboardNav", () => {
       const { result } = renderHook(() => useKeyboardNav(options));
 
       // Activate
-      act(() => pressCtrl("j"));
+      act(() => {
+        pressCtrl("j");
+      });
       expect(result.current.focusedIndex).toBe(0);
 
-      act(() => pressCtrl("j"));
+      act(() => {
+        pressCtrl("j");
+      });
       expect(result.current.focusedIndex).toBe(1);
 
-      act(() => pressCtrl("j"));
+      act(() => {
+        pressCtrl("j");
+      });
       expect(result.current.focusedIndex).toBe(2);
 
       // Clamped at last index (2 for 3 items)
-      act(() => pressCtrl("j"));
+      act(() => {
+        pressCtrl("j");
+      });
       expect(result.current.focusedIndex).toBe(2);
     });
 
@@ -111,19 +123,31 @@ describe("useKeyboardNav", () => {
       const { result } = renderHook(() => useKeyboardNav(options));
 
       // Navigate to index 2
-      act(() => pressCtrl("j"));
-      act(() => pressCtrl("j"));
-      act(() => pressCtrl("j"));
+      act(() => {
+        pressCtrl("j");
+      });
+      act(() => {
+        pressCtrl("j");
+      });
+      act(() => {
+        pressCtrl("j");
+      });
       expect(result.current.focusedIndex).toBe(2);
 
-      act(() => pressCtrl("k"));
+      act(() => {
+        pressCtrl("k");
+      });
       expect(result.current.focusedIndex).toBe(1);
 
-      act(() => pressCtrl("k"));
+      act(() => {
+        pressCtrl("k");
+      });
       expect(result.current.focusedIndex).toBe(0);
 
       // Clamped at 0
-      act(() => pressCtrl("k"));
+      act(() => {
+        pressCtrl("k");
+      });
       expect(result.current.focusedIndex).toBe(0);
     });
 
@@ -131,7 +155,9 @@ describe("useKeyboardNav", () => {
       const options = createDefaultOptions({ items: [], hasMessages: true });
       const { result } = renderHook(() => useKeyboardNav(options));
 
-      act(() => pressCtrl("j"));
+      act(() => {
+        pressCtrl("j");
+      });
 
       expect(result.current.focusedPanel).toBeNull();
     });
@@ -140,7 +166,9 @@ describe("useKeyboardNav", () => {
       const options = createDefaultOptions({ items: [], hasMessages: false });
       const { result } = renderHook(() => useKeyboardNav(options));
 
-      act(() => pressCtrl("j"));
+      act(() => {
+        pressCtrl("j");
+      });
 
       expect(result.current.focusedPanel).toBe("suggestions");
       expect(result.current.focusedIndex).toBe(0);
@@ -149,7 +177,9 @@ describe("useKeyboardNav", () => {
     it("Ctrl+j blurs chat input so Space/Enter work on focused items", () => {
       const inputEl = document.createElement("input");
       document.body.appendChild(inputEl);
-      const chatInputRef = { current: inputEl } as unknown as React.RefObject<HTMLInputElement | null>;
+      const chatInputRef = {
+        current: inputEl,
+      } as unknown as React.RefObject<HTMLInputElement | null>;
       const toggleSelect = vi.fn();
       const options = createDefaultOptions({ chatInputRef, toggleSelect });
       renderHook(() => useKeyboardNav(options));
@@ -159,11 +189,15 @@ describe("useKeyboardNav", () => {
       expect(document.activeElement).toBe(inputEl);
 
       // Ctrl+j should blur it
-      act(() => pressCtrl("j"));
+      act(() => {
+        pressCtrl("j");
+      });
       expect(document.activeElement).not.toBe(inputEl);
 
       // Now Space should work (toggle selection)
-      act(() => pressKey(" "));
+      act(() => {
+        pressKey(" ");
+      });
       expect(toggleSelect).toHaveBeenCalledWith("1");
 
       document.body.removeChild(inputEl);
@@ -173,7 +207,9 @@ describe("useKeyboardNav", () => {
       const options = createDefaultOptions({ hasMessages: false });
       const { result } = renderHook(() => useKeyboardNav(options));
 
-      act(() => pressCtrl("j"));
+      act(() => {
+        pressCtrl("j");
+      });
 
       expect(result.current.focusedPanel).toBe("attention");
       expect(result.current.focusedIndex).toBe(0);
@@ -186,10 +222,14 @@ describe("useKeyboardNav", () => {
       const { result } = renderHook(() => useKeyboardNav(options));
 
       // Start on suggestions
-      act(() => pressCtrl("l"));
+      act(() => {
+        pressCtrl("l");
+      });
       expect(result.current.focusedPanel).toBe("suggestions");
 
-      act(() => pressCtrl("h"));
+      act(() => {
+        pressCtrl("h");
+      });
       expect(result.current.focusedPanel).toBe("attention");
       expect(result.current.focusedIndex).toBe(0);
     });
@@ -198,7 +238,9 @@ describe("useKeyboardNav", () => {
       const options = createDefaultOptions({ items: [] });
       const { result } = renderHook(() => useKeyboardNav(options));
 
-      act(() => pressCtrl("h"));
+      act(() => {
+        pressCtrl("h");
+      });
 
       expect(result.current.focusedPanel).toBeNull();
     });
@@ -208,9 +250,13 @@ describe("useKeyboardNav", () => {
       const { result } = renderHook(() => useKeyboardNav(options));
 
       // Activate attention
-      act(() => pressCtrl("j"));
+      act(() => {
+        pressCtrl("j");
+      });
 
-      act(() => pressCtrl("l"));
+      act(() => {
+        pressCtrl("l");
+      });
       expect(result.current.focusedPanel).toBe("suggestions");
       expect(result.current.focusedIndex).toBe(0);
     });
@@ -219,26 +265,31 @@ describe("useKeyboardNav", () => {
       const options = createDefaultOptions({ hasMessages: true });
       const { result } = renderHook(() => useKeyboardNav(options));
 
-      act(() => pressCtrl("l"));
+      act(() => {
+        pressCtrl("l");
+      });
 
       expect(result.current.focusedPanel).toBeNull();
     });
 
     it("Ctrl+j/k on suggestions panel reverts to attention when chat has messages", () => {
       const options = createDefaultOptions({ hasMessages: false });
-      const { result, rerender } = renderHook(
-        (props) => useKeyboardNav(props),
-        { initialProps: options },
-      );
+      const { result, rerender } = renderHook((props) => useKeyboardNav(props), {
+        initialProps: options,
+      });
 
       // Set focus to suggestions
-      act(() => pressCtrl("l"));
+      act(() => {
+        pressCtrl("l");
+      });
       expect(result.current.focusedPanel).toBe("suggestions");
 
       // Now messages arrive — suggestions is no longer valid
       rerender({ ...options, hasMessages: true });
 
-      act(() => pressCtrl("j"));
+      act(() => {
+        pressCtrl("j");
+      });
       expect(result.current.focusedPanel).toBe("attention");
     });
   });
@@ -259,7 +310,9 @@ describe("useKeyboardNav", () => {
 
       renderHook(() => useKeyboardNav(options));
 
-      act(() => pressCtrl("d"));
+      act(() => {
+        pressCtrl("d");
+      });
 
       expect(mockScrollBy).toHaveBeenCalledWith({ top: 200, behavior: "smooth" });
     });
@@ -278,7 +331,9 @@ describe("useKeyboardNav", () => {
 
       renderHook(() => useKeyboardNav(options));
 
-      act(() => pressCtrl("u"));
+      act(() => {
+        pressCtrl("u");
+      });
 
       expect(mockScrollBy).toHaveBeenCalledWith({ top: -200, behavior: "smooth" });
     });
@@ -297,7 +352,9 @@ describe("useKeyboardNav", () => {
 
       renderHook(() => useKeyboardNav(options));
 
-      act(() => pressCtrl("d"));
+      act(() => {
+        pressCtrl("d");
+      });
 
       expect(mockScrollBy).toHaveBeenCalledWith({ top: 200, behavior: "instant" });
     });
@@ -311,8 +368,12 @@ describe("useKeyboardNav", () => {
 
       renderHook(() => useKeyboardNav(options));
 
-      act(() => pressCtrl("d"));
-      act(() => pressCtrl("u"));
+      act(() => {
+        pressCtrl("d");
+      });
+      act(() => {
+        pressCtrl("u");
+      });
 
       expect(mockScrollBy).not.toHaveBeenCalled();
     });
@@ -325,11 +386,17 @@ describe("useKeyboardNav", () => {
       const { result } = renderHook(() => useKeyboardNav(options));
 
       // Activate attention, move to index 1
-      act(() => pressCtrl("j"));
-      act(() => pressCtrl("j"));
+      act(() => {
+        pressCtrl("j");
+      });
+      act(() => {
+        pressCtrl("j");
+      });
       expect(result.current.focusedIndex).toBe(1);
 
-      act(() => pressKey(" "));
+      act(() => {
+        pressKey(" ");
+      });
       expect(toggleSelect).toHaveBeenCalledWith("2");
     });
 
@@ -338,10 +405,14 @@ describe("useKeyboardNav", () => {
       const options = createDefaultOptions({ onOpen });
       const { result } = renderHook(() => useKeyboardNav(options));
 
-      act(() => pressCtrl("j"));
+      act(() => {
+        pressCtrl("j");
+      });
       expect(result.current.focusedIndex).toBe(0);
 
-      act(() => pressKey("Enter"));
+      act(() => {
+        pressKey("Enter");
+      });
       expect(onOpen).toHaveBeenCalledWith("1");
     });
 
@@ -351,10 +422,14 @@ describe("useKeyboardNav", () => {
       const { result } = renderHook(() => useKeyboardNav(options));
 
       // Switch to suggestions panel
-      act(() => pressCtrl("l"));
+      act(() => {
+        pressCtrl("l");
+      });
       expect(result.current.focusedPanel).toBe("suggestions");
 
-      act(() => pressKey("Enter"));
+      act(() => {
+        pressKey("Enter");
+      });
       expect(sendMessage).toHaveBeenCalledWith("What are my next meetings?");
     });
 
@@ -364,8 +439,12 @@ describe("useKeyboardNav", () => {
       const options = createDefaultOptions({ toggleSelect, onOpen });
       renderHook(() => useKeyboardNav(options));
 
-      act(() => pressKey(" "));
-      act(() => pressKey("Enter"));
+      act(() => {
+        pressKey(" ");
+      });
+      act(() => {
+        pressKey("Enter");
+      });
 
       expect(toggleSelect).not.toHaveBeenCalled();
       expect(onOpen).not.toHaveBeenCalled();
@@ -377,7 +456,9 @@ describe("useKeyboardNav", () => {
       const { result } = renderHook(() => useKeyboardNav(options));
 
       // Activate attention
-      act(() => pressCtrl("j"));
+      act(() => {
+        pressCtrl("j");
+      });
       expect(result.current.focusedPanel).toBe("attention");
 
       // Create and focus a text input
@@ -386,7 +467,9 @@ describe("useKeyboardNav", () => {
       document.body.appendChild(input);
       input.focus();
 
-      act(() => pressKey(" "));
+      act(() => {
+        pressKey(" ");
+      });
       expect(toggleSelect).not.toHaveBeenCalled();
 
       document.body.removeChild(input);
@@ -398,7 +481,9 @@ describe("useKeyboardNav", () => {
       const options = createDefaultOptions();
       const { result } = renderHook(() => useKeyboardNav(options));
 
-      act(() => pressCtrl("j"));
+      act(() => {
+        pressCtrl("j");
+      });
       expect(result.current.focusedPanel).toBe("attention");
 
       act(() => {
@@ -413,13 +498,19 @@ describe("useKeyboardNav", () => {
       const inputEl = document.createElement("input");
       document.body.appendChild(inputEl);
       const chatInputRef = { current: inputEl };
-      const options = createDefaultOptions({ chatInputRef: chatInputRef as unknown as React.RefObject<HTMLInputElement | null> });
+      const options = createDefaultOptions({
+        chatInputRef: chatInputRef as unknown as React.RefObject<HTMLInputElement | null>,
+      });
       const { result } = renderHook(() => useKeyboardNav(options));
 
-      act(() => pressCtrl("j"));
+      act(() => {
+        pressCtrl("j");
+      });
       expect(result.current.focusedPanel).toBe("attention");
 
-      act(() => inputEl.focus());
+      act(() => {
+        inputEl.focus();
+      });
 
       expect(result.current.focusedPanel).toBeNull();
 
@@ -430,12 +521,18 @@ describe("useKeyboardNav", () => {
       const options = createDefaultOptions();
       const { result } = renderHook(() => useKeyboardNav(options));
 
-      act(() => pressCtrl("j"));
-      act(() => pressCtrl("j"));
+      act(() => {
+        pressCtrl("j");
+      });
+      act(() => {
+        pressCtrl("j");
+      });
       expect(result.current.focusedPanel).toBe("attention");
       expect(result.current.focusedIndex).toBe(1);
 
-      act(() => result.current.resetFocus());
+      act(() => {
+        result.current.resetFocus();
+      });
 
       expect(result.current.focusedPanel).toBeNull();
       expect(result.current.focusedIndex).toBe(0);
@@ -444,15 +541,20 @@ describe("useKeyboardNav", () => {
     it("clamps focusedIndex when items shrink", () => {
       const items = [makeItem("1"), makeItem("2"), makeItem("3")];
       const options = createDefaultOptions({ items });
-      const { result, rerender } = renderHook(
-        (props) => useKeyboardNav(props),
-        { initialProps: options },
-      );
+      const { result, rerender } = renderHook((props) => useKeyboardNav(props), {
+        initialProps: options,
+      });
 
       // Navigate to last index
-      act(() => pressCtrl("j"));
-      act(() => pressCtrl("j"));
-      act(() => pressCtrl("j"));
+      act(() => {
+        pressCtrl("j");
+      });
+      act(() => {
+        pressCtrl("j");
+      });
+      act(() => {
+        pressCtrl("j");
+      });
       expect(result.current.focusedIndex).toBe(2);
 
       // Remove last item
@@ -463,12 +565,13 @@ describe("useKeyboardNav", () => {
 
     it("resets focus when items become empty", () => {
       const options = createDefaultOptions();
-      const { result, rerender } = renderHook(
-        (props) => useKeyboardNav(props),
-        { initialProps: options },
-      );
+      const { result, rerender } = renderHook((props) => useKeyboardNav(props), {
+        initialProps: options,
+      });
 
-      act(() => pressCtrl("j"));
+      act(() => {
+        pressCtrl("j");
+      });
       expect(result.current.focusedPanel).toBe("attention");
 
       rerender({ ...options, items: [] });

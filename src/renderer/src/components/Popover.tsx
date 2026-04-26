@@ -9,7 +9,13 @@ export interface PopoverProps {
   "data-testid"?: string;
 }
 
-export function Popover({ onClose, triggerRef, children, className, "data-testid": testId }: PopoverProps) {
+export function Popover({
+  onClose,
+  triggerRef,
+  children,
+  className,
+  "data-testid": testId,
+}: PopoverProps) {
   const popoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

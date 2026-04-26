@@ -5,9 +5,11 @@ import { ChatEmptyState, getGreeting } from "../ChatEmptyState";
 import { STATIC_SUGGESTIONS } from "../../utils/suggestions";
 
 vi.mock("../../stores/attentionStore", () => ({
-  useAttentionStore: vi.fn((selector) => {
+  useAttentionStore: vi.fn((selector: unknown) => {
     const state = { items: [] };
-    return typeof selector === "function" ? selector(state) : state;
+    return typeof selector === "function"
+      ? (selector as (s: typeof state) => unknown)(state)
+      : state;
   }),
 }));
 

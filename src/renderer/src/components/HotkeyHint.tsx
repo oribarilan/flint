@@ -37,11 +37,9 @@ export function HotkeyHint({ keys, className }: HotkeyHintProps) {
   return (
     <span className={containerClass} aria-hidden="true">
       {keys.map((key, i) => (
-        <span key={`${key}-${i}`} className={styles.group}>
+        <span key={`${key}-${String(i)}`} className={styles.group}>
           {i > 0 && <span className={styles.separator}>+</span>}
-          <kbd className={isModifier(key) ? styles.modifier : styles.key}>
-            {formatKey(key)}
-          </kbd>
+          <kbd className={isModifier(key) ? styles.modifier : styles.key}>{formatKey(key)}</kbd>
         </span>
       ))}
     </span>
@@ -63,11 +61,9 @@ export function HotkeyGroup({ modifier, keys, className }: HotkeyGroupProps) {
       <kbd className={styles.modifier}>{formatKey(modifier)}</kbd>
       <span className={styles.separator}>+</span>
       {keys.map((key, i) => (
-        <span key={`${key}-${i}`} className={styles.group}>
+        <span key={`${key}-${String(i)}`} className={styles.group}>
           {i > 0 && <span className={styles.altSeparator}>/</span>}
-          <kbd className={isModifier(key) ? styles.modifier : styles.key}>
-            {formatKey(key)}
-          </kbd>
+          <kbd className={isModifier(key) ? styles.modifier : styles.key}>{formatKey(key)}</kbd>
         </span>
       ))}
     </span>

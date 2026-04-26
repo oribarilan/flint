@@ -15,9 +15,7 @@ const items = [
 
 describe("Picker", () => {
   it("renders items with correct ARIA attributes", () => {
-    render(
-      <Picker items={items} selectedId="a" onSelect={vi.fn()} label="Test list" />,
-    );
+    render(<Picker items={items} selectedId="a" onSelect={vi.fn()} label="Test list" />);
 
     const listbox = screen.getByRole("listbox");
     expect(listbox).toBeTruthy();
@@ -33,13 +31,7 @@ describe("Picker", () => {
 
   it("uses custom idPrefix for option ids", () => {
     render(
-      <Picker
-        items={items}
-        selectedId="a"
-        onSelect={vi.fn()}
-        label="Test"
-        idPrefix="custom"
-      />,
+      <Picker items={items} selectedId="a" onSelect={vi.fn()} label="Test" idPrefix="custom" />,
     );
 
     const options = screen.getAllByRole("option");
@@ -48,9 +40,7 @@ describe("Picker", () => {
   });
 
   it("shows check icon on selected item only", () => {
-    render(
-      <Picker items={items} selectedId="b" onSelect={vi.fn()} label="Test" />,
-    );
+    render(<Picker items={items} selectedId="b" onSelect={vi.fn()} label="Test" />);
 
     const options = screen.getAllByRole("option");
     expect(options[0].querySelectorAll("svg").length).toBe(0);
@@ -59,9 +49,7 @@ describe("Picker", () => {
   });
 
   it("arrow key navigation updates focus", () => {
-    render(
-      <Picker items={items} selectedId="a" onSelect={vi.fn()} label="Test" />,
-    );
+    render(<Picker items={items} selectedId="a" onSelect={vi.fn()} label="Test" />);
 
     const listbox = screen.getByRole("listbox");
     expect(listbox.getAttribute("aria-activedescendant")).toBe("picker-option-a");
@@ -78,9 +66,7 @@ describe("Picker", () => {
 
   it("enter calls onSelect with focused item id", () => {
     const onSelect = vi.fn();
-    render(
-      <Picker items={items} selectedId="a" onSelect={onSelect} label="Test" />,
-    );
+    render(<Picker items={items} selectedId="a" onSelect={onSelect} label="Test" />);
 
     fireEvent.keyDown(document, { key: "ArrowDown" });
     fireEvent.keyDown(document, { key: "Enter" });
@@ -89,9 +75,7 @@ describe("Picker", () => {
   });
 
   it("tab is trapped", () => {
-    render(
-      <Picker items={items} selectedId="a" onSelect={vi.fn()} label="Test" />,
-    );
+    render(<Picker items={items} selectedId="a" onSelect={vi.fn()} label="Test" />);
 
     const event = new KeyboardEvent("keydown", {
       key: "Tab",
@@ -104,29 +88,23 @@ describe("Picker", () => {
 
   it("click selects an item", () => {
     const onSelect = vi.fn();
-    render(
-      <Picker items={items} selectedId="a" onSelect={onSelect} label="Test" />,
-    );
+    render(<Picker items={items} selectedId="a" onSelect={onSelect} label="Test" />);
 
     fireEvent.click(screen.getByText("Charlie"));
     expect(onSelect).toHaveBeenCalledWith("c");
   });
 
   it("mouse enter updates focus index", () => {
-    render(
-      <Picker items={items} selectedId="a" onSelect={vi.fn()} label="Test" />,
-    );
+    render(<Picker items={items} selectedId="a" onSelect={vi.fn()} label="Test" />);
 
     const listbox = screen.getByRole("listbox");
-    fireEvent.mouseEnter(screen.getByText("Charlie").closest('[role="option"]')!);
+    fireEvent.mouseEnter(screen.getByText("Charlie").closest('[role="option"]') as HTMLElement);
     expect(listbox.getAttribute("aria-activedescendant")).toBe("picker-option-c");
   });
 
   it("arrow up does not go below 0", () => {
     const onSelect = vi.fn();
-    render(
-      <Picker items={items} selectedId="a" onSelect={onSelect} label="Test" />,
-    );
+    render(<Picker items={items} selectedId="a" onSelect={onSelect} label="Test" />);
 
     fireEvent.keyDown(document, { key: "ArrowUp" });
     fireEvent.keyDown(document, { key: "Enter" });
@@ -135,9 +113,7 @@ describe("Picker", () => {
 
   it("arrow down does not go past last item", () => {
     const onSelect = vi.fn();
-    render(
-      <Picker items={items} selectedId="c" onSelect={onSelect} label="Test" />,
-    );
+    render(<Picker items={items} selectedId="c" onSelect={onSelect} label="Test" />);
 
     fireEvent.keyDown(document, { key: "ArrowDown" });
     fireEvent.keyDown(document, { key: "Enter" });

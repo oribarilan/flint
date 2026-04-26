@@ -105,13 +105,7 @@ describe("SearchablePicker", () => {
   });
 
   it("uses default placeholder and empty message", () => {
-    render(
-      <SearchablePicker
-        items={[]}
-        onSelect={vi.fn()}
-        label="Test"
-      />,
-    );
+    render(<SearchablePicker items={[]} onSelect={vi.fn()} label="Test" />);
 
     expect(screen.getByPlaceholderText("Search…")).toBeTruthy();
   });

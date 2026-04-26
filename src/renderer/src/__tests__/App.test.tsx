@@ -7,7 +7,7 @@ import { cleanup, render, fireEvent, act, screen } from "@testing-library/react"
 // Mock window.flint API
 const mockHideOverlay = vi.fn();
 const mockChatReset = vi.fn(() => Promise.resolve());
-const mockOnModelChanged = vi.fn(() => vi.fn());
+const mockOnModelChanged = vi.fn((_callback: (modelId: string) => void) => vi.fn());
 const mockFlint = {
   platform: "darwin",
   chatSend: vi.fn(),
@@ -25,6 +25,7 @@ const mockFlint = {
       pollFrequency: "normal",
       pollModel: "gpt-4.1-mini",
       fontSize: "medium",
+      theme: "dark",
     }),
   ),
   setConfig: vi.fn(),
@@ -33,9 +34,12 @@ const mockFlint = {
   getAttentionItems: vi.fn(() => Promise.resolve([])),
   onAttentionUpdate: vi.fn(() => vi.fn()),
   openAttentionItem: vi.fn(),
+  openLink: vi.fn(),
+  testNotification: vi.fn(),
   listModels: vi.fn(() => Promise.resolve([])),
   setModel: vi.fn(),
   onModelChanged: mockOnModelChanged,
+  onThemeChanged: vi.fn((_callback: (theme: string) => void) => vi.fn()),
 };
 
 Object.defineProperty(window, "flint", { value: mockFlint, writable: true });
@@ -51,14 +55,16 @@ vi.mock("../hooks/useAttention", () => ({
 
 const mockClearMessages = vi.fn();
 
+const mockChatState = {
+  messages: [] as { role: string; content: string }[],
+  streamingContent: "",
+  isStreaming: false,
+  sendMessage: vi.fn(),
+  clearMessages: mockClearMessages,
+};
+
 vi.mock("../hooks/useChat", () => ({
-  useChat: () => ({
-    messages: [],
-    streamingContent: "",
-    isStreaming: false,
-    sendMessage: vi.fn(),
-    clearMessages: mockClearMessages,
-  }),
+  useChat: () => mockChatState,
 }));
 
 vi.mock("../hooks/useConfig", () => ({
@@ -88,6 +94,12 @@ afterEach(() => {
   vi.clearAllMocks();
   useModelStore.setState({ currentModel: "gpt-4.1", models: [] });
   useAttentionStore.setState({ items: [], selectedIds: new Set() });
+  // Reset chat mock state
+  mockChatState.messages = [];
+  mockChatState.streamingContent = "";
+  mockChatState.isStreaming = false;
+  mockChatState.sendMessage = vi.fn();
+  mockChatState.clearMessages = mockClearMessages;
 });
 
 function pressEscape(): void {
@@ -150,12 +162,12 @@ describe("Escape stack", () => {
     expect(mockHideOverlay).toHaveBeenCalledTimes(1);
   });
 
-  it("closes model picker instead of hiding overlay when picker is open", async () => {
+  it("closes model picker instead of hiding overlay when picker is open", () => {
     const { getByLabelText, queryByTestId } = render(<App />);
 
     // Click model indicator to open picker
     const indicator = getByLabelText("Current model: gpt-4.1");
-    await act(async () => {
+    act(() => {
       fireEvent.click(indicator);
     });
 
@@ -169,7 +181,7 @@ describe("Escape stack", () => {
     expect(mockHideOverlay).not.toHaveBeenCalled();
   });
 
-  it("closes model picker before settings in escape stack", async () => {
+  it("closes model picker before settings in escape stack", () => {
     render(<App />);
 
     // Open settings first
@@ -202,13 +214,13 @@ describe("Model indicator", () => {
     expect(indicator.getAttribute("aria-haspopup")).toBe("listbox");
   });
 
-  it("toggles picker open on click", async () => {
+  it("toggles picker open on click", () => {
     const { getByLabelText, queryByTestId } = render(<App />);
 
     const indicator = getByLabelText("Current model: gpt-4.1");
 
     // Click to open
-    await act(async () => {
+    act(() => {
       fireEvent.click(indicator);
     });
 
@@ -216,7 +228,7 @@ describe("Model indicator", () => {
     expect(queryByTestId("model-picker")).toBeTruthy();
 
     // Click to close
-    await act(async () => {
+    act(() => {
       fireEvent.click(indicator);
     });
 
@@ -250,7 +262,7 @@ describe("Slash-to-focus shortcut", () => {
     render(<App />);
 
     // Blur any focused element so nothing has focus
-    (document.activeElement as HTMLElement)?.blur();
+    (document.activeElement as HTMLElement | null)?.blur();
 
     pressSlash();
 
@@ -292,14 +304,14 @@ describe("Slash-to-focus shortcut", () => {
   });
 
   it("shows styled slash hint when input is not focused", () => {
-    const { container } = render(<App />);
+    render(<App />);
 
     // Blur the auto-focused input so the slash hint appears
     const input = screen.getByPlaceholderText(/Ask about your schedule/);
     fireEvent.blur(input);
 
     // Find the kbd inside the input wrapper (not the footer hints)
-    const inputWrapper = input.parentElement!;
+    const inputWrapper = input.parentElement as HTMLElement;
     const kbd = inputWrapper.querySelector("kbd");
     expect(kbd?.textContent).toBe("/");
     expect(inputWrapper.textContent).toContain("to focus");
@@ -314,7 +326,7 @@ describe("Bottom bar hints", () => {
     expect(footer).toBeTruthy();
 
     // Collect all kbd elements within the hints section
-    const kbds = footer!.querySelectorAll("kbd");
+    const kbds = (footer as HTMLElement).querySelectorAll("kbd");
     const keyTexts = Array.from(kbds).map((kbd) => kbd.textContent);
 
     // Ctrl+H/J/K/L navigate · Ctrl+U/D scroll · ↵ open · Space select
@@ -331,7 +343,7 @@ describe("Bottom bar hints", () => {
     const { container } = render(<App />);
 
     const footer = container.querySelector("footer");
-    const text = footer!.textContent!;
+    const text = (footer as HTMLElement).textContent;
 
     expect(text).toContain("navigate");
     expect(text).toContain("open");
@@ -343,7 +355,7 @@ describe("Bottom bar hints", () => {
     const { container } = render(<App />);
 
     const footer = container.querySelector("footer");
-    const text = footer!.textContent!;
+    const text = (footer as HTMLElement).textContent;
 
     // Four middle-dot separators (new chat · navigate · scroll · open · select)
     const dots = text.match(/·/g);
@@ -383,7 +395,7 @@ describe("Cmd+N new session", () => {
     render(<App />);
 
     // Blur any focused element
-    (document.activeElement as HTMLElement)?.blur();
+    (document.activeElement as HTMLElement | null)?.blur();
 
     pressCmd("n");
 
@@ -407,12 +419,87 @@ describe("Cmd+N new session", () => {
   });
 });
 
+describe("Focus input on overlay show", () => {
+  function fireWindowFocus(): void {
+    window.dispatchEvent(new Event("focus"));
+  }
+
+  it("focuses chat input when window receives focus", () => {
+    render(<App />);
+
+    // Blur any focused element to simulate returning to the overlay
+    (document.activeElement as HTMLElement | null)?.blur();
+    expect(document.activeElement).toBe(document.body);
+
+    fireWindowFocus();
+
+    const input = screen.getByPlaceholderText(/Ask about your schedule/);
+    expect(document.activeElement).toBe(input);
+  });
+
+  it("closes settings and focuses chat input when window regains focus", () => {
+    render(<App />);
+
+    // Open settings
+    pressCmd(",");
+    expect(document.querySelector('[data-testid="settings-view"]')).toBeTruthy();
+
+    // Simulate overlay losing then regaining focus
+    act(() => {
+      fireWindowFocus();
+    });
+
+    // Settings should be closed, returning to default state
+    expect(document.querySelector('[data-testid="settings-view"]')).toBeNull();
+
+    // Chat input should be focused
+    const input = screen.getByPlaceholderText(/Ask about your schedule/);
+    expect(document.activeElement).toBe(input);
+  });
+
+  it("focuses chat input even when streaming is in progress", () => {
+    mockChatState.messages = [{ role: "user", content: "test" }];
+    mockChatState.streamingContent = "streaming...";
+    mockChatState.isStreaming = true;
+
+    render(<App />);
+
+    (document.activeElement as HTMLElement | null)?.blur();
+
+    fireWindowFocus();
+
+    const input = screen.getByPlaceholderText(/Ask about your schedule/);
+    expect(document.activeElement).toBe(input);
+  });
+
+  it("cleans up window focus listener on unmount", () => {
+    const addSpy = vi.spyOn(window, "addEventListener");
+    const removeSpy = vi.spyOn(window, "removeEventListener");
+
+    const { unmount } = render(<App />);
+
+    const focusCalls = addSpy.mock.calls.filter(([event]) => event === "focus");
+    expect(focusCalls.length).toBeGreaterThan(0);
+
+    const handler = focusCalls[focusCalls.length - 1][1];
+
+    unmount();
+
+    const removesCalls = removeSpy.mock.calls.filter(([event]) => event === "focus");
+    const removed = removesCalls.some(([, h]) => h === handler);
+    expect(removed).toBe(true);
+
+    addSpy.mockRestore();
+    removeSpy.mockRestore();
+  });
+});
+
 describe("Bottom bar new chat hint", () => {
   it("renders ⌘N new chat hint in bottom bar", () => {
     const { container } = render(<App />);
 
     const footer = container.querySelector("footer");
-    const text = footer!.textContent!;
+    const text = (footer as HTMLElement).textContent;
 
     expect(text).toContain("new chat");
   });
@@ -421,7 +508,7 @@ describe("Bottom bar new chat hint", () => {
     const { container } = render(<App />);
 
     const footer = container.querySelector("footer");
-    const kbds = footer!.querySelectorAll("kbd");
+    const kbds = (footer as HTMLElement).querySelectorAll("kbd");
     const keyTexts = Array.from(kbds).map((kbd) => kbd.textContent);
 
     expect(keyTexts).toContain("Cmd");
@@ -432,7 +519,7 @@ describe("Bottom bar new chat hint", () => {
     const { container } = render(<App />);
 
     const footer = container.querySelector("footer");
-    const text = footer!.textContent!;
+    const text = (footer as HTMLElement).textContent;
 
     // Should now have 4 separators (new chat · navigate · scroll · open · select)
     const dots = text.match(/·/g);

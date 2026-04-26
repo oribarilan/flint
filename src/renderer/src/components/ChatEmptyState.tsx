@@ -30,9 +30,11 @@ export function ChatEmptyState({ onSend, keyboardFocusedIndex }: ChatEmptyStateP
           <button
             key={suggestion.title}
             className={`${styles.card} ${keyboardFocusedIndex === index ? styles.keyboardFocused : ""}`}
-            data-testid={`suggestion-card-${index}`}
+            data-testid={`suggestion-card-${String(index)}`}
             type="button"
-            onClick={() => onSend(suggestion.title)}
+            onClick={() => {
+              onSend(suggestion.title);
+            }}
           >
             <span className={styles.cardIcon} aria-hidden="true">
               <AttentionIcon name={suggestion.icon} size={16} />

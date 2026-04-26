@@ -1,94 +1,95 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer } from "electron";
+import { IPC_CHANNELS } from "../main/ipc/channels";
 
 const flintAPI = {
   platform: process.platform,
 
   chatSend: (prompt: string): void => {
-    ipcRenderer.send('chat:send', prompt)
+    ipcRenderer.send(IPC_CHANNELS.CHAT_SEND, prompt);
   },
-  chatReset: (): Promise<void> => ipcRenderer.invoke('chat:reset') as Promise<void>,
+  chatReset: (): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.CHAT_RESET) as Promise<void>,
   onChatDelta: (callback: (delta: string) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, delta: string): void => {
-      callback(delta)
-    }
-    ipcRenderer.on('chat:delta', handler)
+      callback(delta);
+    };
+    ipcRenderer.on(IPC_CHANNELS.CHAT_DELTA, handler);
     return () => {
-      ipcRenderer.removeListener('chat:delta', handler)
-    }
+      ipcRenderer.removeListener(IPC_CHANNELS.CHAT_DELTA, handler);
+    };
   },
   onChatDone: (callback: () => void): (() => void) => {
     const handler = (): void => {
-      callback()
-    }
-    ipcRenderer.on('chat:done', handler)
+      callback();
+    };
+    ipcRenderer.on(IPC_CHANNELS.CHAT_DONE, handler);
     return () => {
-      ipcRenderer.removeListener('chat:done', handler)
-    }
+      ipcRenderer.removeListener(IPC_CHANNELS.CHAT_DONE, handler);
+    };
   },
 
-  getConfig: (): Promise<unknown> => ipcRenderer.invoke('config:get'),
+  getConfig: (): Promise<unknown> => ipcRenderer.invoke(IPC_CHANNELS.CONFIG_GET),
   setConfig: (partial: Record<string, unknown>): void => {
-    ipcRenderer.send('config:set', partial)
+    ipcRenderer.send(IPC_CHANNELS.CONFIG_SET, partial);
   },
 
   hideOverlay: (): void => {
-    ipcRenderer.send('overlay:hide')
+    ipcRenderer.send(IPC_CHANNELS.OVERLAY_HIDE);
   },
 
   onConnectionStatus: (callback: (status: string) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, status: string): void => {
-      callback(status)
-    }
-    ipcRenderer.on('connection:status', handler)
+      callback(status);
+    };
+    ipcRenderer.on(IPC_CHANNELS.CONNECTION_STATUS, handler);
     return () => {
-      ipcRenderer.removeListener('connection:status', handler)
-    }
+      ipcRenderer.removeListener(IPC_CHANNELS.CONNECTION_STATUS, handler);
+    };
   },
 
-  getAttentionItems: (): Promise<unknown[]> => ipcRenderer.invoke('attention:get'),
+  getAttentionItems: (): Promise<unknown[]> => ipcRenderer.invoke(IPC_CHANNELS.ATTENTION_GET),
   onAttentionUpdate: (callback: (items: unknown[]) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, items: unknown[]): void => {
-      callback(items)
-    }
-    ipcRenderer.on('attention:update', handler)
+      callback(items);
+    };
+    ipcRenderer.on(IPC_CHANNELS.ATTENTION_UPDATE, handler);
     return () => {
-      ipcRenderer.removeListener('attention:update', handler)
-    }
+      ipcRenderer.removeListener(IPC_CHANNELS.ATTENTION_UPDATE, handler);
+    };
   },
   openAttentionItem: (id: string): void => {
-    ipcRenderer.send('attention:open', id)
+    ipcRenderer.send(IPC_CHANNELS.ATTENTION_OPEN, id);
   },
   openLink: (url: string): void => {
-    ipcRenderer.send('link:open', url)
+    ipcRenderer.send(IPC_CHANNELS.LINK_OPEN, url);
   },
   testNotification: (): void => {
-    ipcRenderer.send('notification:test')
+    ipcRenderer.send(IPC_CHANNELS.NOTIFICATION_TEST);
   },
 
   listModels: (): Promise<{ id: string; name: string }[]> =>
-    ipcRenderer.invoke('model:list') as Promise<{ id: string; name: string }[]>,
+    ipcRenderer.invoke(IPC_CHANNELS.MODEL_LIST) as Promise<{ id: string; name: string }[]>,
   setModel: (id: string): void => {
-    ipcRenderer.send('model:set', id)
+    ipcRenderer.send(IPC_CHANNELS.MODEL_SET, id);
   },
   onModelChanged: (callback: (modelId: string) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, modelId: string): void => {
-      callback(modelId)
-    }
-    ipcRenderer.on('model:changed', handler)
+      callback(modelId);
+    };
+    ipcRenderer.on(IPC_CHANNELS.MODEL_CHANGED, handler);
     return () => {
-      ipcRenderer.removeListener('model:changed', handler)
-    }
+      ipcRenderer.removeListener(IPC_CHANNELS.MODEL_CHANGED, handler);
+    };
   },
 
   onThemeChanged: (callback: (theme: string) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, theme: string): void => {
-      callback(theme)
-    }
-    ipcRenderer.on('theme:changed', handler)
+      callback(theme);
+    };
+    ipcRenderer.on(IPC_CHANNELS.THEME_CHANGED, handler);
     return () => {
-      ipcRenderer.removeListener('theme:changed', handler)
-    }
+      ipcRenderer.removeListener(IPC_CHANNELS.THEME_CHANGED, handler);
+    };
   },
-}
+};
 
-contextBridge.exposeInMainWorld('flint', flintAPI)
+contextBridge.exposeInMainWorld("flint", flintAPI);

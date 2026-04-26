@@ -39,6 +39,7 @@ function parseBlocks(text: string): Block[] {
     const fenceMatch = /^```(\w*)$/.exec(line);
     if (fenceMatch) {
       flushParagraph();
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- regex groups can be undefined at runtime
       const language = fenceMatch[1] ?? undefined;
       const codeLines: string[] = [];
       i++;
@@ -57,7 +58,9 @@ function parseBlocks(text: string): Block[] {
       flushParagraph();
       blocks.push({
         type: "heading",
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- regex groups can be undefined at runtime
         headingLevel: (headingMatch[1] ?? "#").length,
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- regex groups can be undefined at runtime
         content: headingMatch[2] ?? "",
       });
       i++;
@@ -95,6 +98,7 @@ function parseBlocks(text: string): Block[] {
       while (i < lines.length) {
         const itemMatch = listItemPattern.exec(lines[i] ?? "");
         if (itemMatch) {
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- regex groups can be undefined at runtime
           listItems.push(itemMatch[2] ?? "");
           i++;
         } else {
@@ -129,15 +133,19 @@ function parseInline(text: string): ReactNode[] {
       nodes.push(text.slice(lastIndex, match.index));
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- regex groups can be undefined at runtime
     if (match[1] !== undefined) {
       // Inline code
       nodes.push(createElement("code", { key: key++, className: "md-inline-code" }, match[1]));
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- regex groups can be undefined at runtime
     } else if (match[2] !== undefined) {
       // Bold
       nodes.push(createElement("strong", { key: key++ }, match[2]));
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- regex groups can be undefined at runtime
     } else if (match[3] !== undefined) {
       // Italic
       nodes.push(createElement("em", { key: key++ }, match[3]));
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- regex groups can be undefined at runtime
     } else if (match[4] !== undefined && match[5] !== undefined) {
       // Link
       nodes.push(

@@ -41,7 +41,9 @@ export function SearchablePicker({
         className={styles.searchInput}
         placeholder={searchPlaceholder}
         value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
+        onChange={(e) => {
+          setSearchQuery(e.target.value);
+        }}
         aria-label={`Search ${label.toLowerCase()}`}
       />
       {filteredItems.length === 0 && searchQuery ? (

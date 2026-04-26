@@ -1,8 +1,8 @@
-import { BrowserWindow } from 'electron'
-import { join } from 'path'
-import { is } from '@electron-toolkit/utils'
+import { BrowserWindow } from "electron";
+import { join } from "path";
+import { is } from "@electron-toolkit/utils";
 
-let overlayWindow: BrowserWindow | null = null
+let overlayWindow: BrowserWindow | null = null;
 
 export function createOverlayWindow(): BrowserWindow {
   overlayWindow = new BrowserWindow({
@@ -15,50 +15,47 @@ export function createOverlayWindow(): BrowserWindow {
     skipTaskbar: true,
     resizable: false,
     center: true,
-    backgroundColor: '#00000000',
+    backgroundColor: "#00000000",
     webPreferences: {
-      preload: join(__dirname, '../preload/index.mjs'),
+      preload: join(__dirname, "../preload/index.mjs"),
       sandbox: false,
     },
-  })
+  });
 
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    overlayWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+  if (is.dev && process.env.ELECTRON_RENDERER_URL) {
+    void overlayWindow.loadURL(process.env.ELECTRON_RENDERER_URL);
   } else {
-    overlayWindow.loadFile(join(__dirname, '../renderer/index.html'))
+    void overlayWindow.loadFile(join(__dirname, "../renderer/index.html"));
   }
 
-  overlayWindow.on('blur', () => {
-    hideOverlay()
-  })
+  overlayWindow.on("blur", () => {
+    hideOverlay();
+  });
 
-  return overlayWindow
+  return overlayWindow;
 }
 
-export function showOverlay(meetingId?: string): void {
-  if (!overlayWindow) return
-  if (meetingId) {
-    overlayWindow.webContents.send('meeting:focus', meetingId)
-  }
-  overlayWindow.center()
-  overlayWindow.show()
-  overlayWindow.focus()
+export function showOverlay(): void {
+  if (!overlayWindow) return;
+  overlayWindow.center();
+  overlayWindow.show();
+  overlayWindow.focus();
 }
 
 export function hideOverlay(): void {
-  if (!overlayWindow || !overlayWindow.isVisible()) return
-  overlayWindow.hide()
+  if (!overlayWindow?.isVisible()) return;
+  overlayWindow.hide();
 }
 
 export function toggleOverlay(): void {
-  if (!overlayWindow) return
+  if (!overlayWindow) return;
   if (overlayWindow.isVisible()) {
-    hideOverlay()
+    hideOverlay();
   } else {
-    showOverlay()
+    showOverlay();
   }
 }
 
 export function getOverlayWindow(): BrowserWindow | null {
-  return overlayWindow
+  return overlayWindow;
 }

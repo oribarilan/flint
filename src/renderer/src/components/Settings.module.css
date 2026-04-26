@@ -27,7 +27,7 @@
   padding: 0 var(--space-sm);
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2xs);
 }
 
 .navItem {
@@ -44,7 +44,9 @@
   color: var(--text-secondary);
   cursor: pointer;
   text-align: left;
-  transition: background var(--transition-fast), color var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
   position: relative;
 }
 
@@ -60,7 +62,7 @@
 }
 
 .navItemActive::before {
-  content: '';
+  content: "";
   position: absolute;
   left: 0;
   top: var(--space-xs);
@@ -120,6 +122,10 @@
 
 .row + .row {
   margin-top: var(--space-md);
+}
+
+.rowDisabled {
+  opacity: 0.5;
 }
 
 .label {
@@ -219,7 +225,9 @@
   font-weight: 500;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast),
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast),
     border-color var(--transition-fast);
 }
 

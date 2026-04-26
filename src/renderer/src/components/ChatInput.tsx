@@ -1,51 +1,52 @@
-import { useState, useCallback, forwardRef, type KeyboardEvent } from 'react'
-import styles from './ChatInput.module.css'
+import { useState, useCallback, forwardRef, type KeyboardEvent } from "react";
+import { CornerDownLeft } from "lucide-react";
+import styles from "./ChatInput.module.css";
 
 interface SelectedItemSummary {
-  id: string
-  title: string
+  id: string;
+  title: string;
 }
 
 interface ChatInputProps {
-  onSend: (message: string) => void
-  disabled?: boolean
-  placeholder?: string
-  selectedItems?: SelectedItemSummary[]
+  onSend: (message: string) => void;
+  disabled?: boolean;
+  placeholder?: string;
+  selectedItems?: SelectedItemSummary[];
 }
 
-const MAX_VISIBLE_TITLES = 3
+const MAX_VISIBLE_TITLES = 3;
 
 function formatSelectedLabel(items: SelectedItemSummary[]): string {
-  const visible = items.slice(0, MAX_VISIBLE_TITLES).map((i) => i.title)
-  const remainder = items.length - MAX_VISIBLE_TITLES
-  return remainder > 0 ? `${visible.join(', ')}...` : visible.join(', ')
+  const visible = items.slice(0, MAX_VISIBLE_TITLES).map((i) => i.title);
+  const remainder = items.length - MAX_VISIBLE_TITLES;
+  return remainder > 0 ? `${visible.join(", ")}...` : visible.join(", ");
 }
 
 export const ChatInput = forwardRef<HTMLInputElement, ChatInputProps>(function ChatInput(
-  { onSend, disabled, placeholder = 'Ask about your schedule…', selectedItems = [] },
-  ref
+  { onSend, disabled, placeholder = "Ask about your schedule…", selectedItems = [] },
+  ref,
 ) {
-  const [value, setValue] = useState('')
-  const [focused, setFocused] = useState(false)
+  const [value, setValue] = useState("");
+  const [focused, setFocused] = useState(false);
 
-  const showSlashHint = !focused && value === ''
+  const showSlashHint = !focused && value === "";
 
   const handleSubmit = useCallback(() => {
-    const trimmed = value.trim()
-    if (!trimmed || disabled) return
-    onSend(trimmed)
-    setValue('')
-  }, [value, disabled, onSend])
+    const trimmed = value.trim();
+    if (!trimmed || disabled) return;
+    onSend(trimmed);
+    setValue("");
+  }, [value, disabled, onSend]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault()
-        handleSubmit()
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSubmit();
       }
     },
-    [handleSubmit]
-  )
+    [handleSubmit],
+  );
 
   return (
     <div className={styles.container}>
@@ -55,12 +56,18 @@ export const ChatInput = forwardRef<HTMLInputElement, ChatInputProps>(function C
           className={styles.input}
           type="text"
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => {
+            setValue(e.target.value);
+          }}
           onKeyDown={handleKeyDown}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
+          onFocus={() => {
+            setFocused(true);
+          }}
+          onBlur={() => {
+            setFocused(false);
+          }}
           placeholder={placeholder}
-          disabled={disabled}
+          aria-disabled={disabled ?? undefined}
           autoFocus
         />
         {showSlashHint && (
@@ -70,10 +77,12 @@ export const ChatInput = forwardRef<HTMLInputElement, ChatInputProps>(function C
           </span>
         )}
       </div>
-      <span className={styles.hint}>⏎</span>
+      <span className={styles.hint} aria-hidden="true">
+        <CornerDownLeft size={14} />
+      </span>
       {selectedItems.length > 0 && (
         <div className={styles.withIndicator}>With: {formatSelectedLabel(selectedItems)}</div>
       )}
     </div>
-  )
-})
+  );
+});

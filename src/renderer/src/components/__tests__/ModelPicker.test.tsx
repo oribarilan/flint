@@ -61,7 +61,7 @@ describe("ModelPicker", () => {
     expect(mockListModels).toHaveBeenCalledTimes(1);
   });
 
-  it("uses cached models on subsequent opens", async () => {
+  it("uses cached models on subsequent opens", () => {
     // Pre-populate store with models
     useModelStore.setState({
       currentModel: "gpt-4.1",
@@ -80,7 +80,7 @@ describe("ModelPicker", () => {
     expect(screen.getByText("Claude Sonnet 4")).toBeTruthy();
   });
 
-  it("shows check icon on current model only", async () => {
+  it("shows check icon on current model only", () => {
     useModelStore.setState({
       currentModel: "gpt-4.1",
       models: [
@@ -104,7 +104,7 @@ describe("ModelPicker", () => {
     expect(svgs2.length).toBe(0);
   });
 
-  it("navigates with arrow keys", async () => {
+  it("navigates with arrow keys", () => {
     useModelStore.setState({
       currentModel: "gpt-4.1",
       models: [

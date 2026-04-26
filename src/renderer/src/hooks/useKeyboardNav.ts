@@ -45,18 +45,26 @@ export function useKeyboardNav({
 
   // Clear focus on mouse click
   useEffect(() => {
-    const clearFocus = () => resetFocus();
+    const clearFocus = () => {
+      resetFocus();
+    };
     document.addEventListener("mousedown", clearFocus);
-    return () => document.removeEventListener("mousedown", clearFocus);
+    return () => {
+      document.removeEventListener("mousedown", clearFocus);
+    };
   }, [resetFocus]);
 
   // Clear focus when chat input gains focus
   useEffect(() => {
     const inputEl = chatInputRef.current;
     if (!inputEl) return;
-    const clearFocus = () => resetFocus();
+    const clearFocus = () => {
+      resetFocus();
+    };
     inputEl.addEventListener("focus", clearFocus);
-    return () => inputEl.removeEventListener("focus", clearFocus);
+    return () => {
+      inputEl.removeEventListener("focus", clearFocus);
+    };
   }, [chatInputRef, resetFocus]);
 
   // Clamp focusedIndex when items change
@@ -75,7 +83,7 @@ export function useKeyboardNav({
       const selector =
         focusedPanel === "attention"
           ? `[data-testid="attention-card-${items[focusedIndex]?.id}"]`
-          : `[data-testid="suggestion-card-${focusedIndex}"]`;
+          : `[data-testid="suggestion-card-${String(focusedIndex)}"]`;
       document.querySelector(selector)?.scrollIntoView({ block: "nearest" });
     }
   }, [focusedPanel, focusedIndex, items]);
@@ -120,8 +128,7 @@ export function useKeyboardNav({
             setFocusedIndex(0);
           }
 
-          const maxIndex =
-            panel === "attention" ? items.length - 1 : suggestions.length - 1;
+          const maxIndex = panel === "attention" ? items.length - 1 : suggestions.length - 1;
 
           if (e.key === "j") {
             setFocusedIndex((prev) => Math.min(prev + 1, maxIndex));
@@ -160,9 +167,7 @@ export function useKeyboardNav({
           e.stopPropagation();
           if (hasMessages && chatPanelRef.current) {
             const half = chatPanelRef.current.clientHeight / 2;
-            const reducedMotion = window.matchMedia(
-              "(prefers-reduced-motion: reduce)",
-            ).matches;
+            const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
             chatPanelRef.current.scrollBy({
               top: e.key === "d" ? half : -half,
               behavior: reducedMotion ? "instant" : "smooth",
@@ -199,7 +204,9 @@ export function useKeyboardNav({
     };
 
     document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, [
     focusedPanel,
     focusedIndex,

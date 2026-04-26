@@ -19,11 +19,11 @@ When the overlay is shown (via hotkey or tray), keyboard focus stays wherever it
 
 ## Acceptance Criteria
 
-- [ ] When the overlay is shown via hotkey, the chat input is focused within one frame
-- [ ] When the overlay is shown via tray click, the chat input is focused within one frame
-- [ ] If a chat response is in progress (streaming), focus still moves to input
-- [ ] If the settings modal is open when overlay is re-shown, input is not focused (settings keeps focus)
-- [ ] `just check` passes
+- [x] When the overlay is shown via hotkey, the chat input is focused within one frame
+- [x] When the overlay is shown via tray click, the chat input is focused within one frame
+- [x] If a chat response is in progress (streaming), focus still moves to input
+- [x] If the settings modal is open when overlay is re-shown, input is not focused (settings keeps focus)
+- [x] `just check` passes (pre-existing lint/type errors only; all 330 tests pass, no new issues)
 
 ## Verification
 
