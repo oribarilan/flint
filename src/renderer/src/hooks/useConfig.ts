@@ -1,26 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
+import { DEFAULT_CONFIG } from '../../../main/types'
+import type { FlintConfig } from '../../../main/types'
 
-export interface FlintConfig {
-  hotkey: string
-  alertMinutes: number
-  launchAtLogin: boolean
-  showTrayIcon: boolean
-  model: string
-  pollEnabled: boolean
-  pollFrequency: 'relaxed' | 'normal' | 'aggressive'
-  pollModel: string
-}
-
-const DEFAULT_CONFIG: FlintConfig = {
-  hotkey: 'Option+Space',
-  alertMinutes: 5,
-  launchAtLogin: true,
-  showTrayIcon: true,
-  model: 'gpt-4.1',
-  pollEnabled: true,
-  pollFrequency: 'normal',
-  pollModel: 'gpt-4.1-mini',
-}
+export type { FlintConfig }
 
 export function useConfig() {
   const [config, setConfig] = useState<FlintConfig>(DEFAULT_CONFIG)

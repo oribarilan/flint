@@ -35,6 +35,7 @@ function createMockConfig(
     pollEnabled: true,
     pollFrequency: 'normal',
     pollModel: 'gpt-4.1-mini',
+    fontSize: 'medium',
     ...overrides,
   }
 }

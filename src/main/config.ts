@@ -22,11 +22,19 @@ export function createConfigStore(): ConfigStore {
           s.set('pollModel', DEFAULT_CONFIG.pollModel)
         }
       },
+      '0.3.0': (s) => {
+        if (s.get('fontSize') === undefined) {
+          s.set('fontSize', DEFAULT_CONFIG.fontSize)
+        }
+      },
     },
   })
 
+  const VALID_FONT_SIZES = new Set(['extra-small', 'small', 'medium', 'large'])
+
   return {
     getAll(): FlintConfig {
+      const rawFontSize = store.get('fontSize', DEFAULT_CONFIG.fontSize) as string
       return {
         hotkey: store.get('hotkey', DEFAULT_CONFIG.hotkey) as string,
         alertMinutes: store.get('alertMinutes', DEFAULT_CONFIG.alertMinutes) as number,
@@ -36,6 +44,7 @@ export function createConfigStore(): ConfigStore {
         pollEnabled: store.get('pollEnabled', DEFAULT_CONFIG.pollEnabled) as boolean,
         pollFrequency: store.get('pollFrequency', DEFAULT_CONFIG.pollFrequency) as FlintConfig['pollFrequency'],
         pollModel: store.get('pollModel', DEFAULT_CONFIG.pollModel) as string,
+        fontSize: (VALID_FONT_SIZES.has(rawFontSize) ? rawFontSize : DEFAULT_CONFIG.fontSize) as FlintConfig['fontSize'],
       }
     },
 

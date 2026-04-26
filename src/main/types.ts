@@ -11,6 +11,8 @@ export interface Meeting {
 
 export type PollFrequency = "relaxed" | "normal" | "aggressive";
 
+export type FontSize = "extra-small" | "small" | "medium" | "large";
+
 export interface FlintConfig {
   hotkey: string;
   alertMinutes: number;
@@ -20,6 +22,7 @@ export interface FlintConfig {
   pollEnabled: boolean;
   pollFrequency: PollFrequency;
   pollModel: string;
+  fontSize: FontSize;
 }
 
 export const DEFAULT_CONFIG: FlintConfig = {
@@ -31,6 +34,7 @@ export const DEFAULT_CONFIG: FlintConfig = {
   pollEnabled: true,
   pollFrequency: "normal",
   pollModel: "gpt-4.1-mini",
+  fontSize: "medium",
 };
 
 export interface AttentionItem {

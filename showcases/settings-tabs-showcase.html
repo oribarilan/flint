@@ -1,0 +1,1374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flint Settings — Tab Variants</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── Reset ──────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Tokens (Flint Dark) ────────────────────────── */
+:root {
+  --bg-primary: oklch(14% 0.006 60);
+  --bg-secondary: oklch(19% 0.007 60);
+  --bg-hover: oklch(23% 0.008 60);
+  --bg-selected: oklch(25% 0.01 60);
+  --bg-solid: oklch(14% 0.006 60);
+  --bg-accent-subtle: oklch(74% 0.15 65 / 0.1);
+
+  --text-primary: oklch(93% 0.006 60);
+  --text-secondary: oklch(62% 0.008 60);
+  --text-placeholder: oklch(43% 0.006 60);
+  --text-on-accent: oklch(16% 0.02 65);
+
+  --accent: oklch(74% 0.15 65);
+  --accent-hover: oklch(70% 0.14 65);
+
+  --color-success: oklch(72% 0.15 145);
+  --color-error: oklch(65% 0.2 25);
+  --color-warning: oklch(78% 0.15 85);
+
+  --border-subtle: oklch(23% 0.006 60);
+  --border-hover: oklch(28% 0.008 60);
+  --border-active: oklch(25% 0.007 60);
+
+  --shadow-lg: 0 25px 60px oklch(4% 0.01 60 / 0.5);
+  --shadow-sm: 0 1px 3px oklch(4% 0.01 60 / 0.3);
+
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 20px;
+  --space-2xl: 24px;
+  --space-3xl: 32px;
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  --font-xs: 0.75rem;
+  --font-sm: 0.8125rem;
+  --font-base: 0.875rem;
+  --font-md: 1rem;
+  --font-lg: 1.125rem;
+  --font-xl: 1.5rem;
+
+  --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-mono: "SF Mono", "Fira Code", Menlo, Consolas, monospace;
+
+  --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
+  --transition-fast: 120ms cubic-bezier(0.25, 1, 0.5, 1);
+  --transition-normal: 200ms cubic-bezier(0.25, 1, 0.5, 1);
+
+  --icon-sm: 16px;
+  --icon-md: 18px;
+  --icon-lg: 24px;
+  --icon-container: 30px;
+}
+
+html, body {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: #111;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Showcase chrome ────────────────────────────── */
+
+.showcase-controls {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: var(--space-md) var(--space-2xl);
+  background: oklch(10% 0.006 60);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.showcase-controls h1 {
+  font-size: var(--font-md);
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.variant-tabs {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.variant-tab {
+  padding: var(--space-xs) var(--space-lg);
+  background: none;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--font-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.variant-tab:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+}
+
+.variant-tab.active {
+  background: var(--accent);
+  color: var(--text-on-accent);
+  border-color: var(--accent);
+}
+
+.variant-note {
+  margin-left: auto;
+  font-size: var(--font-xs);
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* ── Frame wrapper ──────────────────────────────── */
+
+.showcase-body {
+  margin-top: 49px;
+  display: flex;
+  justify-content: center;
+  padding: var(--space-3xl);
+}
+
+.frame-wrapper {
+  width: 720px;
+  height: 520px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-primary);
+  position: relative;
+}
+
+.variant-view {
+  display: none;
+  width: 100%;
+  height: 100%;
+}
+
+.variant-view.active {
+  display: flex;
+}
+
+/* ═══════════════════════════════════════════════════
+   SHARED CONTROLS — toggles, inputs, selects
+   ═══════════════════════════════════════════════════ */
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  min-height: 40px;
+}
+
+.setting-row + .setting-row {
+  margin-top: var(--space-md);
+}
+
+.setting-label {
+  font-size: var(--font-md);
+  color: var(--text-primary);
+  font-weight: 400;
+}
+
+.setting-description {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.setting-value {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  background: var(--bg-secondary);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+}
+
+/* Toggle switch */
+.toggle {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--transition-fast);
+}
+
+.toggle.on {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  background: var(--text-primary);
+  border-radius: var(--radius-full);
+  transition: transform var(--transition-fast);
+}
+
+.toggle.on .toggle-knob {
+  transform: translateX(16px);
+  background: var(--text-on-accent);
+}
+
+/* Number input */
+.number-input {
+  width: 64px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-md);
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  text-align: center;
+  outline: none;
+}
+
+.number-input:focus { border-color: var(--accent); }
+
+.input-suffix {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  margin-left: var(--space-xs);
+}
+
+/* Select */
+.select-input {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-lg) var(--space-xs) var(--space-sm);
+  font-size: var(--font-sm);
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+}
+
+.select-input:focus { border-color: var(--accent); }
+
+.select-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Segmented control */
+.segmented {
+  display: flex;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+}
+
+.segmented-option {
+  padding: var(--space-xs) var(--space-md);
+  border: none;
+  background: none;
+  border-radius: 4px;
+  font: inherit;
+  font-size: var(--font-sm);
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.segmented-option:hover {
+  color: var(--text-primary);
+}
+
+.segmented-option.active {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* Section card */
+.section-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg) var(--space-xl);
+}
+
+.section-card + .section-card {
+  margin-top: var(--space-md);
+}
+
+.section-card-title {
+  font-size: var(--font-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--space-lg);
+}
+
+/* ── SVG icons (inline) ─────────────────────────── */
+
+.icon {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  flex-shrink: 0;
+}
+
+.icon-md {
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+/* ═══════════════════════════════════════════════════
+   VARIANT A — Sidebar Tabs
+   macOS-style sidebar nav with content area
+   ═══════════════════════════════════════════════════ */
+
+.va-sidebar {
+  width: 180px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+}
+
+.va-sidebar-header {
+  padding: var(--space-xl) var(--space-lg) var(--space-lg);
+}
+
+.va-sidebar-header h2 {
+  font-size: var(--font-xl);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.va-nav {
+  padding: 0 var(--space-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.va-nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: var(--font-md);
+  font-weight: 400;
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.va-nav-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.va-nav-item.active {
+  background: var(--bg-accent-subtle);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.va-nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: var(--space-xs);
+  bottom: var(--space-xs);
+  width: 3px;
+  background: var(--accent);
+  border-radius: var(--radius-full);
+}
+
+.va-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-xl) var(--space-2xl);
+  overscroll-behavior: contain;
+}
+
+.va-content-header {
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-xl);
+}
+
+.va-section-sep {
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+  margin: var(--space-xl) 0;
+}
+
+/* ═══════════════════════════════════════════════════
+   VARIANT B — Top Tabs
+   Horizontal tab bar with underline indicator
+   ═══════════════════════════════════════════════════ */
+
+.vb-wrapper {
+  flex-direction: column;
+}
+
+.vb-header {
+  padding: var(--space-xl) var(--space-2xl) 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.vb-header h2 {
+  font-size: var(--font-xl);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-lg);
+}
+
+.vb-tabs {
+  display: flex;
+  gap: var(--space-2xl);
+}
+
+.vb-tab {
+  padding: var(--space-sm) 0 var(--space-md);
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: var(--font-md);
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  position: relative;
+  transition: color var(--transition-fast);
+}
+
+.vb-tab:hover {
+  color: var(--text-primary);
+}
+
+.vb-tab.active {
+  color: var(--text-primary);
+}
+
+.vb-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 1px;
+}
+
+.vb-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-2xl);
+  overscroll-behavior: contain;
+}
+
+/* ═══════════════════════════════════════════════════
+   VARIANT C — Icon Sidebar
+   Narrow icon rail + content. Compact, power-user.
+   ═══════════════════════════════════════════════════ */
+
+.vc-rail {
+  width: 56px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-xl) 0;
+  gap: var(--space-xs);
+}
+
+.vc-rail-item {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.vc-rail-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.vc-rail-item.active {
+  background: var(--bg-accent-subtle);
+  color: var(--accent);
+}
+
+.vc-rail-item .tooltip {
+  position: absolute;
+  left: calc(100% + var(--space-sm));
+  top: 50%;
+  transform: translateY(-50%);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--bg-selected);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-xs);
+  color: var(--text-primary);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-fast);
+  z-index: 10;
+}
+
+.vc-rail-item:hover .tooltip {
+  opacity: 1;
+}
+
+.vc-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-xl) var(--space-2xl);
+  overscroll-behavior: contain;
+}
+
+.vc-content-header {
+  font-size: var(--font-xl);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-xs);
+}
+
+.vc-content-desc {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-xl);
+}
+
+/* ═══════════════════════════════════════════════════
+   VARIANT D — Stacked Sections
+   No tabs. All sections visible, collapsible.
+   ═══════════════════════════════════════════════════ */
+
+.vd-wrapper {
+  flex-direction: column;
+}
+
+.vd-header {
+  padding: var(--space-xl) var(--space-2xl);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.vd-header h2 {
+  font-size: var(--font-xl);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.vd-close {
+  width: var(--icon-container);
+  height: var(--icon-container);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: var(--font-lg);
+  transition: all var(--transition-fast);
+}
+
+.vd-close:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.vd-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-2xl);
+  overscroll-behavior: contain;
+}
+
+.vd-section {
+  margin-bottom: var(--space-xl);
+}
+
+.vd-section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+  cursor: pointer;
+}
+
+.vd-section-title {
+  font-size: var(--font-md);
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.vd-section-chevron {
+  color: var(--text-secondary);
+  transition: transform var(--transition-fast);
+}
+
+.vd-section-chevron.collapsed {
+  transform: rotate(-90deg);
+}
+
+.vd-section-body {
+  padding-left: var(--space-sm);
+}
+
+/* ── Variant info panel ─────────────────────────── */
+
+.variant-info {
+  position: fixed;
+  bottom: var(--space-2xl);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-xl);
+  max-width: 600px;
+  display: flex;
+  gap: var(--space-lg);
+  align-items: flex-start;
+  box-shadow: var(--shadow-lg);
+}
+
+.variant-info-label {
+  font-size: var(--font-xs);
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  padding-top: 1px;
+}
+
+.variant-info-text {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* ── Focus visible ──────────────────────────────── */
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Scrollbar (webkit) ─────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: oklch(23% 0.006 60);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(28% 0.008 60);
+}
+</style>
+</head>
+<body>
+
+<!-- ── Controls ──────────────────────────────────── -->
+<div class="showcase-controls">
+  <h1>Settings — Tab Variants</h1>
+  <div class="variant-tabs">
+    <button class="variant-tab active" onclick="showVariant('a')">A · Sidebar</button>
+    <button class="variant-tab" onclick="showVariant('b')">B · Top Tabs</button>
+    <button class="variant-tab" onclick="showVariant('c')">C · Icon Rail</button>
+    <button class="variant-tab" onclick="showVariant('d')">D · Stacked</button>
+  </div>
+  <span class="variant-note">720 × 520 — matches overlay window</span>
+</div>
+
+<!-- ── Showcase ──────────────────────────────────── -->
+<div class="showcase-body">
+  <div class="frame-wrapper">
+
+    <!-- ════════════════════════════════════════════
+         VARIANT A — Sidebar Tabs
+         macOS System Settings style.
+         Sidebar with labeled tabs, content on right.
+         ════════════════════════════════════════════ -->
+    <div id="variant-a" class="variant-view active" data-info="Classic sidebar navigation. Follows macOS System Settings pattern. Left accent border on active tab per design spec. Scales well as settings grow — just add items to the sidebar.">
+
+      <div class="va-sidebar">
+        <div class="va-sidebar-header">
+          <h2>Settings</h2>
+        </div>
+        <nav class="va-nav" role="tablist" aria-label="Settings categories">
+          <button class="va-nav-item active" role="tab" onclick="switchSidebarTab(this, 'va-general')">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72 1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+            General
+          </button>
+          <button class="va-nav-item" role="tab" onclick="switchSidebarTab(this, 'va-ai')">
+            <svg class="icon" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6m-6 3h6m-6 3h4"/></svg>
+            AI &amp; Models
+          </button>
+          <button class="va-nav-item" role="tab" onclick="switchSidebarTab(this, 'va-notifications')">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9m4.3 13a1.94 1.94 0 0 0 3.4 0"/></svg>
+            Notifications
+          </button>
+          <button class="va-nav-item" role="tab" onclick="switchSidebarTab(this, 'va-appearance')">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a7 7 0 0 0 0 20z"/></svg>
+            Appearance
+          </button>
+        </nav>
+      </div>
+
+      <div class="va-content">
+        <!-- General tab -->
+        <div id="va-general" class="va-tab-content">
+          <div class="va-content-header">General</div>
+          <div class="section-card">
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Overlay hotkey</div>
+                <div class="setting-description">Keyboard shortcut to show/hide Flint</div>
+              </div>
+              <span class="setting-value">Ctrl+Shift+Space</span>
+            </div>
+          </div>
+          <div class="section-card" style="margin-top: var(--space-md)">
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Launch at login</div>
+                <div class="setting-description">Start Flint when you log in</div>
+              </div>
+              <div class="toggle on"><span class="toggle-knob"></span></div>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Show tray icon</div>
+                <div class="setting-description">Display Flint in the menu bar</div>
+              </div>
+              <div class="toggle on"><span class="toggle-knob"></span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI tab -->
+        <div id="va-ai" class="va-tab-content" style="display:none">
+          <div class="va-content-header">AI &amp; Models</div>
+          <div class="section-card">
+            <div class="section-card-title">Chat</div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Model</div>
+                <div class="setting-description">Model used for chat conversations</div>
+              </div>
+              <span class="setting-value">gpt-4.1</span>
+            </div>
+          </div>
+          <div class="section-card" style="margin-top: var(--space-md)">
+            <div class="section-card-title">Background Agent</div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Background polling</div>
+                <div class="setting-description">Periodically check for new attention items</div>
+              </div>
+              <div class="toggle on"><span class="toggle-knob"></span></div>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Poll frequency</div>
+              </div>
+              <div class="segmented">
+                <button class="segmented-option">Relaxed</button>
+                <button class="segmented-option active">Normal</button>
+                <button class="segmented-option">Aggressive</button>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Poll model</div>
+                <div class="setting-description">Lighter model for background checks</div>
+              </div>
+              <span class="setting-value">gpt-4.1-mini</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notifications tab -->
+        <div id="va-notifications" class="va-tab-content" style="display:none">
+          <div class="va-content-header">Notifications</div>
+          <div class="section-card">
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Alert before meeting</div>
+                <div class="setting-description">How far in advance to notify you</div>
+              </div>
+              <div>
+                <input class="number-input" type="number" value="5" min="1" max="60">
+                <span class="input-suffix">min</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Appearance tab -->
+        <div id="va-appearance" class="va-tab-content" style="display:none">
+          <div class="va-content-header">Appearance</div>
+          <div class="section-card">
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Theme</div>
+                <div class="setting-description">Choose your color scheme</div>
+              </div>
+              <div class="segmented">
+                <button class="segmented-option active">Dark</button>
+                <button class="segmented-option">Light</button>
+              </div>
+            </div>
+          </div>
+          <div class="section-card" style="margin-top: var(--space-md)">
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Font size</div>
+                <div class="setting-description">Adjust text size across the interface</div>
+              </div>
+              <div class="segmented">
+                <button class="segmented-option">XS</button>
+                <button class="segmented-option">S</button>
+                <button class="segmented-option active">M</button>
+                <button class="segmented-option">L</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════
+         VARIANT B — Top Tabs
+         Horizontal tab bar with underline indicator.
+         Clean, minimal, good for few categories.
+         ════════════════════════════════════════════ -->
+    <div id="variant-b" class="variant-view vb-wrapper" data-info="Horizontal tab bar at the top with underline indicator. Minimal and clean. Works well with 3–5 categories but gets crowded beyond that. Maximizes content area width.">
+
+      <div class="vb-header">
+        <h2>Settings</h2>
+        <div class="vb-tabs" role="tablist">
+          <button class="vb-tab active" role="tab" onclick="switchTopTab(this, 'vb-general')">General</button>
+          <button class="vb-tab" role="tab" onclick="switchTopTab(this, 'vb-ai')">AI &amp; Models</button>
+          <button class="vb-tab" role="tab" onclick="switchTopTab(this, 'vb-notifications')">Notifications</button>
+          <button class="vb-tab" role="tab" onclick="switchTopTab(this, 'vb-appearance')">Appearance</button>
+        </div>
+      </div>
+
+      <div class="vb-content">
+        <div id="vb-general" class="vb-tab-content">
+          <div class="section-card">
+            <div class="section-card-title">Shortcuts</div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Overlay hotkey</div>
+                <div class="setting-description">Keyboard shortcut to show/hide Flint</div>
+              </div>
+              <span class="setting-value">Ctrl+Shift+Space</span>
+            </div>
+          </div>
+          <div class="section-card">
+            <div class="section-card-title">System</div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Launch at login</div>
+              </div>
+              <div class="toggle on"><span class="toggle-knob"></span></div>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Show tray icon</div>
+              </div>
+              <div class="toggle on"><span class="toggle-knob"></span></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="vb-ai" class="vb-tab-content" style="display:none">
+          <div class="section-card">
+            <div class="section-card-title">Chat Model</div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Model</div>
+                <div class="setting-description">Used for chat conversations</div>
+              </div>
+              <span class="setting-value">gpt-4.1</span>
+            </div>
+          </div>
+          <div class="section-card">
+            <div class="section-card-title">Background Agent</div>
+            <div class="setting-row">
+              <div><div class="setting-label">Background polling</div></div>
+              <div class="toggle on"><span class="toggle-knob"></span></div>
+            </div>
+            <div class="setting-row">
+              <div><div class="setting-label">Poll frequency</div></div>
+              <select class="select-input">
+                <option>Relaxed</option>
+                <option selected>Normal</option>
+                <option>Aggressive</option>
+              </select>
+            </div>
+            <div class="setting-row">
+              <div><div class="setting-label">Poll model</div></div>
+              <span class="setting-value">gpt-4.1-mini</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="vb-notifications" class="vb-tab-content" style="display:none">
+          <div class="section-card">
+            <div class="section-card-title">Meeting Alerts</div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Alert before meeting</div>
+                <div class="setting-description">How far in advance to notify you</div>
+              </div>
+              <div>
+                <input class="number-input" type="number" value="5" min="1" max="60">
+                <span class="input-suffix">min</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="vb-appearance" class="vb-tab-content" style="display:none">
+          <div class="section-card">
+            <div class="section-card-title">Theme</div>
+            <div class="setting-row">
+              <div><div class="setting-label">Color scheme</div></div>
+              <div class="segmented">
+                <button class="segmented-option active">Dark</button>
+                <button class="segmented-option">Light</button>
+              </div>
+            </div>
+          </div>
+          <div class="section-card">
+            <div class="section-card-title">Text</div>
+            <div class="setting-row">
+              <div><div class="setting-label">Font size</div></div>
+              <div class="segmented">
+                <button class="segmented-option">XS</button>
+                <button class="segmented-option">S</button>
+                <button class="segmented-option active">M</button>
+                <button class="segmented-option">L</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════
+         VARIANT C — Icon Rail
+         Narrow icon-only sidebar with tooltips.
+         Dense, power-user oriented.
+         ════════════════════════════════════════════ -->
+    <div id="variant-c" class="variant-view" data-info="Compact icon rail sidebar with hover tooltips. Maximizes content space. Feels more like a power-user tool (VS Code, JetBrains). Works at any category count but relies on recognizable icons.">
+
+      <div class="vc-rail">
+        <button class="vc-rail-item active" onclick="switchRailTab(this, 'vc-general')">
+          <svg class="icon icon-md" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72 1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          <span class="tooltip">General</span>
+        </button>
+        <button class="vc-rail-item" onclick="switchRailTab(this, 'vc-ai')">
+          <svg class="icon icon-md" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6m-6 3h6m-6 3h4"/></svg>
+          <span class="tooltip">AI &amp; Models</span>
+        </button>
+        <button class="vc-rail-item" onclick="switchRailTab(this, 'vc-notifications')">
+          <svg class="icon icon-md" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9m4.3 13a1.94 1.94 0 0 0 3.4 0"/></svg>
+          <span class="tooltip">Notifications</span>
+        </button>
+        <button class="vc-rail-item" onclick="switchRailTab(this, 'vc-appearance')">
+          <svg class="icon icon-md" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a7 7 0 0 0 0 20z"/></svg>
+          <span class="tooltip">Appearance</span>
+        </button>
+      </div>
+
+      <div class="vc-content">
+        <div id="vc-general" class="vc-tab-content">
+          <div class="vc-content-header">General</div>
+          <div class="vc-content-desc">Keyboard shortcuts and system behavior</div>
+
+          <div class="section-card">
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Overlay hotkey</div>
+                <div class="setting-description">Keyboard shortcut to show/hide Flint</div>
+              </div>
+              <span class="setting-value">Ctrl+Shift+Space</span>
+            </div>
+          </div>
+          <div class="section-card">
+            <div class="setting-row">
+              <div><div class="setting-label">Launch at login</div></div>
+              <div class="toggle on"><span class="toggle-knob"></span></div>
+            </div>
+            <div class="setting-row">
+              <div><div class="setting-label">Show tray icon</div></div>
+              <div class="toggle on"><span class="toggle-knob"></span></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="vc-ai" class="vc-tab-content" style="display:none">
+          <div class="vc-content-header">AI &amp; Models</div>
+          <div class="vc-content-desc">Configure chat and background intelligence</div>
+
+          <div class="section-card">
+            <div class="section-card-title">Chat</div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Model</div>
+                <div class="setting-description">Model used for chat conversations</div>
+              </div>
+              <span class="setting-value">gpt-4.1</span>
+            </div>
+          </div>
+          <div class="section-card">
+            <div class="section-card-title">Background Agent</div>
+            <div class="setting-row">
+              <div><div class="setting-label">Background polling</div></div>
+              <div class="toggle on"><span class="toggle-knob"></span></div>
+            </div>
+            <div class="setting-row">
+              <div><div class="setting-label">Poll frequency</div></div>
+              <div class="segmented">
+                <button class="segmented-option">Relaxed</button>
+                <button class="segmented-option active">Normal</button>
+                <button class="segmented-option">Aggressive</button>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div><div class="setting-label">Poll model</div></div>
+              <span class="setting-value">gpt-4.1-mini</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="vc-notifications" class="vc-tab-content" style="display:none">
+          <div class="vc-content-header">Notifications</div>
+          <div class="vc-content-desc">Meeting alerts and reminders</div>
+
+          <div class="section-card">
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Alert before meeting</div>
+                <div class="setting-description">How far in advance to notify you</div>
+              </div>
+              <div>
+                <input class="number-input" type="number" value="5" min="1" max="60">
+                <span class="input-suffix">min</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="vc-appearance" class="vc-tab-content" style="display:none">
+          <div class="vc-content-header">Appearance</div>
+          <div class="vc-content-desc">Visual preferences</div>
+
+          <div class="section-card">
+            <div class="setting-row">
+              <div><div class="setting-label">Theme</div></div>
+              <div class="segmented">
+                <button class="segmented-option active">Dark</button>
+                <button class="segmented-option">Light</button>
+              </div>
+            </div>
+          </div>
+          <div class="section-card">
+            <div class="setting-row">
+              <div><div class="setting-label">Font size</div></div>
+              <div class="segmented">
+                <button class="segmented-option">XS</button>
+                <button class="segmented-option">S</button>
+                <button class="segmented-option active">M</button>
+                <button class="segmented-option">L</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════
+         VARIANT D — Stacked Sections (no tabs)
+         All sections visible in a single scroll.
+         ════════════════════════════════════════════ -->
+    <div id="variant-d" class="variant-view vd-wrapper" data-info="No tabs at all — all settings visible in a single scrollable list, grouped by section with collapsible headers. Simplest mental model (everything is here). Works best when total settings count is low. Can feel long as settings grow.">
+
+      <div class="vd-header">
+        <h2>Settings</h2>
+        <button class="vd-close" aria-label="Close">✕</button>
+      </div>
+
+      <div class="vd-scroll">
+        <div class="vd-section">
+          <div class="vd-section-header" onclick="toggleSection(this)">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72 1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+            <span class="vd-section-title">General</span>
+            <svg class="icon vd-section-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+          <div class="vd-section-body">
+            <div class="section-card">
+              <div class="setting-row">
+                <div>
+                  <div class="setting-label">Overlay hotkey</div>
+                  <div class="setting-description">Keyboard shortcut to show/hide Flint</div>
+                </div>
+                <span class="setting-value">Ctrl+Shift+Space</span>
+              </div>
+            </div>
+            <div class="section-card">
+              <div class="setting-row">
+                <div><div class="setting-label">Launch at login</div></div>
+                <div class="toggle on"><span class="toggle-knob"></span></div>
+              </div>
+              <div class="setting-row">
+                <div><div class="setting-label">Show tray icon</div></div>
+                <div class="toggle on"><span class="toggle-knob"></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="vd-section">
+          <div class="vd-section-header" onclick="toggleSection(this)">
+            <svg class="icon" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6m-6 3h6m-6 3h4"/></svg>
+            <span class="vd-section-title">AI &amp; Models</span>
+            <svg class="icon vd-section-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+          <div class="vd-section-body">
+            <div class="section-card">
+              <div class="section-card-title">Chat</div>
+              <div class="setting-row">
+                <div>
+                  <div class="setting-label">Model</div>
+                  <div class="setting-description">Model used for conversations</div>
+                </div>
+                <span class="setting-value">gpt-4.1</span>
+              </div>
+            </div>
+            <div class="section-card">
+              <div class="section-card-title">Background Agent</div>
+              <div class="setting-row">
+                <div><div class="setting-label">Background polling</div></div>
+                <div class="toggle on"><span class="toggle-knob"></span></div>
+              </div>
+              <div class="setting-row">
+                <div><div class="setting-label">Poll frequency</div></div>
+                <div class="segmented">
+                  <button class="segmented-option">Relaxed</button>
+                  <button class="segmented-option active">Normal</button>
+                  <button class="segmented-option">Aggressive</button>
+                </div>
+              </div>
+              <div class="setting-row">
+                <div><div class="setting-label">Poll model</div></div>
+                <span class="setting-value">gpt-4.1-mini</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="vd-section">
+          <div class="vd-section-header" onclick="toggleSection(this)">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9m4.3 13a1.94 1.94 0 0 0 3.4 0"/></svg>
+            <span class="vd-section-title">Notifications</span>
+            <svg class="icon vd-section-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+          <div class="vd-section-body">
+            <div class="section-card">
+              <div class="setting-row">
+                <div>
+                  <div class="setting-label">Alert before meeting</div>
+                  <div class="setting-description">How far in advance to notify you</div>
+                </div>
+                <div>
+                  <input class="number-input" type="number" value="5" min="1" max="60">
+                  <span class="input-suffix">min</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="vd-section">
+          <div class="vd-section-header" onclick="toggleSection(this)">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a7 7 0 0 0 0 20z"/></svg>
+            <span class="vd-section-title">Appearance</span>
+            <svg class="icon vd-section-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+          <div class="vd-section-body">
+            <div class="section-card">
+              <div class="setting-row">
+                <div><div class="setting-label">Theme</div></div>
+                <div class="segmented">
+                  <button class="segmented-option active">Dark</button>
+                  <button class="segmented-option">Light</button>
+                </div>
+              </div>
+            </div>
+            <div class="section-card">
+              <div class="setting-row">
+                <div><div class="setting-label">Font size</div></div>
+                <div class="segmented">
+                  <button class="segmented-option">XS</button>
+                  <button class="segmented-option">S</button>
+                  <button class="segmented-option active">M</button>
+                  <button class="segmented-option">L</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /frame-wrapper -->
+</div>
+
+<!-- ── Variant info ──────────────────────────────── -->
+<div class="variant-info" id="variant-info">
+  <span class="variant-info-label">Why</span>
+  <span class="variant-info-text" id="variant-info-text"></span>
+</div>
+
+<script>
+// ── Variant switching ─────────────────────────────
+function showVariant(id) {
+  document.querySelectorAll('.variant-view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.variant-tab').forEach(t => t.classList.remove('active'));
+  const view = document.getElementById('variant-' + id);
+  view.classList.add('active');
+  event.target.classList.add('active');
+  document.getElementById('variant-info-text').textContent = view.dataset.info;
+}
+
+// Init info text
+document.getElementById('variant-info-text').textContent =
+  document.getElementById('variant-a').dataset.info;
+
+// ── Variant A: sidebar tab switching ──────────────
+function switchSidebarTab(btn, contentId) {
+  btn.closest('.va-nav').querySelectorAll('.va-nav-item').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  btn.closest('.variant-view').querySelectorAll('.va-tab-content').forEach(c => c.style.display = 'none');
+  document.getElementById(contentId).style.display = '';
+}
+
+// ── Variant B: top tab switching ──────────────────
+function switchTopTab(btn, contentId) {
+  btn.closest('.vb-tabs').querySelectorAll('.vb-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  btn.closest('.variant-view').querySelectorAll('.vb-tab-content').forEach(c => c.style.display = 'none');
+  document.getElementById(contentId).style.display = '';
+}
+
+// ── Variant C: icon rail switching ────────────────
+function switchRailTab(btn, contentId) {
+  btn.closest('.vc-rail').querySelectorAll('.vc-rail-item').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  btn.closest('.variant-view').querySelectorAll('.vc-tab-content').forEach(c => c.style.display = 'none');
+  document.getElementById(contentId).style.display = '';
+}
+
+// ── Variant D: section collapse ───────────────────
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const chevron = header.querySelector('.vd-section-chevron');
+  if (body.style.display === 'none') {
+    body.style.display = '';
+    chevron.classList.remove('collapsed');
+  } else {
+    body.style.display = 'none';
+    chevron.classList.add('collapsed');
+  }
+}
+
+// ── Toggle interaction ────────────────────────────
+document.querySelectorAll('.toggle').forEach(toggle => {
+  toggle.addEventListener('click', () => {
+    toggle.classList.toggle('on');
+  });
+});
+
+// ── Segmented control interaction ─────────────────
+document.querySelectorAll('.segmented').forEach(group => {
+  group.querySelectorAll('.segmented-option').forEach(opt => {
+    opt.addEventListener('click', () => {
+      group.querySelectorAll('.segmented-option').forEach(o => o.classList.remove('active'));
+      opt.classList.add('active');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

@@ -1,87 +1,121 @@
-/* ── Settings overlay ───────────────────────────────────────── */
+/* ── Settings layout ────────────────────────────────────────── */
 
-.backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
+.layout {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  background: oklch(0% 0 0 / 0.5);
+  flex: 1;
+  min-height: 0;
 }
 
-.panel {
-  background: var(--bg-primary);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  width: 340px;
-  max-height: 80vh;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
+/* ── Sidebar ───────────────────────────────────────────────── */
 
-.header {
+.sidebar {
+  width: 180px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border-subtle);
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-lg);
-  border-bottom: 1px solid var(--border-subtle);
+  flex-direction: column;
 }
 
-.title {
-  font-size: var(--font-lg);
-  font-weight: 600;
+.sidebarTitle {
+  font-size: var(--font-xl);
+  font-weight: 700;
   color: var(--text-primary);
+  padding: var(--space-xl) var(--space-lg) var(--space-lg);
 }
 
-.closeButton {
+.nav {
+  padding: 0 var(--space-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.navItem {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: var(--icon-container);
-  height: var(--icon-container);
-  background: none;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
   border: none;
+  background: none;
   border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: var(--font-md);
+  font-weight: 400;
   color: var(--text-secondary);
   cursor: pointer;
-  font-size: var(--font-lg);
+  text-align: left;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  position: relative;
 }
 
-.closeButton:hover {
+.navItem:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
 }
 
-/* ── Sections ──────────────────────────────────────────────── */
-
-.section {
-  padding: var(--space-lg);
-  border-bottom: 1px solid var(--border-subtle);
+.navItemActive {
+  background: var(--bg-accent-subtle);
+  color: var(--text-primary);
+  font-weight: 500;
 }
 
-.section:last-child {
-  border-bottom: none;
+.navItemActive::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: var(--space-xs);
+  bottom: var(--space-xs);
+  width: 3px;
+  background: var(--accent);
+  border-radius: var(--radius-full);
 }
 
-.sectionLabel {
+/* ── Content ───────────────────────────────────────────────── */
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-xl) var(--space-2xl);
+}
+
+.contentHeader {
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-xl);
+}
+
+/* ── Section cards ─────────────────────────────────────────── */
+
+.card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg) var(--space-xl);
+}
+
+.card + .card {
+  margin-top: var(--space-md);
+}
+
+.cardTitle {
   font-size: var(--font-xs);
   font-weight: 600;
   color: var(--text-secondary);
-  letter-spacing: 0.5px;
   text-transform: uppercase;
-  margin-bottom: var(--space-md);
+  letter-spacing: 0.5px;
+  margin-bottom: var(--space-lg);
 }
 
-/* ── Setting row ───────────────────────────────────────────── */
+/* ── Setting rows ──────────────────────────────────────────── */
 
 .row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-md);
-  min-height: 36px;
+  min-height: 40px;
 }
 
 .row + .row {
@@ -91,63 +125,28 @@
 .label {
   font-size: var(--font-md);
   color: var(--text-primary);
+  font-weight: 400;
 }
 
-.value {
+.description {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+/* ── Mono badge (read-only values) ─────────────────────────── */
+
+.mono {
   font-size: var(--font-sm);
   color: var(--text-secondary);
   font-family: var(--font-mono);
-  background: var(--bg-secondary);
+  background: var(--bg-primary);
   padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-sm);
 }
 
-/* ── Number input ──────────────────────────────────────────── */
-
-.numberInput {
-  width: 64px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  padding: var(--space-xs) var(--space-sm);
-  font-size: var(--font-md);
-  color: var(--text-primary);
-  text-align: center;
-  outline: none;
-}
-
-.numberInput:focus {
-  border-color: var(--accent);
-}
-
-/* ── Select input ─────────────────────────────────────────── */
-
-.select {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  padding: var(--space-xs) var(--space-sm);
-  font-size: var(--font-sm);
-  color: var(--text-primary);
-  outline: none;
-  cursor: pointer;
-  appearance: none;
-  padding-right: var(--space-lg);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 6px center;
-}
-
-.select:focus {
-  border-color: var(--accent);
-}
-
-.select:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* ── Toggle ────────────────────────────────────────────────── */
+/* ── Toggle switch ─────────────────────────────────────────── */
 
 .toggle {
   position: relative;
@@ -161,7 +160,7 @@
   transition: background var(--transition-fast);
 }
 
-.toggle[aria-checked="true"] {
+.toggleOn {
   background: var(--accent);
   border-color: var(--accent);
 }
@@ -177,9 +176,27 @@
   transition: transform var(--transition-fast);
 }
 
-.toggle[aria-checked="true"] .toggleKnob {
+.toggleOn .toggleKnob {
   transform: translateX(16px);
   background: var(--text-on-accent);
+}
+
+/* ── Number input ──────────────────────────────────────────── */
+
+.numberInput {
+  width: 64px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-md);
+  color: var(--text-primary);
+  text-align: center;
+  outline: none;
+}
+
+.numberInput:focus {
+  border-color: var(--accent);
 }
 
 /* ── Unit suffix ───────────────────────────────────────────── */
@@ -188,4 +205,30 @@
   font-size: var(--font-sm);
   color: var(--text-secondary);
   margin-left: var(--space-xs);
+}
+
+/* ── Ghost button ──────────────────────────────────────────── */
+
+.ghostButton {
+  padding: var(--space-xs) var(--space-md);
+  background: none;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: var(--font-sm);
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.ghostButton:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.ghostButton:active {
+  transform: scale(0.98);
 }

@@ -1,4 +1,4 @@
-import { ipcMain, shell } from 'electron'
+import { ipcMain, shell, Notification } from 'electron'
 import { IPC_CHANNELS } from './channels'
 import type { AttentionItem, FlintConfig } from '../types'
 import { createConfigStore, type ConfigStore } from '../config'
@@ -54,5 +54,13 @@ export function registerIpcHandlers(): void {
     } catch {
       console.warn('[ipc] link:open invalid URL:', url)
     }
+  })
+
+  ipcMain.on(IPC_CHANNELS.NOTIFICATION_TEST, () => {
+    const notification = new Notification({
+      title: 'Flint Test',
+      body: 'Notifications are working!',
+    })
+    notification.show()
   })
 }

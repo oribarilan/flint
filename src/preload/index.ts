@@ -61,6 +61,9 @@ const flintAPI = {
   openLink: (url: string): void => {
     ipcRenderer.send('link:open', url)
   },
+  testNotification: (): void => {
+    ipcRenderer.send('notification:test')
+  },
 
   listModels: (): Promise<{ id: string; name: string }[]> =>
     ipcRenderer.invoke('model:list') as Promise<{ id: string; name: string }[]>,

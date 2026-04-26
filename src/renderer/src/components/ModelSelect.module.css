@@ -1,0 +1,72 @@
+/* ── Model select trigger ───────────────────────────────────── */
+
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: var(--font-sm);
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+  position: relative;
+}
+
+.trigger:hover {
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.trigger[aria-expanded="true"] {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.chevron {
+  color: var(--text-placeholder);
+  transition: transform var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.trigger[aria-expanded="true"] .chevron {
+  transform: rotate(180deg);
+}
+
+/* ── Dropdown ──────────────────────────────────────────────── */
+
+.dropdown {
+  position: absolute;
+  right: 0;
+  min-width: 220px;
+  z-index: 50;
+}
+
+.dropdownDown {
+  top: calc(100% + var(--space-xs));
+}
+
+.dropdownUp {
+  bottom: calc(100% + var(--space-xs));
+}
+
+/* ── States ────────────────────────────────────────────────── */
+
+.loading,
+.error {
+  padding: var(--space-md);
+  font-size: var(--font-sm);
+  text-align: center;
+}
+
+.loading {
+  color: var(--text-secondary);
+}
+
+.error {
+  color: var(--color-error);
+}

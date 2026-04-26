@@ -38,6 +38,7 @@ export default function App() {
     suggestions,
     hasMessages: messages.length > 0,
     isStreaming,
+    disabled: showSettings,
     chatPanelRef,
     chatInputRef,
     toggleSelect,
@@ -108,6 +109,13 @@ export default function App() {
     }
   }, [isLoaded, config.model, setCurrentModel]);
 
+  // Apply font size from config on load
+  useEffect(() => {
+    if (isLoaded && config.fontSize) {
+      document.documentElement.dataset.fontSize = config.fontSize;
+    }
+  }, [isLoaded, config.fontSize]);
+
   useEffect(() => {
     const unsub = window.flint?.onModelChanged((modelId: string) => {
       setCurrentModel(modelId);
@@ -125,36 +133,40 @@ export default function App() {
 
   return (
     <div className={styles.root} data-testid="app-root">
-      <div className={styles.splitBody}>
-        {/* Left panel: attention */}
-        <div className={styles.splitLeft}>
-          <AttentionPanel
-            items={items}
-            selectedIds={selectedIds}
-            keyboardFocusedIndex={attentionFocusedIndex}
-            onSelect={toggleSelect}
-            onOpen={handleOpen}
-          />
-        </div>
+      {showSettings && isLoaded ? (
+        <Settings config={config} onUpdate={updateConfig} />
+      ) : (
+        <div className={styles.splitBody}>
+          {/* Left panel: attention */}
+          <div className={styles.splitLeft}>
+            <AttentionPanel
+              items={items}
+              selectedIds={selectedIds}
+              keyboardFocusedIndex={attentionFocusedIndex}
+              onSelect={toggleSelect}
+              onOpen={handleOpen}
+            />
+          </div>
 
-        {/* Right panel: chat */}
-        <div className={styles.splitRight}>
-          <ChatPanel
-            ref={chatPanelRef}
-            messages={messages}
-            streamingContent={streamingContent}
-            isStreaming={isStreaming}
-            onSend={sendMessage}
-            suggestionsKeyboardFocusedIndex={suggestionsFocusedIndex}
-          />
-          <ChatInput
-            ref={chatInputRef}
-            onSend={sendMessage}
-            disabled={isStreaming}
-            selectedItems={selectedItemSummaries}
-          />
+          {/* Right panel: chat */}
+          <div className={styles.splitRight}>
+            <ChatPanel
+              ref={chatPanelRef}
+              messages={messages}
+              streamingContent={streamingContent}
+              isStreaming={isStreaming}
+              onSend={sendMessage}
+              suggestionsKeyboardFocusedIndex={suggestionsFocusedIndex}
+            />
+            <ChatInput
+              ref={chatInputRef}
+              onSend={sendMessage}
+              disabled={isStreaming}
+              selectedItems={selectedItemSummaries}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       <footer className={styles.bottomBar}>
         <button
@@ -200,10 +212,6 @@ export default function App() {
         </button>
         {isPickerOpen && <ModelPicker onClose={closePicker} triggerRef={modelButtonRef} />}
       </footer>
-
-      {showSettings && isLoaded && (
-        <Settings config={config} onUpdate={updateConfig} onClose={() => setShowSettings(false)} />
-      )}
     </div>
   );
 }

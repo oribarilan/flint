@@ -9,6 +9,7 @@ interface UseKeyboardNavOptions {
   suggestions: Suggestion[];
   hasMessages: boolean;
   isStreaming: boolean;
+  disabled?: boolean;
   chatPanelRef: RefObject<HTMLDivElement | null>;
   chatInputRef: RefObject<HTMLInputElement | null>;
   toggleSelect: (id: string) => void;
@@ -27,6 +28,7 @@ export function useKeyboardNav({
   suggestions,
   hasMessages,
   isStreaming,
+  disabled = false,
   chatPanelRef,
   chatInputRef,
   toggleSelect,
@@ -81,6 +83,8 @@ export function useKeyboardNav({
   // Keyboard handler
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
+      if (disabled) return;
+
       const hasSuggestions = !hasMessages && !isStreaming;
 
       // Ctrl+h/j/k/l — spatial navigation
@@ -203,6 +207,7 @@ export function useKeyboardNav({
     suggestions,
     hasMessages,
     isStreaming,
+    disabled,
     chatPanelRef,
     toggleSelect,
     onOpen,

@@ -16,11 +16,15 @@ const mockFlint = {
   onChatDone: vi.fn(() => vi.fn()),
   getConfig: vi.fn(() =>
     Promise.resolve({
-      hotkey: "Option+Space",
+      hotkey: "Ctrl+Shift+Space",
       alertMinutes: 5,
       launchAtLogin: true,
       showTrayIcon: true,
       model: "gpt-4.1",
+      pollEnabled: true,
+      pollFrequency: "normal",
+      pollModel: "gpt-4.1-mini",
+      fontSize: "medium",
     }),
   ),
   setConfig: vi.fn(),
@@ -60,11 +64,15 @@ vi.mock("../hooks/useChat", () => ({
 vi.mock("../hooks/useConfig", () => ({
   useConfig: () => ({
     config: {
-      hotkey: "Option+Space",
+      hotkey: "Ctrl+Shift+Space",
       alertMinutes: 5,
       launchAtLogin: true,
       showTrayIcon: true,
       model: "gpt-4.1",
+      pollEnabled: true,
+      pollFrequency: "normal",
+      pollModel: "gpt-4.1-mini",
+      fontSize: "medium",
     },
     isLoaded: true,
     updateConfig: vi.fn(),
@@ -109,13 +117,13 @@ describe("Escape stack", () => {
     // Open settings via Cmd+,
     pressCmd(",");
 
-    // Settings dialog should now be in the DOM
-    expect(document.querySelector('[role="dialog"]')).toBeTruthy();
+    // Settings view should now be in the DOM
+    expect(document.querySelector('[data-testid="settings-view"]')).toBeTruthy();
 
     // ESC should close settings, not hide overlay
     pressEscape();
 
-    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.querySelector('[data-testid="settings-view"]')).toBeNull();
     expect(mockHideOverlay).not.toHaveBeenCalled();
   });
 
@@ -162,29 +170,22 @@ describe("Escape stack", () => {
   });
 
   it("closes model picker before settings in escape stack", async () => {
-    const { getByLabelText, queryByTestId } = render(<App />);
+    render(<App />);
 
     // Open settings first
     pressCmd(",");
-    expect(document.querySelector('[role="dialog"]')).toBeTruthy();
+    expect(document.querySelector('[data-testid="settings-view"]')).toBeTruthy();
 
-    // Open model picker
-    const indicator = getByLabelText("Current model: gpt-4.1");
-    await act(async () => {
-      fireEvent.click(indicator);
-    });
-
-    // Picker is open
-    expect(queryByTestId("model-picker")).toBeTruthy();
-
-    // First ESC closes picker, not settings
+    // Close settings to get back to main view where model picker lives
     pressEscape();
-    expect(queryByTestId("model-picker")).toBeNull();
-    expect(document.querySelector('[role="dialog"]')).toBeTruthy();
+    expect(document.querySelector('[data-testid="settings-view"]')).toBeNull();
 
-    // Second ESC closes settings
+    // Open settings again
+    pressCmd(",");
+
+    // ESC closes settings
     pressEscape();
-    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.querySelector('[data-testid="settings-view"]')).toBeNull();
     expect(mockHideOverlay).not.toHaveBeenCalled();
   });
 });

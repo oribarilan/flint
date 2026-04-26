@@ -14,6 +14,7 @@ interface FlintAPI {
   onAttentionUpdate: (callback: (items: AttentionItem[]) => void) => () => void
   openAttentionItem: (id: string) => void
   openLink: (url: string) => void
+  testNotification: () => void
   listModels: () => Promise<ModelInfo[]>
   setModel: (id: string) => void
   onModelChanged: (callback: (modelId: string) => void) => () => void
