@@ -116,6 +116,16 @@ export default function App() {
     }
   }, [isLoaded, config.fontSize]);
 
+  // Apply theme from main process
+  useEffect(() => {
+    const unsubTheme = window.flint?.onThemeChanged?.((theme: string) => {
+      document.documentElement.dataset.theme = theme;
+    });
+    return () => {
+      unsubTheme?.();
+    };
+  }, []);
+
   useEffect(() => {
     const unsub = window.flint?.onModelChanged((modelId: string) => {
       setCurrentModel(modelId);

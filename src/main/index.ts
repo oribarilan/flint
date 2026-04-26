@@ -1,5 +1,5 @@
 import { execSync } from 'child_process'
-import { app, ipcMain } from 'electron'
+import { app, ipcMain, nativeTheme } from 'electron'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { createOverlayWindow, getOverlayWindow } from './window/overlay'
 import { createTray } from './window/tray'
@@ -11,6 +11,8 @@ import { createSessionManager, type SessionManager } from './copilot/sessions'
 import { getChatTools } from './copilot/tools'
 import { filterModels, handleSetModel } from './ipc/model-handlers'
 import { createPulseScheduler, type PulseScheduler } from './pulse/scheduler'
+import { resolveTheme } from './theme'
+import type { FlintConfig } from './types'
 
 let copilotManager: CopilotManager | null = null
 let sessionManager: SessionManager | null = null
@@ -59,6 +61,38 @@ app.whenReady().then(async () => {
   createOverlayWindow()
   createTray()
   registerHotkey(config.hotkey)
+
+  // ── Theme IPC ──
+  const sendThemeToRenderer = (theme: string): void => {
+    const overlay = getOverlayWindow()
+    if (overlay && !overlay.isDestroyed()) {
+      overlay.webContents.send(IPC_CHANNELS.THEME_CHANGED, theme)
+    }
+  }
+
+  // Send initial theme after window is ready
+  const overlay = getOverlayWindow()
+  if (overlay) {
+    overlay.webContents.on('did-finish-load', () => {
+      sendThemeToRenderer(resolveTheme(configStore.getAll().theme))
+    })
+  }
+
+  // Listen for OS theme changes (only matters when config is "system")
+  nativeTheme.on('updated', () => {
+    const currentConfig = configStore.getAll()
+    if (currentConfig.theme === 'system') {
+      sendThemeToRenderer(resolveTheme('system'))
+    }
+  })
+
+  // Push theme to renderer when config changes
+  ipcMain.on(IPC_CHANNELS.CONFIG_SET, (_event, partial: Partial<FlintConfig>) => {
+    if ('theme' in partial) {
+      const resolved = resolveTheme(configStore.getAll().theme)
+      sendThemeToRenderer(resolved)
+    }
+  })
 
   // ── Copilot lifecycle ──
   const cliPath = resolveCopilotCliPath()

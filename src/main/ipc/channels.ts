@@ -14,6 +14,7 @@ export const IPC_CHANNELS = {
   NOTIFICATION_TEST: 'notification:test',
 
   // main → renderer
+  THEME_CHANGED: 'theme:changed',
   CHAT_DELTA: 'chat:delta',
   CHAT_DONE: 'chat:done',
   ATTENTION_UPDATE: 'attention:update',

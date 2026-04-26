@@ -27,10 +27,16 @@ export function createConfigStore(): ConfigStore {
           s.set('fontSize', DEFAULT_CONFIG.fontSize)
         }
       },
+      '0.4.0': (s) => {
+        if (s.get('theme') === undefined) {
+          s.set('theme', DEFAULT_CONFIG.theme)
+        }
+      },
     },
   })
 
   const VALID_FONT_SIZES = new Set(['extra-small', 'small', 'medium', 'large'])
+  const VALID_THEMES = new Set(['dark', 'light', 'system'])
 
   return {
     getAll(): FlintConfig {
@@ -45,6 +51,10 @@ export function createConfigStore(): ConfigStore {
         pollFrequency: store.get('pollFrequency', DEFAULT_CONFIG.pollFrequency) as FlintConfig['pollFrequency'],
         pollModel: store.get('pollModel', DEFAULT_CONFIG.pollModel) as string,
         fontSize: (VALID_FONT_SIZES.has(rawFontSize) ? rawFontSize : DEFAULT_CONFIG.fontSize) as FlintConfig['fontSize'],
+        theme: (() => {
+          const rawTheme = store.get('theme', DEFAULT_CONFIG.theme) as string
+          return (VALID_THEMES.has(rawTheme) ? rawTheme : DEFAULT_CONFIG.theme) as FlintConfig['theme']
+        })(),
       }
     },
 

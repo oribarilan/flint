@@ -79,6 +79,16 @@ const flintAPI = {
       ipcRenderer.removeListener('model:changed', handler)
     }
   },
+
+  onThemeChanged: (callback: (theme: string) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, theme: string): void => {
+      callback(theme)
+    }
+    ipcRenderer.on('theme:changed', handler)
+    return () => {
+      ipcRenderer.removeListener('theme:changed', handler)
+    }
+  },
 }
 
 contextBridge.exposeInMainWorld('flint', flintAPI)

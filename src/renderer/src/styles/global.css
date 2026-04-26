@@ -156,6 +156,56 @@ html[data-font-size="large"] {
   --font-xl: 1.5rem;
 }
 
+/* ── Flint Light ──────────────────────────────────────────── */
+
+html[data-theme="light"] {
+  /* Backgrounds — warm hue 65, boosted chroma for visible warmth */
+  --bg-primary: oklch(97% 0.012 65);
+  --bg-secondary: oklch(93% 0.018 65);
+  --bg-hover: oklch(90% 0.022 65);
+  --bg-selected: oklch(88% 0.025 65);
+  --bg-solid: oklch(97% 0.012 65);
+  --bg-accent-subtle: oklch(58% 0.15 60 / 0.08);
+
+  /* Text */
+  --text-primary: oklch(21% 0.012 60);
+  --text-secondary: oklch(45% 0.012 60);
+  --text-placeholder: oklch(63% 0.008 60);
+  --text-on-accent: oklch(97% 0.008 60);
+
+  /* Accent — darkened for contrast on light backgrounds */
+  --accent: oklch(58% 0.15 60);
+  --accent-hover: oklch(53% 0.14 60);
+
+  /* Markdown */
+  --md-italic-color: oklch(45% 0.06 60);
+  --md-link-underline: oklch(58% 0.15 60 / 0.4);
+
+  /* Semantic */
+  --color-success: oklch(48% 0.14 150);
+  --color-error: oklch(52% 0.2 25);
+  --color-error-bg: oklch(52% 0.2 25 / 0.08);
+  --color-warning: oklch(55% 0.14 80);
+  --color-warning-bg: oklch(55% 0.14 80 / 0.1);
+
+  /* Overlays */
+  --bg-backdrop: oklch(0% 0 0 / 0.3);
+
+  /* Borders */
+  --border-subtle: oklch(86% 0.016 65);
+  --border-hover: oklch(82% 0.018 65);
+  --border-active: oklch(84% 0.017 65);
+
+  /* Shadows — softer for light backgrounds */
+  --shadow-lg: 0 12px 28px oklch(50% 0.02 60 / 0.1);
+  --shadow-sm: 0 1px 3px oklch(50% 0.02 60 / 0.06);
+  --shadow-window: 0 12px 40px oklch(40% 0.02 60 / 0.12), 0 0 0 1px oklch(86% 0.016 65);
+
+  /* Scrollbar */
+  --scrollbar-thumb: oklch(82% 0.012 65);
+  --scrollbar-thumb-hover: oklch(76% 0.016 65);
+}
+
 /* ── Body ──────────────────────────────────────────────────── */
 
 html,
