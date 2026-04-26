@@ -30,6 +30,7 @@ const DEFAULT_TEST_CONFIG: FlintConfig = {
   pollFrequency: "normal",
   pollModel: "gpt-4.1-mini",
   fontSize: "medium",
+  theme: "dark",
 };
 
 function renderSettings(overrides: Partial<FlintConfig> = {}) {
@@ -105,7 +106,8 @@ describe("Tab switching", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: /Appearance/ }));
 
-    expect(screen.getByRole("radiogroup", { name: "Font size" })).toBeTruthy();
+    expect(screen.getByLabelText("Theme")).toBeTruthy();
+    expect(screen.getByLabelText("Font size")).toBeTruthy();
   });
 
   it("renders correct tabpanel with aria-labelledby", () => {
@@ -260,28 +262,55 @@ describe("Notifications tab", () => {
 });
 
 describe("Appearance tab", () => {
-  it("renders theme control with Light disabled", () => {
+  it("renders theme select bound to config.theme", () => {
+    renderSettings({ theme: "dark" });
+    fireEvent.click(screen.getByRole("tab", { name: /Appearance/ }));
+
+    const themeSelect = screen.getByLabelText("Theme") as HTMLSelectElement;
+    expect(themeSelect.value).toBe("dark");
+  });
+
+  it("renders all theme options including System", () => {
     renderSettings();
     fireEvent.click(screen.getByRole("tab", { name: /Appearance/ }));
 
-    const lightOption = screen.getByRole("radio", { name: /Light/ });
-    expect(lightOption).toBeTruthy();
-    expect(lightOption.getAttribute("aria-disabled")).toBe("true");
+    const themeSelect = screen.getByLabelText("Theme") as HTMLSelectElement;
+    const options = Array.from(themeSelect.options).map((o) => o.value);
+    expect(options).toEqual(["dark", "light", "system"]);
   });
 
-  it("renders font size segmented control with current value", () => {
+  it("calls onUpdate and sets data attribute when theme changes", () => {
+    const { onUpdate } = renderSettings({ theme: "dark" });
+    fireEvent.click(screen.getByRole("tab", { name: /Appearance/ }));
+
+    fireEvent.change(screen.getByLabelText("Theme"), { target: { value: "light" } });
+
+    expect(onUpdate).toHaveBeenCalledWith({ theme: "light" });
+    expect(document.documentElement.dataset.theme).toBe("light");
+  });
+
+  it("renders font size select with current value", () => {
     renderSettings({ fontSize: "medium" });
     fireEvent.click(screen.getByRole("tab", { name: /Appearance/ }));
 
-    const mediumOption = screen.getByRole("radio", { name: "M" });
-    expect(mediumOption.getAttribute("aria-checked")).toBe("true");
+    const fontSizeSelect = screen.getByLabelText("Font size") as HTMLSelectElement;
+    expect(fontSizeSelect.value).toBe("medium");
+  });
+
+  it("renders all font size options", () => {
+    renderSettings();
+    fireEvent.click(screen.getByRole("tab", { name: /Appearance/ }));
+
+    const fontSizeSelect = screen.getByLabelText("Font size") as HTMLSelectElement;
+    const options = Array.from(fontSizeSelect.options).map((o) => o.value);
+    expect(options).toEqual(["extra-small", "small", "medium", "large"]);
   });
 
   it("calls onUpdate and sets data attribute when font size changes", () => {
     const { onUpdate } = renderSettings({ fontSize: "medium" });
     fireEvent.click(screen.getByRole("tab", { name: /Appearance/ }));
 
-    fireEvent.click(screen.getByRole("radio", { name: "L" }));
+    fireEvent.change(screen.getByLabelText("Font size"), { target: { value: "large" } });
 
     expect(onUpdate).toHaveBeenCalledWith({ fontSize: "large" });
     expect(document.documentElement.dataset.fontSize).toBe("large");

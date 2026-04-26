@@ -18,6 +18,7 @@ interface FlintAPI {
   listModels: () => Promise<ModelInfo[]>
   setModel: (id: string) => void
   onModelChanged: (callback: (modelId: string) => void) => () => void
+  onThemeChanged: (callback: (theme: string) => void) => () => void
 }
 
 declare global {

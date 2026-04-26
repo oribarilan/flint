@@ -74,4 +74,26 @@ describe('ConfigStore', () => {
     expect(config.pollModel).toBe('gpt-4.1')
     expect(config.alertMinutes).toBe(15)
   })
+
+  it('returns default fontSize as medium', () => {
+    expect(store.getAll().fontSize).toBe('medium')
+  })
+
+  it('updates fontSize', () => {
+    store.update({ fontSize: 'large' })
+    expect(store.getAll().fontSize).toBe('large')
+  })
+
+  it('falls back to default for invalid fontSize', () => {
+    store.update({ fontSize: 'invalid' as never })
+    expect(store.getAll().fontSize).toBe('medium')
+  })
+
+  it('preserves fontSize when updating other fields', () => {
+    store.update({ fontSize: 'small' })
+    store.update({ alertMinutes: 15 })
+    const config = store.getAll()
+    expect(config.fontSize).toBe('small')
+    expect(config.alertMinutes).toBe(15)
+  })
 })

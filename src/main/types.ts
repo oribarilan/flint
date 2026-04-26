@@ -11,7 +11,9 @@ export interface Meeting {
 
 export type PollFrequency = "relaxed" | "normal" | "aggressive";
 
-export type FontSize = "extra-small" | "small" | "medium" | "large";
+export type FontSizePreference = "extra-small" | "small" | "medium" | "large";
+
+export type ThemePreference = "dark" | "light" | "system";
 
 export interface FlintConfig {
   hotkey: string;
@@ -22,7 +24,8 @@ export interface FlintConfig {
   pollEnabled: boolean;
   pollFrequency: PollFrequency;
   pollModel: string;
-  fontSize: FontSize;
+  fontSize: FontSizePreference;
+  theme: ThemePreference;
 }
 
 export const DEFAULT_CONFIG: FlintConfig = {
@@ -35,6 +38,7 @@ export const DEFAULT_CONFIG: FlintConfig = {
   pollFrequency: "normal",
   pollModel: "gpt-4.1-mini",
   fontSize: "medium",
+  theme: "dark",
 };
 
 export interface AttentionItem {
