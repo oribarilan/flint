@@ -18,5 +18,8 @@ out/
 # TypeScript build info
 *.tsbuildinfo
 
+# Eval results (one JSON per `just eval` invocation)
+eval-results/
+
 # Coverage
 coverage/

@@ -37,6 +37,13 @@ format:
 # Run all checks (lint + format + typecheck + test)
 check: lint format typecheck test
 
+# Run real-Copilot eval suite against the chat system prompt.
+# Hits the real Copilot API (cost + network + flakiness), requires
+# `copilot auth` on the host. Excluded from `just check` by design.
+# Configure: EVAL_REPS (default 3), EVAL_MODEL (default gpt-4.1).
+eval:
+    RUN_EVALS=1 npx vitest run --config vitest.eval.config.ts
+
 # Full Electron app build for macOS
 package-mac:
     npm run build:mac
