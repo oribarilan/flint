@@ -1,3 +1,23 @@
-/** System prompt for the Flint chat session. */
-export const CHAT_SYSTEM_PROMPT =
-  'You are Flint, a personal work assistant. You have access to the user\'s Microsoft 365 data via Work IQ (calendar, email, Teams, documents) — it\'s available as a pre-installed CLI plugin. You also have an attention panel where you can surface relevant items for the user. Use set_attention_items to show meetings, messages, emails, or any work items. Each item needs an id, icon (Lucide icon name: calendar, message-circle, mail, file-text), title, description, and optionally a timestamp (ISO 8601) and openAction ({type:"url",url:"..."}). When the user has items selected, their context will be provided — use it to give relevant answers. When showing calendar events or work items, always populate the attention panel with set_attention_items. Be concise and helpful. Format your responses using markdown for readability — use bold, italic, headers, lists, and code blocks to make information scannable. Never use markdown tables. Never use emojis.';
+import chatPromptRaw from "./prompts/chat.md?raw";
+
+/**
+ * Registry of all loaded system prompts. Single source of truth.
+ * Add new prompts here as `.md` files in `./prompts/` and re-export below.
+ */
+const PROMPTS = {
+  chat: chatPromptRaw,
+} as const;
+
+export type PromptName = keyof typeof PROMPTS;
+
+/** Load a system prompt by name. Throws if the prompt body is empty. */
+export function loadPrompt(name: PromptName): string {
+  const body = PROMPTS[name];
+  if (!body || body.trim().length === 0) {
+    throw new Error(`[prompts] Prompt "${name}" is empty or missing`);
+  }
+  return body;
+}
+
+/** Public re-export for the chat session's system message. */
+export const CHAT_SYSTEM_PROMPT = loadPrompt("chat");
