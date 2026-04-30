@@ -3,7 +3,9 @@ import { Settings as SettingsIcon, Cpu, ChevronUp } from "lucide-react";
 import { useAttention } from "./hooks/useAttention";
 import { useChat } from "./hooks/useChat";
 import { useConfig } from "./hooks/useConfig";
-import { useKeyboardNav } from "./hooks/useKeyboardNav";
+import { useSpatialNav } from "./hooks/useSpatialNav";
+import { useChatScrollKeys } from "./hooks/useChatScrollKeys";
+import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
 import { useModelStore } from "./stores/modelStore";
 import { useAttentionStore } from "./stores/attentionStore";
 import { buildSuggestions } from "./utils/suggestions";
@@ -12,6 +14,7 @@ import { ChatPanel } from "./components/ChatPanel";
 import { ChatInput } from "./components/ChatInput";
 import { HotkeyHint, HotkeyGroup } from "./components/HotkeyHint";
 import { ModelPicker } from "./components/ModelPicker";
+import { ConnectionDot } from "./components/ConnectionDot";
 import { Settings } from "./components/Settings";
 import styles from "./App.module.css";
 
@@ -34,17 +37,22 @@ export default function App() {
 
   const suggestions = buildSuggestions(items);
 
-  const { focusedPanel, focusedIndex, resetFocus } = useKeyboardNav({
+  const { focusedPanel, focusedIndex, resetFocus } = useSpatialNav({
     items,
     suggestions,
     hasMessages: messages.length > 0,
     isStreaming,
     disabled: showSettings,
-    chatPanelRef,
     chatInputRef,
     toggleSelect,
     onOpen: handleOpen,
     sendMessage,
+  });
+
+  useChatScrollKeys({
+    chatPanelRef,
+    hasMessages: messages.length > 0,
+    disabled: showSettings,
   });
 
   const toggleSettings = useCallback(() => {
@@ -59,53 +67,31 @@ export default function App() {
     setIsPickerOpen(false);
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent): void => {
-      if ((e.metaKey || e.ctrlKey) && e.key === ",") {
-        e.preventDefault();
-        toggleSettings();
-        return;
-      }
+  const closeSettings = useCallback(() => {
+    setShowSettings(false);
+  }, []);
 
-      if (e.metaKey && e.key === "n") {
-        e.preventDefault();
-        void window.flint?.chatReset();
-        clearMessages();
-        useAttentionStore.getState().clearSelection();
-        chatInputRef.current?.focus();
-        return;
-      }
+  const handleResetChat = useCallback(() => window.flint?.chatReset() ?? Promise.resolve(), []);
+  const handleClearSelection = useCallback(() => {
+    useAttentionStore.getState().clearSelection();
+  }, []);
+  const handleHideOverlay = useCallback(() => {
+    window.flint?.hideOverlay();
+  }, []);
 
-      if (e.key === "Escape") {
-        e.preventDefault();
-        if (isPickerOpen) {
-          setIsPickerOpen(false);
-        } else if (showSettings) {
-          setShowSettings(false);
-        } else {
-          resetFocus();
-          window.flint?.hideOverlay();
-        }
-        return;
-      }
-
-      if (e.key === "/") {
-        const el = document.activeElement;
-        const isText =
-          el instanceof HTMLInputElement ||
-          el instanceof HTMLTextAreaElement ||
-          (el instanceof HTMLElement && el.isContentEditable);
-        if (!isText) {
-          e.preventDefault();
-          chatInputRef.current?.focus();
-        }
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [toggleSettings, showSettings, isPickerOpen, resetFocus, clearMessages]);
+  useGlobalShortcuts({
+    chatInputRef,
+    isPickerOpen,
+    showSettings,
+    toggleSettings,
+    closePicker,
+    closeSettings,
+    resetFocus,
+    onResetChat: handleResetChat,
+    onClearMessages: clearMessages,
+    onClearSelection: handleClearSelection,
+    onHideOverlay: handleHideOverlay,
+  });
 
   // Reset to default state when overlay window regains focus (hotkey or tray).
   // Close settings/picker, focus chat input. The BrowserWindow.focus() call
@@ -213,23 +199,26 @@ export default function App() {
       )}
 
       <footer className={styles.bottomBar}>
-        <button
-          ref={modelButtonRef}
-          className={styles.modelIndicator}
-          onClick={togglePicker}
-          aria-label={`Current model: ${currentModel}`}
-          aria-expanded={isPickerOpen}
-          aria-haspopup="listbox"
-          type="button"
-        >
-          <Cpu size={16} aria-hidden="true" />
-          <span className={styles.modelName}>{currentModel}</span>
-          <ChevronUp
-            size={12}
-            className={`${styles.modelChevron} ${isPickerOpen ? styles.modelChevronOpen : ""}`}
-            aria-hidden="true"
-          />
-        </button>
+        <div className={styles.modelGroup}>
+          <ConnectionDot />
+          <button
+            ref={modelButtonRef}
+            className={styles.modelIndicator}
+            onClick={togglePicker}
+            aria-label={`Current model: ${currentModel}`}
+            aria-expanded={isPickerOpen}
+            aria-haspopup="listbox"
+            type="button"
+          >
+            <Cpu size={16} aria-hidden="true" />
+            <span className={styles.modelName}>{currentModel}</span>
+            <ChevronUp
+              size={12}
+              className={`${styles.modelChevron} ${isPickerOpen ? styles.modelChevronOpen : ""}`}
+              aria-hidden="true"
+            />
+          </button>
+        </div>
         <div className={styles.hints} aria-hidden="true">
           <HotkeyHint keys={["cmd", "n"]} />
           <span className={styles.hintLabel}>new chat</span>

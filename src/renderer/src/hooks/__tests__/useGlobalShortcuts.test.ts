@@ -46,7 +46,9 @@ describe("useGlobalShortcuts", () => {
   describe("Cmd/Ctrl+, — settings", () => {
     it("Cmd+, toggles settings", () => {
       const toggleSettings = vi.fn();
-      renderHook(() => useGlobalShortcuts(makeOptions({ toggleSettings })));
+      renderHook(() => {
+        useGlobalShortcuts(makeOptions({ toggleSettings }));
+      });
 
       act(() => {
         press(",", { metaKey: true });
@@ -57,7 +59,9 @@ describe("useGlobalShortcuts", () => {
 
     it("Ctrl+, toggles settings (cross-platform)", () => {
       const toggleSettings = vi.fn();
-      renderHook(() => useGlobalShortcuts(makeOptions({ toggleSettings })));
+      renderHook(() => {
+        useGlobalShortcuts(makeOptions({ toggleSettings }));
+      });
 
       act(() => {
         press(",", { ctrlKey: true });
@@ -68,7 +72,9 @@ describe("useGlobalShortcuts", () => {
 
     it("plain , does nothing", () => {
       const toggleSettings = vi.fn();
-      renderHook(() => useGlobalShortcuts(makeOptions({ toggleSettings })));
+      renderHook(() => {
+        useGlobalShortcuts(makeOptions({ toggleSettings }));
+      });
 
       act(() => {
         press(",");
@@ -85,7 +91,7 @@ describe("useGlobalShortcuts", () => {
       const onResetChat = vi.fn();
       const onClearMessages = vi.fn();
       const onClearSelection = vi.fn();
-      renderHook(() =>
+      renderHook(() => {
         useGlobalShortcuts(
           makeOptions({
             chatInputRef: { current: inputEl },
@@ -93,8 +99,8 @@ describe("useGlobalShortcuts", () => {
             onClearMessages,
             onClearSelection,
           }),
-        ),
-      );
+        );
+      });
 
       act(() => {
         press("n", { metaKey: true });
@@ -110,7 +116,9 @@ describe("useGlobalShortcuts", () => {
 
     it("plain n does nothing", () => {
       const onResetChat = vi.fn();
-      renderHook(() => useGlobalShortcuts(makeOptions({ onResetChat })));
+      renderHook(() => {
+        useGlobalShortcuts(makeOptions({ onResetChat }));
+      });
 
       act(() => {
         press("n");
@@ -126,7 +134,7 @@ describe("useGlobalShortcuts", () => {
       const closeSettings = vi.fn();
       const resetFocus = vi.fn();
       const onHideOverlay = vi.fn();
-      renderHook(() =>
+      renderHook(() => {
         useGlobalShortcuts(
           makeOptions({
             isPickerOpen: true,
@@ -136,8 +144,8 @@ describe("useGlobalShortcuts", () => {
             resetFocus,
             onHideOverlay,
           }),
-        ),
-      );
+        );
+      });
 
       act(() => {
         press("Escape");
@@ -154,7 +162,7 @@ describe("useGlobalShortcuts", () => {
       const closeSettings = vi.fn();
       const resetFocus = vi.fn();
       const onHideOverlay = vi.fn();
-      renderHook(() =>
+      renderHook(() => {
         useGlobalShortcuts(
           makeOptions({
             isPickerOpen: false,
@@ -164,8 +172,8 @@ describe("useGlobalShortcuts", () => {
             resetFocus,
             onHideOverlay,
           }),
-        ),
-      );
+        );
+      });
 
       act(() => {
         press("Escape");
@@ -180,11 +188,11 @@ describe("useGlobalShortcuts", () => {
     it("resets focus and hides overlay when nothing else is open", () => {
       const resetFocus = vi.fn();
       const onHideOverlay = vi.fn();
-      renderHook(() =>
+      renderHook(() => {
         useGlobalShortcuts(
           makeOptions({ isPickerOpen: false, showSettings: false, resetFocus, onHideOverlay }),
-        ),
-      );
+        );
+      });
 
       act(() => {
         press("Escape");
@@ -199,7 +207,9 @@ describe("useGlobalShortcuts", () => {
     it("focuses chat input when no text input has focus", () => {
       const inputEl = document.createElement("input");
       document.body.appendChild(inputEl);
-      renderHook(() => useGlobalShortcuts(makeOptions({ chatInputRef: { current: inputEl } })));
+      renderHook(() => {
+        useGlobalShortcuts(makeOptions({ chatInputRef: { current: inputEl } }));
+      });
 
       // Ensure focus is on body
       (document.activeElement as HTMLElement | null)?.blur();
@@ -221,7 +231,9 @@ describe("useGlobalShortcuts", () => {
       const chatInput = document.createElement("input");
       document.body.appendChild(otherInput);
       document.body.appendChild(chatInput);
-      renderHook(() => useGlobalShortcuts(makeOptions({ chatInputRef: { current: chatInput } })));
+      renderHook(() => {
+        useGlobalShortcuts(makeOptions({ chatInputRef: { current: chatInput } }));
+      });
 
       otherInput.focus();
       expect(document.activeElement).toBe(otherInput);

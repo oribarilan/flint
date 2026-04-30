@@ -33,9 +33,9 @@ describe("useChatScrollKeys", () => {
   it("Ctrl+D scrolls down by half clientHeight (smooth by default)", () => {
     const scrollBy = vi.fn();
     mockMatchMedia(false);
-    renderHook(() =>
-      useChatScrollKeys({ chatPanelRef: makeChatPanelRef(scrollBy), hasMessages: true }),
-    );
+    renderHook(() => {
+      useChatScrollKeys({ chatPanelRef: makeChatPanelRef(scrollBy), hasMessages: true });
+    });
 
     act(() => {
       pressCtrl("d");
@@ -47,9 +47,9 @@ describe("useChatScrollKeys", () => {
   it("Ctrl+U scrolls up by half clientHeight", () => {
     const scrollBy = vi.fn();
     mockMatchMedia(false);
-    renderHook(() =>
-      useChatScrollKeys({ chatPanelRef: makeChatPanelRef(scrollBy), hasMessages: true }),
-    );
+    renderHook(() => {
+      useChatScrollKeys({ chatPanelRef: makeChatPanelRef(scrollBy), hasMessages: true });
+    });
 
     act(() => {
       pressCtrl("u");
@@ -61,9 +61,9 @@ describe("useChatScrollKeys", () => {
   it("uses instant scroll when prefers-reduced-motion is set", () => {
     const scrollBy = vi.fn();
     mockMatchMedia(true);
-    renderHook(() =>
-      useChatScrollKeys({ chatPanelRef: makeChatPanelRef(scrollBy), hasMessages: true }),
-    );
+    renderHook(() => {
+      useChatScrollKeys({ chatPanelRef: makeChatPanelRef(scrollBy), hasMessages: true });
+    });
 
     act(() => {
       pressCtrl("d");
@@ -74,9 +74,9 @@ describe("useChatScrollKeys", () => {
 
   it("is a no-op when chat is empty", () => {
     const scrollBy = vi.fn();
-    renderHook(() =>
-      useChatScrollKeys({ chatPanelRef: makeChatPanelRef(scrollBy), hasMessages: false }),
-    );
+    renderHook(() => {
+      useChatScrollKeys({ chatPanelRef: makeChatPanelRef(scrollBy), hasMessages: false });
+    });
 
     act(() => {
       pressCtrl("d");
@@ -90,13 +90,13 @@ describe("useChatScrollKeys", () => {
 
   it("is a no-op when disabled", () => {
     const scrollBy = vi.fn();
-    renderHook(() =>
+    renderHook(() => {
       useChatScrollKeys({
         chatPanelRef: makeChatPanelRef(scrollBy),
         hasMessages: true,
         disabled: true,
-      }),
-    );
+      });
+    });
 
     act(() => {
       pressCtrl("d");
@@ -107,7 +107,9 @@ describe("useChatScrollKeys", () => {
 
   it("is a no-op when chatPanelRef is null", () => {
     const chatPanelRef: RefObject<HTMLDivElement | null> = { current: null };
-    renderHook(() => useChatScrollKeys({ chatPanelRef, hasMessages: true }));
+    renderHook(() => {
+      useChatScrollKeys({ chatPanelRef, hasMessages: true });
+    });
 
     // Should not throw
     act(() => {
@@ -117,9 +119,9 @@ describe("useChatScrollKeys", () => {
 
   it("ignores Ctrl+D/U with metaKey also pressed", () => {
     const scrollBy = vi.fn();
-    renderHook(() =>
-      useChatScrollKeys({ chatPanelRef: makeChatPanelRef(scrollBy), hasMessages: true }),
-    );
+    renderHook(() => {
+      useChatScrollKeys({ chatPanelRef: makeChatPanelRef(scrollBy), hasMessages: true });
+    });
 
     act(() => {
       document.dispatchEvent(
@@ -139,9 +141,9 @@ describe("useChatScrollKeys", () => {
   it("calls preventDefault and stopPropagation", () => {
     const scrollBy = vi.fn();
     mockMatchMedia(false);
-    renderHook(() =>
-      useChatScrollKeys({ chatPanelRef: makeChatPanelRef(scrollBy), hasMessages: true }),
-    );
+    renderHook(() => {
+      useChatScrollKeys({ chatPanelRef: makeChatPanelRef(scrollBy), hasMessages: true });
+    });
 
     const event = new KeyboardEvent("keydown", {
       key: "d",

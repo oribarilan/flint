@@ -26,10 +26,7 @@ interface UseSpatialNavResult {
  * Pick the first available panel, preferring attention.
  * Returns null when neither panel has anything to focus.
  */
-function pickInitialPanel(
-  itemCount: number,
-  hasSuggestions: boolean,
-): FocusedPanel {
+function pickInitialPanel(itemCount: number, hasSuggestions: boolean): FocusedPanel {
   if (itemCount > 0) return "attention";
   if (hasSuggestions) return "suggestions";
   return null;

@@ -189,9 +189,7 @@ describe("useSpatialNav", () => {
     });
 
     it("Ctrl+h is no-op when attention items list is empty", () => {
-      const { result } = renderHook(() =>
-        useSpatialNav(createDefaultOptions({ items: [] })),
-      );
+      const { result } = renderHook(() => useSpatialNav(createDefaultOptions({ items: [] })));
 
       act(() => {
         pressCtrl("h");
@@ -246,9 +244,7 @@ describe("useSpatialNav", () => {
   describe("Space/Enter actions", () => {
     it("Space toggles selection on focused attention item", () => {
       const toggleSelect = vi.fn();
-      const { result } = renderHook(() =>
-        useSpatialNav(createDefaultOptions({ toggleSelect })),
-      );
+      const { result } = renderHook(() => useSpatialNav(createDefaultOptions({ toggleSelect })));
 
       act(() => {
         pressCtrl("j");
@@ -279,9 +275,7 @@ describe("useSpatialNav", () => {
 
     it("Enter sends focused suggestion as chat prompt", () => {
       const sendMessage = vi.fn();
-      const { result } = renderHook(() =>
-        useSpatialNav(createDefaultOptions({ sendMessage })),
-      );
+      const { result } = renderHook(() => useSpatialNav(createDefaultOptions({ sendMessage })));
 
       act(() => {
         pressCtrl("l");
@@ -312,9 +306,7 @@ describe("useSpatialNav", () => {
 
     it("Space/Enter are not intercepted when a text input has focus", () => {
       const toggleSelect = vi.fn();
-      const { result } = renderHook(() =>
-        useSpatialNav(createDefaultOptions({ toggleSelect })),
-      );
+      const { result } = renderHook(() => useSpatialNav(createDefaultOptions({ toggleSelect })));
 
       act(() => {
         pressCtrl("j");
@@ -436,9 +428,7 @@ describe("useSpatialNav", () => {
 
   describe("disabled flag", () => {
     it("ignores all keyboard input when disabled=true", () => {
-      const { result } = renderHook(() =>
-        useSpatialNav(createDefaultOptions({ disabled: true })),
-      );
+      const { result } = renderHook(() => useSpatialNav(createDefaultOptions({ disabled: true })));
 
       act(() => {
         pressCtrl("j");
