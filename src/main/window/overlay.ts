@@ -28,9 +28,11 @@ export function createOverlayWindow(): BrowserWindow {
     void overlayWindow.loadFile(join(__dirname, "../renderer/index.html"));
   }
 
-  overlayWindow.on("blur", () => {
-    hideOverlay();
-  });
+  // NOTE: We intentionally do NOT hide the overlay on blur.
+  // The overlay is a hotkey-toggled surface, not a strict modal — clicking
+  // outside (e.g. opening a meeting, copying from another app) must not dismiss it.
+  // Hiding is driven by: Esc (renderer), global hotkey toggle, tray click,
+  // or the explicit `overlay:hide` IPC.
 
   return overlayWindow;
 }

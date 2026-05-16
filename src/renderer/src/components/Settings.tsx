@@ -1,9 +1,7 @@
 import { useState, useCallback } from "react";
 import { Sun, Cpu, Bell, Contrast } from "lucide-react";
-import { SegmentedControl } from "./SegmentedControl";
 import { ModelSelect } from "./ModelSelect";
 import type { FlintConfig } from "../../../main/types";
-import type { PollFrequency } from "../../../main/types";
 import styles from "./Settings.module.css";
 
 type SettingsTab = "general" | "ai" | "notifications" | "appearance";
@@ -18,12 +16,6 @@ const TABS: { id: SettingsTab; label: string; Icon: typeof Sun }[] = [
   { id: "ai", label: "AI & Models", Icon: Cpu },
   { id: "notifications", label: "Notifications", Icon: Bell },
   { id: "appearance", label: "Appearance", Icon: Contrast },
-];
-
-const POLL_FREQUENCY_OPTIONS: { label: string; value: PollFrequency }[] = [
-  { label: "Relaxed", value: "relaxed" },
-  { label: "Normal", value: "normal" },
-  { label: "Aggressive", value: "aggressive" },
 ];
 
 export function Settings({ config, onUpdate }: SettingsProps) {
@@ -158,59 +150,6 @@ export function Settings({ config, onUpdate }: SettingsProps) {
                     window.flint?.setModel(id);
                   }}
                   ariaLabel="Chat model"
-                />
-              </div>
-            </div>
-
-            <div className={styles.card}>
-              <div className={styles.cardTitle}>Background Agent</div>
-              <div className={styles.row}>
-                <div>
-                  <div className={styles.label}>Background polling</div>
-                  <div className={styles.description}>
-                    Periodically check for new attention items
-                  </div>
-                </div>
-                <button
-                  className={`${styles.toggle} ${config.pollEnabled ? styles.toggleOn : ""}`}
-                  type="button"
-                  role="switch"
-                  aria-checked={config.pollEnabled}
-                  aria-label="Background polling"
-                  onClick={() => {
-                    onUpdate({ pollEnabled: !config.pollEnabled });
-                  }}
-                >
-                  <span className={styles.toggleKnob} />
-                </button>
-              </div>
-              <div className={`${styles.row} ${!config.pollEnabled ? styles.rowDisabled : ""}`}>
-                <div>
-                  <div className={styles.label}>Poll frequency</div>
-                </div>
-                <SegmentedControl
-                  options={POLL_FREQUENCY_OPTIONS.map((o) => ({
-                    ...o,
-                    disabled: !config.pollEnabled,
-                  }))}
-                  value={config.pollFrequency}
-                  onChange={(v) => {
-                    onUpdate({ pollFrequency: v });
-                  }}
-                  ariaLabel="Poll frequency"
-                />
-              </div>
-              <div className={styles.row}>
-                <div>
-                  <div className={styles.label}>Poll model</div>
-                  <div className={styles.description}>Lighter model for background checks</div>
-                </div>
-                <ModelSelect
-                  value={config.pollModel}
-                  onChange={(id) => {
-                    onUpdate({ pollModel: id });
-                  }}
-                  ariaLabel="Poll model"
                 />
               </div>
             </div>

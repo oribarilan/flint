@@ -26,9 +26,6 @@ const DEFAULT_TEST_CONFIG: FlintConfig = {
   launchAtLogin: true,
   showTrayIcon: true,
   model: "gpt-4.1",
-  pollEnabled: true,
-  pollFrequency: "normal",
-  pollModel: "gpt-4.1-mini",
   fontSize: "medium",
   theme: "dark",
 };
@@ -88,7 +85,7 @@ describe("Tab switching", () => {
     expect(screen.getByRole("tab", { name: /AI & Models/ }).getAttribute("aria-selected")).toBe(
       "true",
     );
-    expect(screen.getByText("Background Agent")).toBeTruthy();
+    expect(screen.getByText("Chat")).toBeTruthy();
   });
 
   it("switches to Notifications tab on click", () => {
@@ -172,65 +169,14 @@ describe("AI & Models tab", () => {
     expect(mockFlint.setModel).toHaveBeenCalledWith("claude-sonnet-4");
   });
 
-  it("toggles background polling", () => {
-    const { onUpdate } = renderSettings({ pollEnabled: true });
-    fireEvent.click(screen.getByRole("tab", { name: /AI & Models/ }));
-
-    fireEvent.click(screen.getByRole("switch", { name: "Background polling" }));
-
-    expect(onUpdate).toHaveBeenCalledWith({ pollEnabled: false });
-  });
-
-  it("shows poll frequency segmented control", () => {
+  it("does not render the removed Background Agent card", () => {
     renderSettings();
     fireEvent.click(screen.getByRole("tab", { name: /AI & Models/ }));
 
-    expect(screen.getByRole("radiogroup", { name: "Poll frequency" })).toBeTruthy();
-    expect(screen.getByRole("radio", { name: "Normal" })).toBeTruthy();
-  });
-
-  it("calls onUpdate when poll frequency changes", () => {
-    const { onUpdate } = renderSettings();
-    fireEvent.click(screen.getByRole("tab", { name: /AI & Models/ }));
-
-    fireEvent.click(screen.getByRole("radio", { name: "Relaxed" }));
-
-    expect(onUpdate).toHaveBeenCalledWith({ pollFrequency: "relaxed" });
-  });
-
-  it("displays poll model selector with current value", () => {
-    renderSettings();
-    fireEvent.click(screen.getByRole("tab", { name: /AI & Models/ }));
-
-    const pollModelBtn = screen.getByLabelText("Poll model");
-    expect(pollModelBtn).toBeTruthy();
-    expect(pollModelBtn.textContent).toContain("gpt-4.1-mini");
-  });
-
-  it("opens picker and selects a poll model", async () => {
-    const { onUpdate } = renderSettings();
-    fireEvent.click(screen.getByRole("tab", { name: /AI & Models/ }));
-
-    // Click poll model trigger
-    const pollModelBtn = screen.getByLabelText("Poll model");
-    act(() => {
-      fireEvent.click(pollModelBtn);
-    });
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    // Use the listbox option to avoid ambiguity with the chat model trigger
-    const options = screen.getAllByRole("option");
-    /* eslint-disable @typescript-eslint/no-unnecessary-condition -- textContent can be null at runtime */
-    const gpt41Option = options.find(
-      (opt) => opt.textContent?.includes("GPT 4.1") && !opt.textContent?.includes("Mini"),
-    );
-    /* eslint-enable @typescript-eslint/no-unnecessary-condition */
-    fireEvent.click(gpt41Option as HTMLElement);
-
-    expect(onUpdate).toHaveBeenCalledWith({ pollModel: "gpt-4.1" });
+    expect(screen.queryByText("Background Agent")).toBeNull();
+    expect(screen.queryByLabelText("Background polling")).toBeNull();
+    expect(screen.queryByLabelText("Poll model")).toBeNull();
+    expect(screen.queryByRole("radiogroup", { name: "Poll frequency" })).toBeNull();
   });
 });
 

@@ -1,19 +1,34 @@
-import { approveAll, type CopilotSession, type Tool } from "@github/copilot-sdk";
+import type { CopilotSession, Tool } from "@github/copilot-sdk";
 import type { CopilotClient } from "@github/copilot-sdk";
 import { CHAT_SYSTEM_PROMPT } from "./system-prompt";
-import { buildMonitorPrompt, MONITOR_SYSTEM_PROMPT } from "../pulse/prompts";
-import type { MonitorPollContext } from "../pulse/prompts";
+import { createPermissionPolicy } from "./permissions";
 
-export type { MonitorPollContext };
+/**
+ * SDK allow-list of tools the chat session may invoke. Required because `tools[]` in
+ * `createSession` is *additive*, not replacing — without `availableTools` the SDK
+ * exposes its built-in tools (bash/shell/read_file/write_file/git*) which combined
+ * with auto-approve permissions is a prompt-injection RCE class of bug.
+ *
+ * Note on MCP tools: per SDK docs the allow-list semantics are ambiguous. In practice
+ * MCP-server-exposed tools (e.g. work-iq) are namespaced separately and routed via the
+ * permission handler (`kind: "mcp"`), not through this list. If dogfooding shows MCP
+ * tools being filtered, add their (prefixed) names here or switch to `excludedTools`.
+ *
+ * See: docs/superpowers/specs/2026-04-30-v1-scope-decision.md
+ *      node_modules/@github/copilot-sdk/dist/types.d.ts (SessionConfig.availableTools)
+ */
+const CHAT_AVAILABLE_TOOLS = [
+  "show_notification",
+  "join_meeting",
+  "show_overlay",
+  "set_attention_items",
+] as const;
 
 const CHAT_TIMEOUT_MS = 60_000; // 60s timeout for chat
-const MONITOR_TIMEOUT_MS = 90_000; // 90s timeout for monitor (MCP startup can be slow)
 
 interface SessionManagerConfig {
   client: CopilotClient;
   getModel: () => string;
-  getPollModel: () => string;
-  monitorTools?: Tool[];
   chatTools?: Tool[];
   onChatDelta: (delta: string) => void;
   onChatDone: () => void;
@@ -22,14 +37,12 @@ interface SessionManagerConfig {
 
 export interface SessionManager {
   sendChatMessage(prompt: string): Promise<void>;
-  sendMonitorPoll(context: MonitorPollContext): Promise<void>;
   resetChat(): Promise<void>;
   getChatSession(): CopilotSession | null;
 }
 
 export function createSessionManager(config: SessionManagerConfig): SessionManager {
   let chatSession: CopilotSession | null = null;
-  let monitorSession: CopilotSession | null = null;
 
   function reportError(message: string): void {
     console.error("[sessions]", message);
@@ -47,15 +60,40 @@ export function createSessionManager(config: SessionManagerConfig): SessionManag
 
     const model = config.getModel();
     console.log("[sessions] Creating chat session with model:", model);
+
+    // Decisions documented (see V1 scope decision doc):
+    //
+    // 1) Single NL `ask_work_iq` tool vs narrow typed tools:
+    //    For V1, take whatever Work IQ MCP exposes natively (`tools: ["*"]`). Don't wrap
+    //    in narrower tools. If after dogfooding the model struggles to compose good
+    //    queries, V1.5 can add narrow wrappers.
+    //
+    // 2) One MCP server vs two:
+    //    Monitor session is gone in V1 (deterministic MeetingScheduler replaces it).
+    //    Single Work IQ subprocess attached to the chat session only.
+    //
+    // 3) `tools: ["*"]` exposes all Work IQ MCP tools to the model. The permission
+    //    handler (`createPermissionPolicy`) approves these as `kind: "mcp"` because
+    //    Work IQ is read-only M365 data access. Defence in depth: dangerous-looking
+    //    tool names (bash/shell/exec/read_file/write_file/git) are denied even from MCP.
     chatSession = await config.client.createSession({
       sessionId: "flint-main",
       model,
-      onPermissionRequest: approveAll,
+      onPermissionRequest: createPermissionPolicy(),
       streaming: true,
       systemMessage: {
         content: CHAT_SYSTEM_PROMPT,
       },
       tools: config.chatTools,
+      availableTools: [...CHAT_AVAILABLE_TOOLS],
+      mcpServers: {
+        "work-iq": {
+          type: "local",
+          command: "npx",
+          args: ["-y", "@microsoft/workiq", "mcp"],
+          tools: ["*"],
+        },
+      },
     });
     console.log("[sessions] Chat session created:", chatSession.sessionId);
 
@@ -70,25 +108,6 @@ export function createSessionManager(config: SessionManagerConfig): SessionManag
     return chatSession;
   }
 
-  async function getMonitorSession(): Promise<CopilotSession> {
-    if (monitorSession) return monitorSession;
-
-    const model = config.getPollModel();
-    console.log("[sessions] Creating monitor session with model:", model);
-    monitorSession = await config.client.createSession({
-      sessionId: "flint-monitor",
-      model,
-      onPermissionRequest: approveAll,
-      systemMessage: {
-        content: MONITOR_SYSTEM_PROMPT,
-      },
-      tools: config.monitorTools,
-    });
-    console.log("[sessions] Monitor session created:", monitorSession.sessionId);
-
-    return monitorSession;
-  }
-
   return {
     async sendChatMessage(prompt: string): Promise<void> {
       try {
@@ -98,24 +117,16 @@ export function createSessionManager(config: SessionManagerConfig): SessionManag
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         console.error("[chat] sendAndWait error:", message);
-        if (message.includes("timeout") || message.includes("Timeout")) {
+        // Best-effort empty-state messaging when Work IQ MCP fails to start.
+        // If the SDK surfaces a clean MCP-error event in the future, hook there instead.
+        const lower = message.toLowerCase();
+        if (lower.includes("workiq") || lower.includes("work-iq") || lower.includes("mcp")) {
+          reportError("M365 not connected — run `workiq accept-eula` to set up.");
+        } else if (lower.includes("timeout")) {
           reportError("Response timed out. Try again.");
         } else {
           reportError(`Chat error: ${message}`);
         }
-      }
-    },
-
-    async sendMonitorPoll(context: MonitorPollContext): Promise<void> {
-      try {
-        const session = await getMonitorSession();
-        const prompt = buildMonitorPrompt(context);
-        console.log("[monitor] Polling...");
-        await session.sendAndWait({ prompt }, MONITOR_TIMEOUT_MS);
-        console.log("[monitor] Poll complete");
-      } catch (err) {
-        console.error("[monitor] Poll error:", err instanceof Error ? err.message : err);
-        // Don't surface monitor errors to user — just log and retry next cycle
       }
     },
 

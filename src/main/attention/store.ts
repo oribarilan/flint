@@ -10,7 +10,8 @@ export function createAttentionStore(): AttentionStore {
   let items: AttentionItem[] = [];
 
   return {
-    getAll: () => items,
+    // Defensive copy: callers must not mutate the store's internal array.
+    getAll: () => [...items],
     setItems: (newItems) => {
       items = newItems;
     },

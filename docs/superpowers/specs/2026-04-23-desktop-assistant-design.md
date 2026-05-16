@@ -1,5 +1,7 @@
 # Flint — Desktop Personal Assistant
 
+> **Status:** Partially superseded by `2026-04-30-v1-scope-decision.md`. The architecture (Electron + TypeScript, hotkey overlay, chat session, Work IQ MCP) still holds. The LLM-driven `MeetingMonitor` polling cadence is replaced by a deterministic 60s `MeetingScheduler` for V1. Sections describing background LLM polling are no longer authoritative.
+
 ## Overview
 
 Repurpose Flint from an AI-native application launcher (Tauri v2 + Rust) into a desktop personal work assistant (Electron + TypeScript). The app monitors your Microsoft 365 calendar, alerts you to upcoming meetings via native OS notifications, and provides a conversational AI overlay (hotkey-activated) powered by GitHub Copilot SDK with Work IQ MCP for M365 data access.

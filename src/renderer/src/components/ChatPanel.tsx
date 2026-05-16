@@ -30,11 +30,16 @@ export const ChatPanel = forwardRef<HTMLDivElement, ChatPanelProps>(function Cha
 
   useEffect(() => {
     if (!isNearBottomRef.current) return;
-    const el = panelRef.current;
-    if (el) {
-      el.scrollTop = el.scrollHeight;
-    }
-  });
+    const raf = requestAnimationFrame(() => {
+      const el = panelRef.current;
+      if (el) {
+        el.scrollTop = el.scrollHeight;
+      }
+    });
+    return () => {
+      cancelAnimationFrame(raf);
+    };
+  }, [messages, streamingContent]);
 
   // Sync the forwarded ref to panelRef (both point to the same element)
   const setRefs = useCallback(

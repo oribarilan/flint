@@ -1,7 +1,7 @@
 # Background Intelligence & Contextual Suggestions
 
 **Date:** 2026-04-25
-**Status:** Approved
+**Status:** **Superseded by `2026-04-30-v1-scope-decision.md`.** V1 ships pull-only (no LLM-driven background monitor). Retained for historical context and as a reference for V1.5+ work that may reintroduce a guarded LLM monitor with code-side merge logic.
 
 ## Overview
 

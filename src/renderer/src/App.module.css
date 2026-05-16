@@ -34,6 +34,12 @@
   cursor: pointer;
 }
 
+.modelGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
 .modelIndicator:hover {
   background: var(--bg-hover);
   color: var(--text-primary);

@@ -22,15 +22,12 @@ vi.mock("@github/copilot-sdk", () => ({
   approveAll: vi.fn(),
 }));
 
-vi.mock("../copilot/system-prompt", () => ({
-  CHAT_SYSTEM_PROMPT: "You are Flint, a test assistant.",
+vi.mock("../copilot/permissions", () => ({
+  createPermissionPolicy: vi.fn(() => vi.fn()),
 }));
 
-vi.mock("../pulse/prompts", () => ({
-  buildMonitorPrompt: vi.fn((ctx: { lastPollTime?: string }) =>
-    ctx.lastPollTime ? `Last check: ${ctx.lastPollTime}` : "Check my calendar",
-  ),
-  MONITOR_SYSTEM_PROMPT: "You are the background monitor.",
+vi.mock("../copilot/system-prompt", () => ({
+  CHAT_SYSTEM_PROMPT: "You are Flint, a test assistant.",
 }));
 
 import { createSessionManager } from "../copilot/sessions";
@@ -46,7 +43,6 @@ function createMockClient(): CopilotClient {
 function defaultConfig() {
   return {
     getModel: () => "gpt-4.1",
-    getPollModel: () => "gpt-4.1-mini",
     onChatDelta: vi.fn(),
     onChatDone: vi.fn(),
   };
@@ -86,6 +82,24 @@ describe("SessionManager", () => {
     // Simulate the idle event firing
     eventHandlers.get("session.idle")?.();
     expect(onChatDone).toHaveBeenCalled();
+  });
+
+  it("wires Work IQ MCP server on the chat session", async () => {
+    const client = createMockClient();
+    const manager = createSessionManager({ client, ...defaultConfig() });
+
+    await manager.sendChatMessage("hi");
+
+    const args = mockCreateSession.mock.calls[0][0] as {
+      mcpServers?: Record<string, unknown>;
+    };
+    expect(args.mcpServers).toBeDefined();
+    expect(args.mcpServers?.["work-iq"]).toEqual({
+      type: "local",
+      command: "npx",
+      args: ["-y", "@microsoft/workiq", "mcp"],
+      tools: ["*"],
+    });
   });
 
   it("uses getModel to read model dynamically", async () => {
@@ -221,85 +235,22 @@ describe("SessionManager", () => {
     expect(onChatError).toHaveBeenCalledWith("Response timed out. Try again.");
   });
 
-  it("sends monitor poll with bootstrap prompt", async () => {
+  it("surfaces a setup hint when Work IQ MCP fails", async () => {
+    const onChatError = vi.fn();
     const client = createMockClient();
-    const manager = createSessionManager({
-      client,
-      ...defaultConfig(),
-    });
-
-    await manager.sendMonitorPoll({ currentItems: [] });
-
-    expect(mockCreateSession).toHaveBeenCalledWith(
-      expect.objectContaining({
-        sessionId: "flint-monitor",
-        model: "gpt-4.1-mini",
-        systemMessage: {
-          content: "You are the background monitor.",
-        },
-      }),
+    mockCreateSession.mockRejectedValueOnce(
+      new Error("failed to start workiq mcp subprocess"),
     );
-    expect(mockSendAndWait).toHaveBeenCalledWith(
-      expect.objectContaining({
-        prompt: "Check my calendar",
-      }),
-      expect.any(Number),
-    );
-  });
 
-  it("sends monitor poll with delta prompt when lastPollTime is provided", async () => {
-    const client = createMockClient();
     const manager = createSessionManager({
       client,
       ...defaultConfig(),
+      onChatError,
     });
 
-    await manager.sendMonitorPoll({
-      lastPollTime: "2026-04-25T10:00:00Z",
-      currentItems: [
-        {
-          id: "mtg-1",
-          icon: "calendar",
-          title: "Standup",
-          description: "Daily standup",
-          metadata: {},
-        },
-      ],
-    });
-
-    expect(mockSendAndWait).toHaveBeenCalledWith(
-      expect.objectContaining({
-        prompt: "Last check: 2026-04-25T10:00:00Z",
-      }),
-      expect.any(Number),
-    );
-  });
-
-  it("sends monitor poll without error", async () => {
-    const client = createMockClient();
-    const manager = createSessionManager({
-      client,
-      ...defaultConfig(),
-    });
-    await expect(manager.sendMonitorPoll({ currentItems: [] })).resolves.toBeUndefined();
-  });
-
-  it("monitor session uses getPollModel not getModel", async () => {
-    const client = createMockClient();
-    const manager = createSessionManager({
-      client,
-      ...defaultConfig(),
-      getModel: () => "gpt-4.1",
-      getPollModel: () => "claude-sonnet-4",
-    });
-
-    await manager.sendMonitorPoll({ currentItems: [] });
-
-    expect(mockCreateSession).toHaveBeenCalledWith(
-      expect.objectContaining({
-        sessionId: "flint-monitor",
-        model: "claude-sonnet-4",
-      }),
+    await manager.sendChatMessage("hi");
+    expect(onChatError).toHaveBeenCalledWith(
+      "M365 not connected — run `workiq accept-eula` to set up.",
     );
   });
 

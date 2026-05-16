@@ -9,8 +9,6 @@ export interface Meeting {
   agenda?: string;
 }
 
-export type PollFrequency = "relaxed" | "normal" | "aggressive";
-
 export type FontSizePreference = "extra-small" | "small" | "medium" | "large";
 
 export type ThemePreference = "dark" | "light" | "system";
@@ -21,9 +19,6 @@ export interface FlintConfig {
   launchAtLogin: boolean;
   showTrayIcon: boolean;
   model: string;
-  pollEnabled: boolean;
-  pollFrequency: PollFrequency;
-  pollModel: string;
   fontSize: FontSizePreference;
   theme: ThemePreference;
 }
@@ -34,9 +29,6 @@ export const DEFAULT_CONFIG: FlintConfig = {
   launchAtLogin: true,
   showTrayIcon: true,
   model: "gpt-4.1",
-  pollEnabled: true,
-  pollFrequency: "normal",
-  pollModel: "gpt-4.1-mini",
   fontSize: "medium",
   theme: "dark",
 };

@@ -11,20 +11,6 @@ export function createConfigStore(): ConfigStore {
   const store = new Store<FlintConfig>({
     defaults: DEFAULT_CONFIG,
     migrations: {
-      "0.2.0": (s) => {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- migration safety: key may not exist in older versions
-        if (s.get("pollEnabled") === undefined) {
-          s.set("pollEnabled", DEFAULT_CONFIG.pollEnabled);
-        }
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- migration safety: key may not exist in older versions
-        if (s.get("pollFrequency") === undefined) {
-          s.set("pollFrequency", DEFAULT_CONFIG.pollFrequency);
-        }
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- migration safety: key may not exist in older versions
-        if (s.get("pollModel") === undefined) {
-          s.set("pollModel", DEFAULT_CONFIG.pollModel);
-        }
-      },
       "0.3.0": (s) => {
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- migration safety: key may not exist in older versions
         if (s.get("fontSize") === undefined) {
@@ -35,6 +21,14 @@ export function createConfigStore(): ConfigStore {
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- migration safety: key may not exist in older versions
         if (s.get("theme") === undefined) {
           s.set("theme", DEFAULT_CONFIG.theme);
+        }
+      },
+      // V1 scope decision (2026-04-30): the LLM monitor session is removed.
+      // Strip the now-defunct keys silently so older config files don't carry stale state.
+      "0.5.0": (s) => {
+        const untyped = s as unknown as { delete: (key: string) => void };
+        for (const key of ["pollEnabled", "pollFrequency", "pollModel"]) {
+          untyped.delete(key);
         }
       },
     },
@@ -52,9 +46,6 @@ export function createConfigStore(): ConfigStore {
         launchAtLogin: store.get("launchAtLogin", DEFAULT_CONFIG.launchAtLogin),
         showTrayIcon: store.get("showTrayIcon", DEFAULT_CONFIG.showTrayIcon),
         model: store.get("model", DEFAULT_CONFIG.model),
-        pollEnabled: store.get("pollEnabled", DEFAULT_CONFIG.pollEnabled),
-        pollFrequency: store.get("pollFrequency", DEFAULT_CONFIG.pollFrequency),
-        pollModel: store.get("pollModel", DEFAULT_CONFIG.pollModel),
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- runtime validation against corrupt data
         fontSize: VALID_FONT_SIZES.has(rawFontSize) ? rawFontSize : DEFAULT_CONFIG.fontSize,
         theme: (() => {

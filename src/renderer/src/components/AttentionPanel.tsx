@@ -1,6 +1,7 @@
 import { Zap } from "lucide-react";
 import type { AttentionItem } from "../../../main/types";
 import { AttentionCard } from "./AttentionCard";
+import { useConnectionStatus } from "../hooks/useConnectionStatus";
 import styles from "./AttentionPanel.module.css";
 
 interface AttentionPanelProps {
@@ -11,6 +12,12 @@ interface AttentionPanelProps {
   onOpen: (id: string) => void;
 }
 
+const EMPTY_COPY = {
+  connected: "No items yet",
+  reconnecting: "Reconnecting to Copilot…",
+  disconnected: "Not connected to Copilot",
+} as const;
+
 export function AttentionPanel({
   items,
   selectedIds,
@@ -18,6 +25,8 @@ export function AttentionPanel({
   onSelect,
   onOpen,
 }: AttentionPanelProps) {
+  const status = useConnectionStatus();
+
   if (items.length === 0) {
     return (
       <div className={styles.panel} data-testid="attention-panel">
@@ -25,7 +34,7 @@ export function AttentionPanel({
           <span className={styles.emptyIcon}>
             <Zap size={24} />
           </span>
-          <span className={styles.emptyText}>No items yet</span>
+          <span className={styles.emptyText}>{EMPTY_COPY[status]}</span>
         </div>
       </div>
     );

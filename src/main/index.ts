@@ -10,13 +10,17 @@ import { createCopilotManager, type CopilotManager } from "./copilot/client";
 import { createSessionManager, type SessionManager } from "./copilot/sessions";
 import { getChatTools } from "./copilot/tools";
 import { filterModels, handleSetModel } from "./ipc/model-handlers";
-import { createPulseScheduler, type PulseScheduler } from "./pulse/scheduler";
+import {
+  createMeetingScheduler,
+  type MeetingScheduler,
+} from "./scheduler/meeting-scheduler";
 import { resolveTheme } from "./theme";
-import type { FlintConfig } from "./types";
+import { ChatSendPromptSchema } from "./lib/schemas";
+import type { FlintConfig, Meeting } from "./types";
 
 let copilotManager: CopilotManager | null = null;
 let sessionManager: SessionManager | null = null;
-let pulseScheduler: PulseScheduler | null = null;
+let meetingScheduler: MeetingScheduler | null = null;
 
 /** Resolve the Copilot CLI binary path using env → PATH → macOS fallback. */
 function resolveCopilotCliPath(): string | undefined {
@@ -45,6 +49,20 @@ function resolveCopilotCliPath(): string | undefined {
 
   // Let the SDK handle resolution
   return undefined;
+}
+
+/**
+ * V1 stub: returns no upcoming meetings. The deterministic scheduler is wired,
+ * but the real Work IQ data source for meetings is deferred until the `workiq`
+ * CLI's structured-output shape is settled. See V1 scope decision doc.
+ *
+ * TODO(meeting-data-source): replace with `execFile("npx", ["-y", "@microsoft/workiq",
+ * "ask", "list my meetings for the next 24 hours as JSON"])` once tested,
+ * or with a dedicated MCP client.
+ */
+// eslint-disable-next-line @typescript-eslint/require-await
+async function fetchUpcomingMeetings(): Promise<Meeting[]> {
+  return [];
 }
 
 void app.whenReady().then(() => {
@@ -139,7 +157,6 @@ void app.whenReady().then(() => {
   sessionManager = createSessionManager({
     client,
     getModel: () => configStore.getAll().model,
-    getPollModel: () => configStore.getAll().pollModel,
     chatTools,
     onChatDelta: (delta) => {
       const overlay = getOverlayWindow();
@@ -163,10 +180,15 @@ void app.whenReady().then(() => {
   });
 
   // ── IPC: chat ──
-  ipcMain.on(IPC_CHANNELS.CHAT_SEND, (_event, prompt: string) => {
+  ipcMain.on(IPC_CHANNELS.CHAT_SEND, (_event, prompt: unknown) => {
+    const parsed = ChatSendPromptSchema.safeParse(prompt);
+    if (!parsed.success) {
+      console.warn("[ipc] chat:send rejected:", parsed.error.issues[0]?.message ?? "invalid");
+      return;
+    }
     void (async () => {
       if (!sessionManager) return;
-      await sessionManager.sendChatMessage(prompt);
+      await sessionManager.sendChatMessage(parsed.data);
     })();
   });
 
@@ -207,26 +229,12 @@ void app.whenReady().then(() => {
     })();
   });
 
-  // ── Pulse scheduler ──
-  pulseScheduler = createPulseScheduler({
-    sessionManager,
-    copilotManager,
-    attentionStore: getAttentionStore(),
-    getConfig: () => configStore.getAll(),
-    onOverlayFocus: (cb) => {
-      const win = getOverlayWindow();
-      if (win) win.on("focus", cb);
-    },
-    onOverlayBlur: (cb) => {
-      const win = getOverlayWindow();
-      if (win) win.on("blur", cb);
-    },
+  // ── Meeting scheduler (deterministic, no LLM) ──
+  meetingScheduler = createMeetingScheduler({
+    fetchUpcomingMeetings,
+    getAlertMinutes: () => configStore.getAll().alertMinutes,
   });
-
-  const pollConfig = configStore.getAll();
-  if (pollConfig.pollEnabled) {
-    pulseScheduler.start();
-  }
+  meetingScheduler.start();
 
   console.log("[main] Ready — chat wired with CopilotManager + SessionManager");
 });
@@ -234,8 +242,8 @@ void app.whenReady().then(() => {
 app.on("will-quit", () => {
   void (async () => {
     unregisterAllHotkeys();
-    if (pulseScheduler) {
-      pulseScheduler.stop();
+    if (meetingScheduler) {
+      meetingScheduler.stop();
     }
     if (copilotManager) {
       await copilotManager.stop();
