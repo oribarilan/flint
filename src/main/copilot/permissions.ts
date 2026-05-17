@@ -1,34 +1,19 @@
 import type { PermissionHandler, PermissionRequestResult } from "@github/copilot-sdk";
-import { parseHost } from "../lib/url";
 
 /**
- * Hosts allowed for the `join_meeting` custom tool. Subdomains of these are also accepted
- * (e.g. `subdomain.teams.microsoft.com`).
- */
-const JOIN_MEETING_ALLOWLIST = [
-  "teams.microsoft.com",
-  "teams.live.com",
-  "meet.google.com",
-  "zoom.us",
-] as const;
-
-/**
- * Custom Flint tools that are auto-approved. Read-only / UI-only effects with no
- * external side effect — the worst case is a misleading notification the user can dismiss.
+ * Custom Flint tools that are auto-approved. These are either read-only (show_meeting)
+ * or have their own validation (join_meeting validates meeting ID against cache before
+ * opening URLs — the security check lives in the tool handler, not the permission layer).
  *
- * Note: `ask_work_iq` is no longer a custom tool (V1 wires Work IQ via real MCP).
- * Work IQ MCP tools are approved via the `kind: "mcp"` branch below.
+ * Note: Work IQ MCP tools are approved via the `kind: "mcp"` branch below.
  */
 const AUTO_APPROVE_CUSTOM_TOOLS = new Set<string>([
   "set_attention_items",
   "show_overlay",
   "show_notification",
+  "show_meeting",
+  "join_meeting",
 ]);
-
-/**
- * Custom tools subject to per-call gating. Currently only `join_meeting` (URL allowlist).
- */
-const GATED_CUSTOM_TOOLS = new Set<string>(["join_meeting"]);
 
 /**
  * Built-in tool name fragments that are always denied (defence in depth — the SDK
@@ -41,10 +26,6 @@ const DENIED: PermissionRequestResult = {
   kind: "denied-no-approval-rule-and-could-not-request-from-user",
 };
 
-function hostAllowed(host: string, allowlist: readonly string[]): boolean {
-  return allowlist.some((entry) => host === entry || host.endsWith(`.${entry}`));
-}
-
 function looksDangerous(name: string): boolean {
   const lower = name.toLowerCase();
   return DANGEROUS_BUILTIN_FRAGMENTS.some((frag) => lower.includes(frag));
@@ -56,43 +37,9 @@ function looksDangerous(name: string): boolean {
  */
 export function evaluateCustomTool(
   toolName: string,
-  args: Record<string, unknown> | undefined,
 ): PermissionRequestResult {
   if (AUTO_APPROVE_CUSTOM_TOOLS.has(toolName)) {
     return APPROVED;
-  }
-
-  if (GATED_CUSTOM_TOOLS.has(toolName)) {
-    if (toolName === "join_meeting") {
-      const url = typeof args?.joinUrl === "string" ? args.joinUrl : null;
-      if (!url) {
-        console.warn("[permissions] denied join_meeting: missing or non-string joinUrl");
-        return DENIED;
-      }
-      const host = parseHost(url);
-      if (!host) {
-        console.warn("[permissions] denied join_meeting: malformed url");
-        return DENIED;
-      }
-      // parseHost only succeeds for well-formed URLs; check protocol explicitly.
-      try {
-        const parsed = new URL(url);
-        if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-          console.warn("[permissions] denied join_meeting: non-http scheme", {
-            protocol: parsed.protocol,
-          });
-          return DENIED;
-        }
-      } catch {
-        console.warn("[permissions] denied join_meeting: malformed url");
-        return DENIED;
-      }
-      if (!hostAllowed(host, JOIN_MEETING_ALLOWLIST)) {
-        console.warn("[permissions] denied join_meeting: host not allowed", { host });
-        return DENIED;
-      }
-      return APPROVED;
-    }
   }
 
   console.warn("[permissions] denied unknown tool", { name: toolName });
@@ -104,7 +51,6 @@ export function evaluateCustomTool(
  *
  * Policy:
  *  - Custom tools on the auto-approve list → approved.
- *  - `join_meeting` → host allowlist check.
  *  - Unknown custom tools → denied (fail-closed).
  *  - MCP tools (Work IQ) → auto-approved unless the tool name looks dangerous.
  *    Work IQ exposes read-only M365 data access (calendar/mail/Teams/people/docs);
@@ -117,11 +63,7 @@ export function createPermissionPolicy(): PermissionHandler {
   return (request) => {
     if (request.kind === "custom-tool") {
       const toolName = typeof request.toolName === "string" ? request.toolName : "";
-      const args =
-        typeof request.args === "object" && request.args !== null
-          ? (request.args as Record<string, unknown>)
-          : undefined;
-      return evaluateCustomTool(toolName, args);
+      return evaluateCustomTool(toolName);
     }
 
     if (request.kind === "mcp") {
