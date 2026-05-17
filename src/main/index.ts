@@ -2,6 +2,7 @@ import { execSync } from "child_process";
 import { app, ipcMain, nativeTheme } from "electron";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { createOverlayWindow, getOverlayWindow } from "./window/overlay";
+import { showSettingsWindow, getSettingsWindow } from "./window/settings-window";
 import {
   createTray,
   updateTrayMeetings,
@@ -68,14 +69,27 @@ void app.whenReady().then(async () => {
   const configStore = getConfigStore();
   const config = configStore.getAll();
   createOverlayWindow();
-  createTray();
+
+  const openSettings = (): void => {
+    const isNew = !getSettingsWindow() || getSettingsWindow()?.isDestroyed();
+    const win = showSettingsWindow();
+    if (isNew) {
+      win.webContents.on("did-finish-load", () => {
+        const theme = resolveTheme(configStore.getAll().theme);
+        win.webContents.send(IPC_CHANNELS.THEME_CHANGED, theme);
+      });
+    }
+  };
+
+  createTray({ onShowSettings: openSettings });
   registerHotkey(config.hotkey);
 
   // ── Theme IPC ──
   const sendThemeToRenderer = (theme: string): void => {
-    const overlay = getOverlayWindow();
-    if (overlay && !overlay.isDestroyed()) {
-      overlay.webContents.send(IPC_CHANNELS.THEME_CHANGED, theme);
+    for (const win of [getOverlayWindow(), getSettingsWindow()]) {
+      if (win && !win.isDestroyed()) {
+        win.webContents.send(IPC_CHANNELS.THEME_CHANGED, theme);
+      }
     }
   };
 
@@ -232,7 +246,10 @@ void app.whenReady().then(async () => {
     fetchUpcomingMeetings: () => agencyCalendar!.fetchTodayMeetings(),
     getAlertMinutes: () => configStore.getAll().alertMinutes,
     onMeetingsUpdated: (meetings) => {
-      updateTrayMeetings(meetings, { onJoin: (url) => openExternalUrl(url) });
+      updateTrayMeetings(meetings, {
+        onJoin: (url) => openExternalUrl(url),
+        onShowSettings: openSettings,
+      });
       updateTrayBadge(countUpcomingMeetings(meetings));
     },
   });

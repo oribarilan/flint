@@ -1,7 +1,7 @@
 import { Tray, Menu, nativeImage, app } from "electron";
 import type { MenuItemConstructorOptions } from "electron";
 import { join } from "path";
-import { toggleOverlay, showOverlay } from "./overlay";
+import { showOverlay } from "./overlay";
 import type { Meeting } from "../types";
 
 let tray: Tray | null = null;
@@ -41,6 +41,7 @@ function endOfLocalDay(timestampMs: number): number {
 export interface TrayMenuOptions {
   onJoin: (url: string) => void;
   onShowOverlay: () => void;
+  onShowSettings: () => void;
   now?: () => number;
 }
 
@@ -120,6 +121,12 @@ export function buildTrayMenuTemplate(
       options.onShowOverlay();
     },
   });
+  template.push({
+    label: "Settings\u2026",
+    click: () => {
+      options.onShowSettings();
+    },
+  });
   template.push({ type: "separator" });
   template.push({
     label: "Quit",
@@ -131,7 +138,7 @@ export function buildTrayMenuTemplate(
   return template;
 }
 
-export function createTray(): Tray {
+export function createTray(options?: { onShowSettings?: () => void }): Tray {
   const iconPath = join(__dirname, "../../resources/trayTemplate.png");
   let icon: Electron.NativeImage;
   try {
@@ -148,13 +155,10 @@ export function createTray(): Tray {
     buildTrayMenuTemplate([], {
       onJoin: () => undefined,
       onShowOverlay: showOverlay,
+      onShowSettings: options?.onShowSettings ?? (() => undefined),
     }),
   );
   tray.setContextMenu(contextMenu);
-
-  tray.on("click", () => {
-    toggleOverlay();
-  });
 
   return tray;
 }
@@ -165,12 +169,13 @@ export function getTray(): Tray | null {
 
 export function updateTrayMeetings(
   meetings: Meeting[],
-  options: { onJoin: (url: string) => void },
+  options: { onJoin: (url: string) => void; onShowSettings: () => void },
 ): void {
   if (!tray) return;
   const template = buildTrayMenuTemplate(meetings, {
     onJoin: options.onJoin,
     onShowOverlay: showOverlay,
+    onShowSettings: options.onShowSettings,
   });
   tray.setContextMenu(Menu.buildFromTemplate(template));
 }

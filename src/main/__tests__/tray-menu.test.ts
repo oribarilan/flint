@@ -45,6 +45,7 @@ function defaultOptions(overrides?: Partial<Parameters<typeof buildTrayMenuTempl
   return {
     onJoin: vi.fn(),
     onShowOverlay: vi.fn(),
+    onShowSettings: vi.fn(),
     now: () => NOW.getTime(),
     ...overrides,
   };
@@ -208,11 +209,22 @@ describe("buildTrayMenuTemplate", () => {
     expect(items[10].enabled).toBe(false);
   });
 
-  it("always includes Show Flint and Quit items after separator", () => {
+  it("always includes Show Flint, Settings, and Quit items after separator", () => {
     const template = buildTrayMenuTemplate([], defaultOptions());
     const labels = template.map((item) => item.label).filter(Boolean);
     expect(labels).toContain("Show Flint");
+    expect(labels).toContain("Settings\u2026");
     expect(labels).toContain("Quit");
+  });
+
+  it("calls onShowSettings when Settings is clicked", () => {
+    const opts = defaultOptions();
+    const template = buildTrayMenuTemplate([], opts);
+    const settingsItem = template.find((item) => item.label === "Settings\u2026");
+    expect(settingsItem).toBeDefined();
+    const click = settingsItem?.click as (() => void) | undefined;
+    click?.();
+    expect(opts.onShowSettings).toHaveBeenCalledTimes(1);
   });
 
   it("shows 'No more meetings today' when all meetings are past", () => {

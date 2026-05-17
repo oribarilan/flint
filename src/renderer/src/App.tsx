@@ -154,9 +154,7 @@ export default function App() {
               </div>
             )}
 
-            {meetings.length > 0 && items.length > 0 && (
-              <div className={styles.divider} />
-            )}
+            {meetings.length > 0 && items.length > 0 && <div className={styles.divider} />}
 
             {items.length > 0 && (
               <div className={styles.section}>

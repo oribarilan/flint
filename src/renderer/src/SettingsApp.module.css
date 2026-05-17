@@ -1,0 +1,9 @@
+/* ── Settings window root — solid, opaque ────────────────── */
+
+.root {
+  display: flex;
+  height: 100vh;
+  background: var(--bg-primary);
+  overflow: hidden;
+  user-select: none;
+}
