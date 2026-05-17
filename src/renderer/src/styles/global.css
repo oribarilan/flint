@@ -20,13 +20,13 @@
 /* ── Design Tokens ─────────────────────────────────────────── */
 
 :root {
-  /* Font scale — rem-based, common px sizes only (10–24px) */
-  /* Default matches "medium" preset: 12 / 13 / 14 / 16 / 18 / 24 */
-  --font-xs: 0.75rem;
-  --font-sm: 0.8125rem;
-  --font-base: 0.875rem;
-  --font-md: 1rem;
-  --font-lg: 1.125rem;
+  /* Font scale — rem-based, whole-pixel sizes at 16px browser root */
+  /* Default matches "medium" preset: 13 / 14 / 16 / 18 / 20 / 24 */
+  --font-xs: 0.8125rem;
+  --font-sm: 0.875rem;
+  --font-base: 1rem;
+  --font-md: 1.125rem;
+  --font-lg: 1.25rem;
   --font-xl: 1.5rem;
 
   /* ── Colors (Flint Dark — default) ────────────── */
@@ -127,18 +127,8 @@
 
 /* ── Font size presets ─────────────────────────────────────── */
 
-/* Extra Small: 10 / 11 / 12 / 13 / 16 / 20 */
+/* Extra Small: 11 / 12 / 13 / 14 / 16 / 20 */
 html[data-font-size="extra-small"] {
-  --font-xs: 0.625rem;
-  --font-sm: 0.6875rem;
-  --font-base: 0.75rem;
-  --font-md: 0.8125rem;
-  --font-lg: 1rem;
-  --font-xl: 1.25rem;
-}
-
-/* Small: 11 / 12 / 13 / 14 / 16 / 20 */
-html[data-font-size="small"] {
   --font-xs: 0.6875rem;
   --font-sm: 0.75rem;
   --font-base: 0.8125rem;
@@ -147,8 +137,8 @@ html[data-font-size="small"] {
   --font-xl: 1.25rem;
 }
 
-/* Medium (DEFAULT): 12 / 13 / 14 / 16 / 18 / 24 */
-html[data-font-size="medium"] {
+/* Small: 12 / 13 / 14 / 16 / 18 / 24 */
+html[data-font-size="small"] {
   --font-xs: 0.75rem;
   --font-sm: 0.8125rem;
   --font-base: 0.875rem;
@@ -157,14 +147,24 @@ html[data-font-size="medium"] {
   --font-xl: 1.5rem;
 }
 
-/* Large: 13 / 14 / 16 / 18 / 20 / 24 */
-html[data-font-size="large"] {
+/* Medium (DEFAULT): 13 / 14 / 16 / 18 / 20 / 24 */
+html[data-font-size="medium"] {
   --font-xs: 0.8125rem;
   --font-sm: 0.875rem;
   --font-base: 1rem;
   --font-md: 1.125rem;
   --font-lg: 1.25rem;
   --font-xl: 1.5rem;
+}
+
+/* Large: 14 / 16 / 18 / 20 / 24 / 28 */
+html[data-font-size="large"] {
+  --font-xs: 0.875rem;
+  --font-sm: 1rem;
+  --font-base: 1.125rem;
+  --font-md: 1.25rem;
+  --font-lg: 1.5rem;
+  --font-xl: 1.75rem;
 }
 
 /* ── Flint Light ──────────────────────────────────────────── */
@@ -234,7 +234,6 @@ body {
   background: transparent;
   overflow: hidden;
   font-family: var(--font-sans);
-  font-size: var(--font-base);
   line-height: 1.5;
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
