@@ -14,7 +14,8 @@ export function showSettingsWindow(): BrowserWindow {
     return settingsWindow;
   }
 
-  const { workArea } = screen.getPrimaryDisplay();
+  const cursor = screen.getCursorScreenPoint();
+  const { workArea } = screen.getDisplayNearestPoint(cursor);
   const x = Math.round(workArea.x + (workArea.width - SETTINGS_WIDTH) / 2);
   const y = Math.round(workArea.y + (workArea.height - SETTINGS_HEIGHT) / 2);
 

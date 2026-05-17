@@ -38,30 +38,40 @@ export function createOverlayWindow(): BrowserWindow {
   return overlayWindow;
 }
 
-/** Position the popover below the tray icon, aligned to the right edge. */
-function positionNearTray(): void {
+/** Position the popover on the active display (where the cursor is). */
+function positionOnActiveDisplay(): void {
   if (!overlayWindow) return;
 
-  const tray = getTray();
+  const cursor = screen.getCursorScreenPoint();
+  const activeDisplay = screen.getDisplayNearestPoint(cursor);
+  const { workArea } = activeDisplay;
   const windowBounds = overlayWindow.getBounds();
 
+  // If the tray is on the active display, anchor the popover to it
+  const tray = getTray();
   if (tray) {
     const trayBounds = tray.getBounds();
-    const x = Math.round(trayBounds.x + trayBounds.width / 2 - windowBounds.width + 12);
-    const y = Math.round(trayBounds.y + trayBounds.height + 4);
-    overlayWindow.setPosition(x, y);
-  } else {
-    // Fallback: top-right of primary display
-    const { workArea } = screen.getPrimaryDisplay();
-    const x = workArea.x + workArea.width - windowBounds.width - 8;
-    const y = workArea.y + 4;
-    overlayWindow.setPosition(x, y);
+    const trayDisplay = screen.getDisplayNearestPoint({
+      x: trayBounds.x,
+      y: trayBounds.y,
+    });
+    if (trayDisplay.id === activeDisplay.id) {
+      const x = Math.round(trayBounds.x + trayBounds.width / 2 - windowBounds.width + 12);
+      const y = Math.round(trayBounds.y + trayBounds.height + 4);
+      overlayWindow.setPosition(x, y);
+      return;
+    }
   }
+
+  // Fallback: top-right of active display
+  const x = workArea.x + workArea.width - windowBounds.width - 8;
+  const y = workArea.y + 4;
+  overlayWindow.setPosition(x, y);
 }
 
 export function showOverlay(): void {
   if (!overlayWindow) return;
-  positionNearTray();
+  positionOnActiveDisplay();
   overlayWindow.show();
   overlayWindow.focus();
 }
