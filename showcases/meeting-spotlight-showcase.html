@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flint — Meeting Spotlight Showcase</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-primary: oklch(14% 0.006 60);
+    --bg-secondary: oklch(19% 0.007 60);
+    --bg-hover: oklch(23% 0.008 60);
+    --text-primary: oklch(93% 0.006 60);
+    --text-secondary: oklch(62% 0.008 60);
+    --text-placeholder: oklch(43% 0.006 60);
+    --accent: oklch(74% 0.15 65);
+    --accent-hover: oklch(70% 0.14 65);
+    --text-on-accent: oklch(16% 0.02 65);
+    --border-subtle: oklch(23% 0.006 60);
+    --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background: #111;
+    color: var(--text-primary);
+    overflow-x: hidden;
+  }
+
+  /* ── Controls bar ──────────────────────────────── */
+  .controls {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(17,17,16,0.92);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding: 16px 32px;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .controls label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-placeholder);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .pill-group {
+    display: flex;
+    background: rgba(255,255,255,0.04);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 2px;
+  }
+
+  .pill-group button {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 14px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .pill-group button.active {
+    background: rgba(255,255,255,0.08);
+    color: var(--text-primary);
+  }
+
+  .pill-group button:hover:not(.active) {
+    color: var(--text-primary);
+  }
+
+  /* ── Viewport container ────────────────────────── */
+  .viewport {
+    position: relative;
+    width: 100%;
+    height: calc(100vh - 60px);
+    overflow: hidden;
+  }
+
+  /* Fake desktop behind the blur */
+  .desktop-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(135deg, #2a4a6b 0%, #1a3048 30%, #0f2233 60%, #1a1a2e 100%);
+    /* Fake windows to make it feel like a real desktop */
+  }
+
+  .desktop-bg::before {
+    content: '';
+    position: absolute;
+    top: 60px; left: 40px;
+    width: 500px; height: 340px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .desktop-bg::after {
+    content: '';
+    position: absolute;
+    top: 120px; left: 340px;
+    width: 600px; height: 380px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  /* Blur/dim overlay */
+  .backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    transition: all 0.3s ease;
+  }
+
+  /* ── Card (centered) ───────────────────────────── */
+  .spotlight-card {
+    position: absolute;
+    z-index: 2;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    max-width: 520px;
+    width: 90%;
+    font-family: var(--font-sans);
+  }
+
+  /* ── STYLE: Glass ──────────────────────────────── */
+  .style-glass .backdrop {
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(24px);
+  }
+
+  .style-glass .card-inner {
+    background: rgba(30, 28, 26, 0.75);
+    backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
+    padding: 36px 40px 32px;
+  }
+
+  /* ── STYLE: Spotlight ──────────────────────────── */
+  .style-spotlight .backdrop {
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.85) 100%);
+  }
+
+  .style-spotlight .card-inner {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    box-shadow: 0 0 120px rgba(196, 165, 100, 0.06), 0 24px 60px rgba(0,0,0,0.5);
+    padding: 36px 40px 32px;
+  }
+
+  /* ── STYLE: Minimal ────────────────────────────── */
+  .style-minimal .backdrop {
+    background: rgba(0,0,0,0.7);
+  }
+
+  .style-minimal .card-inner {
+    background: transparent;
+    border: none;
+    padding: 40px;
+    text-align: center;
+  }
+
+  .style-minimal .card-title {
+    font-size: 28px;
+    font-weight: 600;
+  }
+
+  .style-minimal .card-time {
+    font-size: 16px;
+  }
+
+  .style-minimal .card-actions {
+    justify-content: center;
+  }
+
+  .style-minimal .card-meta,
+  .style-minimal .card-divider {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .style-minimal .card-ai {
+    text-align: center;
+    border-color: rgba(255,255,255,0.06);
+  }
+
+  /* ── STYLE: Solid ──────────────────────────────── */
+  .style-solid .backdrop {
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(8px);
+  }
+
+  .style-solid .card-inner {
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-subtle);
+    border-radius: 12px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+    padding: 36px 40px 32px;
+  }
+
+  .style-solid .card-inner::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--accent);
+    border-radius: 12px 12px 0 0;
+  }
+
+  .style-solid .card-inner {
+    position: relative;
+  }
+
+  /* ── Card content (shared) ─────────────────────── */
+  .card-time {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent);
+    margin-bottom: 6px;
+    letter-spacing: 0.3px;
+  }
+
+  .card-title {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.25;
+    margin-bottom: 4px;
+  }
+
+  .card-organizer {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+  }
+
+  .card-divider {
+    height: 1px;
+    background: var(--border-subtle);
+    margin: 16px 0;
+  }
+
+  /* Meta rows */
+  .card-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .meta-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .meta-icon {
+    width: 16px;
+    height: 16px;
+    opacity: 0.5;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .meta-label {
+    color: var(--text-placeholder);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    min-width: 70px;
+    flex-shrink: 0;
+  }
+
+  .meta-value {
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+
+  .attendee-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .attendee-chip {
+    font-size: 12px;
+    padding: 3px 10px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 100px;
+    color: var(--text-secondary);
+  }
+
+  /* AI section */
+  .card-ai {
+    margin-top: 4px;
+    padding: 14px 16px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.04);
+    border-radius: 10px;
+  }
+
+  .ai-header {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--accent);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .ai-header svg { width: 13px; height: 13px; }
+
+  .ai-items {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .ai-item {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    line-height: 1.45;
+    padding-left: 14px;
+    position: relative;
+  }
+
+  .ai-item::before {
+    content: '·';
+    position: absolute;
+    left: 2px;
+    color: var(--text-placeholder);
+    font-weight: 700;
+  }
+
+  /* Actions */
+  .card-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 24px;
+  }
+
+  .btn {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px 28px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-join {
+    background: var(--accent);
+    color: var(--text-on-accent);
+    flex: 1;
+  }
+
+  .btn-join:hover {
+    background: var(--accent-hover);
+  }
+
+  .btn-dismiss {
+    background: rgba(255,255,255,0.06);
+    color: var(--text-secondary);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .btn-dismiss:hover {
+    background: rgba(255,255,255,0.1);
+    color: var(--text-primary);
+  }
+
+  /* ── Name suggestions ──────────────────────────── */
+  .name-row {
+    padding: 8px 32px 12px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .name-tag {
+    font-size: 11px;
+    padding: 3px 10px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 100px;
+    color: var(--text-secondary);
+    font-family: var(--font-sans);
+  }
+
+  .name-tag.picked {
+    background: rgba(196, 165, 100, 0.1);
+    border-color: rgba(196, 165, 100, 0.2);
+    color: var(--accent);
+  }
+
+  .name-label {
+    font-size: 11px;
+    color: var(--text-placeholder);
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    margin-right: 4px;
+  }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <label>Style</label>
+  <div class="pill-group" id="style-toggle">
+    <button class="active" data-val="glass">Glass</button>
+    <button data-val="spotlight">Spotlight</button>
+    <button data-val="minimal">Minimal</button>
+    <button data-val="solid">Solid</button>
+  </div>
+
+  <label style="margin-left:12px">Info</label>
+  <div class="pill-group" id="info-toggle">
+    <button data-val="minimal">Minimal</button>
+    <button class="active" data-val="standard">Standard</button>
+    <button data-val="rich">Rich</button>
+    <button data-val="ai">AI-enhanced</button>
+  </div>
+</div>
+
+<div class="name-row">
+  <span class="name-label">Name ideas:</span>
+  <span class="name-tag picked">Spotlight</span>
+  <span class="name-tag">Focus</span>
+  <span class="name-tag">Heads Up</span>
+  <span class="name-tag">Ready Room</span>
+  <span class="name-tag">Briefing</span>
+  <span class="name-tag">Stage</span>
+</div>
+
+<div class="viewport" id="viewport">
+  <div class="desktop-bg"></div>
+  <div class="backdrop" id="backdrop"></div>
+  <div class="spotlight-card" id="card">
+    <div class="card-inner" id="card-inner"></div>
+  </div>
+</div>
+
+<script>
+const MEETING = {
+  title: 'Q3 Product Strategy Review',
+  time: '10:30 – 11:30',
+  startLabel: 'Starting in 2 minutes',
+  organizer: 'Sarah Chen',
+  attendees: ['Sarah Chen', 'James Park', 'Elena Ruiz', 'Kai Nakamura', 'You'],
+  room: 'Sequoia (Floor 3)',
+  teamsLink: true,
+  agenda: 'Review Q3 OKRs, discuss launch timeline for Project Atlas, align on resourcing for H2.',
+};
+
+const AI_INSIGHTS = [
+  'Last sync with Sarah was 12 days ago — she may raise the Atlas delay',
+  'You have an open action item: "Share competitive analysis deck"',
+  'Elena added a comment on the shared doc yesterday',
+];
+
+let currentStyle = 'glass';
+let currentInfo = 'standard';
+
+function renderContent() {
+  const m = MEETING;
+  let html = '';
+
+  // Time + title (always)
+  html += `<div class="card-time">${m.startLabel}</div>`;
+  html += `<div class="card-title">${m.title}</div>`;
+  html += `<div class="card-organizer">Organized by ${m.organizer}</div>`;
+
+  if (currentInfo === 'minimal') {
+    // Just title + actions
+  }
+
+  if (currentInfo === 'standard') {
+    html += '<div class="card-meta">';
+    html += `<div class="meta-row"><span class="meta-label">Time</span><span class="meta-value">${m.time}</span></div>`;
+    html += `<div class="meta-row"><span class="meta-label">People</span><span class="meta-value">${m.attendees.length} attendees</span></div>`;
+    if (m.room) html += `<div class="meta-row"><span class="meta-label">Room</span><span class="meta-value">${m.room}</span></div>`;
+    html += '</div>';
+  }
+
+  if (currentInfo === 'rich') {
+    html += '<div class="card-meta">';
+    html += `<div class="meta-row"><span class="meta-label">Time</span><span class="meta-value">${m.time}</span></div>`;
+    if (m.room) html += `<div class="meta-row"><span class="meta-label">Room</span><span class="meta-value">${m.room}</span></div>`;
+    html += `<div class="meta-row"><span class="meta-label">Attendees</span><div class="attendee-list">${m.attendees.map(a => `<span class="attendee-chip">${a}</span>`).join('')}</div></div>`;
+    if (m.agenda) html += `<div class="meta-row"><span class="meta-label">Agenda</span><span class="meta-value">${m.agenda}</span></div>`;
+    html += '</div>';
+  }
+
+  if (currentInfo === 'ai') {
+    html += '<div class="card-meta">';
+    html += `<div class="meta-row"><span class="meta-label">Time</span><span class="meta-value">${m.time}</span></div>`;
+    html += `<div class="meta-row"><span class="meta-label">People</span><span class="meta-value">${m.attendees.length} attendees</span></div>`;
+    if (m.room) html += `<div class="meta-row"><span class="meta-label">Room</span><span class="meta-value">${m.room}</span></div>`;
+    html += '</div>';
+    html += '<div class="card-divider"></div>';
+    html += `<div class="card-ai">
+      <div class="ai-header">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5L4 5.5L5.5 7L8 4.5L10.5 7L12 5.5L8 1.5Z"/><path d="M8 7.5L4 11.5L5.5 13L8 10.5L10.5 13L12 11.5L8 7.5Z"/></svg>
+        Flint Prep
+      </div>
+      <div class="ai-items">
+        ${AI_INSIGHTS.map(i => `<div class="ai-item">${i}</div>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  // Actions (always)
+  html += `<div class="card-actions">
+    <button class="btn btn-dismiss">Dismiss</button>
+    <button class="btn btn-join">Join Meeting</button>
+  </div>`;
+
+  document.getElementById('card-inner').innerHTML = html;
+}
+
+function applyStyle() {
+  const viewport = document.getElementById('viewport');
+  viewport.className = 'viewport style-' + currentStyle;
+}
+
+function setupPillGroup(id, onChange) {
+  const group = document.getElementById(id);
+  group.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      group.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      onChange(btn.dataset.val);
+    });
+  });
+}
+
+setupPillGroup('style-toggle', val => { currentStyle = val; applyStyle(); });
+setupPillGroup('info-toggle', val => { currentInfo = val; renderContent(); });
+
+applyStyle();
+renderContent();
+</script>
+</body>
+</html>

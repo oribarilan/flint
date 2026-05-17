@@ -99,28 +99,32 @@ export default function App() {
 
   if (view === "chat") {
     return (
-      <div className={styles.root} data-testid="app-root">
-        <div className={styles.chatHeader}>
-          <button
-            className={styles.backButton}
-            onClick={handleBack}
-            aria-label="Back to briefing"
-            type="button"
-          >
-            <ArrowLeft size={14} />
-          </button>
-          <span className={styles.chatTitle}>Flint</span>
-        </div>
-        <div className={styles.chatView}>
-          <ChatPanel
-            ref={chatPanelRef}
-            messages={messages}
-            streamingContent={streamingContent}
-            isStreaming={isStreaming}
-            onSend={sendMessage}
-          />
-          <div className={styles.footer}>
-            <ChatInput ref={chatInputRef} onSend={sendMessage} disabled={isStreaming} />
+      <div className={styles.window}>
+        <div className={styles.pill} data-state="chat" data-testid="app-root">
+          <div className={styles.content} key="chat">
+            <div className={styles.chatHeader}>
+              <button
+                className={styles.backButton}
+                onClick={handleBack}
+                aria-label="Back to briefing"
+                type="button"
+              >
+                <ArrowLeft size={14} />
+              </button>
+              <span className={styles.chatTitle}>Flint</span>
+            </div>
+            <div className={styles.chatView}>
+              <ChatPanel
+                ref={chatPanelRef}
+                messages={messages}
+                streamingContent={streamingContent}
+                isStreaming={isStreaming}
+                onSend={sendMessage}
+              />
+              <div className={styles.footer}>
+                <ChatInput ref={chatInputRef} onSend={sendMessage} disabled={isStreaming} />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -128,58 +132,62 @@ export default function App() {
   }
 
   return (
-    <div className={styles.root} data-testid="app-root">
-      <div className={styles.body}>
-        {isEmpty ? (
-          <div className={styles.empty}>
-            <div className={styles.emptyIcon}>
-              <CircleCheck size={20} aria-hidden="true" />
-            </div>
-            <h3 className={styles.emptyTitle}>All clear</h3>
-            <p className={styles.emptyDesc}>
-              No meetings or action items right now.
-              <br />
-              Enjoy the focus time.
-            </p>
+    <div className={styles.window}>
+      <div className={styles.pill} data-state="briefing" data-testid="app-root">
+        <div className={styles.content} key="briefing">
+          <div className={styles.body}>
+            {isEmpty ? (
+              <div className={styles.empty}>
+                <div className={styles.emptyIcon}>
+                  <CircleCheck size={20} aria-hidden="true" />
+                </div>
+                <h3 className={styles.emptyTitle}>All clear</h3>
+                <p className={styles.emptyDesc}>
+                  No meetings or action items right now.
+                  <br />
+                  Enjoy the focus time.
+                </p>
+              </div>
+            ) : (
+              <>
+                <Greeting meetings={meetings} />
+
+                {meetings.length > 0 && (
+                  <div className={styles.section}>
+                    <div className={styles.sectionLabel}>Next up</div>
+                    <div>
+                      {meetings.map((m) => (
+                        <MeetingRow key={m.id} meeting={m} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {meetings.length > 0 && items.length > 0 && <div className={styles.divider} />}
+
+                {items.length > 0 && (
+                  <div className={styles.section}>
+                    <div className={styles.sectionLabel}>Attention</div>
+                    <div>
+                      {items.map((item) => (
+                        <AttentionRow key={item.id} item={item} onOpen={handleOpenAttention} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </div>
-        ) : (
-          <>
-            <Greeting meetings={meetings} />
 
-            {meetings.length > 0 && (
-              <div className={styles.section}>
-                <div className={styles.sectionLabel}>Next up</div>
-                <div>
-                  {meetings.map((m) => (
-                    <MeetingRow key={m.id} meeting={m} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {meetings.length > 0 && items.length > 0 && <div className={styles.divider} />}
-
-            {items.length > 0 && (
-              <div className={styles.section}>
-                <div className={styles.sectionLabel}>Attention</div>
-                <div>
-                  {items.map((item) => (
-                    <AttentionRow key={item.id} item={item} onOpen={handleOpenAttention} />
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-
-      <div className={styles.footer}>
-        <ChatInput
-          ref={chatInputRef}
-          onSend={handleSend}
-          disabled={isStreaming}
-          placeholder="Ask Flint anything…"
-        />
+          <div className={styles.footer}>
+            <ChatInput
+              ref={chatInputRef}
+              onSend={handleSend}
+              disabled={isStreaming}
+              placeholder="Ask Flint anything…"
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

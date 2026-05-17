@@ -3,8 +3,8 @@ import { join } from "path";
 import { is } from "@electron-toolkit/utils";
 import { getTray } from "./tray";
 
-const POPOVER_WIDTH = 340;
-const POPOVER_HEIGHT = 480;
+const POPOVER_WIDTH = 360;
+const POPOVER_HEIGHT = 600;
 
 let overlayWindow: BrowserWindow | null = null;
 
@@ -30,6 +30,9 @@ export function createOverlayWindow(): BrowserWindow {
   } else {
     void overlayWindow.loadFile(join(__dirname, "../renderer/index.html"));
   }
+
+  // Click-through on transparent areas; CSS pointer-events: auto on the pill recaptures events
+  overlayWindow.setIgnoreMouseEvents(true, { forward: true });
 
   overlayWindow.on("blur", () => {
     hideOverlay();

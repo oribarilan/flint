@@ -123,6 +123,14 @@
   /* ── Transitions ─────────────────────────────────── */
   --transition-fast: 120ms var(--ease-out);
   --transition-normal: 200ms var(--ease-out);
+
+  /* ── Pill morph ─────────────────────────────────── */
+  --pill-briefing-width: 320px;
+  --pill-briefing-radius: 28px;
+  --pill-chat-width: 340px;
+  --pill-chat-radius: 22px;
+  --pill-max-height: 540px;
+  --pill-morph-duration: 450ms;
 }
 
 /* ── Font size presets ─────────────────────────────────────── */

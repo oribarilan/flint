@@ -1,18 +1,57 @@
-/* ── App root — glass popover ───────────────────────────────── */
+/* ── Transparent window wrapper — click-through ─────────── */
 
-.root {
+.window {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding-top: var(--space-sm);
+  pointer-events: none;
+}
+
+/* ── Pill container — the visible glass shape ───────────── */
+
+.pill {
+  pointer-events: auto;
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  width: 340px;
+  max-height: var(--pill-max-height);
   background: var(--glass-bg);
   backdrop-filter: blur(180px) saturate(140%) brightness(0.95);
   -webkit-backdrop-filter: blur(180px) saturate(140%) brightness(0.95);
   border: 1px solid var(--glass-border);
-  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-window), var(--glass-inner-glow);
   overflow: hidden;
   user-select: none;
+  will-change: width, border-radius;
+  transition:
+    width var(--pill-morph-duration) var(--ease-out-expo),
+    border-radius var(--pill-morph-duration) var(--ease-out-expo);
+}
+
+.pill[data-state="briefing"] {
+  width: var(--pill-briefing-width);
+  border-radius: var(--pill-briefing-radius);
+}
+
+.pill[data-state="chat"] {
+  width: var(--pill-chat-width);
+  border-radius: var(--pill-chat-radius);
+}
+
+/* ── Content wrapper — fade-in on view change ───────────── */
+
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  animation: contentIn 250ms var(--ease-out) both;
+}
+
+@keyframes contentIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* ── Scrollable body ──────────────────────────────────────── */

@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flint — Menubar Event Display Styles</title>
+<style>
+  /* ── Reset ─────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+    background: #1a1918;
+    color: #e8e4df;
+    padding: 32px;
+    line-height: 1.5;
+  }
+
+  /* ── Controls ──────────────────────────────────────── */
+  .controls {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .controls label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #9a958e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .pill-group {
+    display: flex;
+    background: #262422;
+    border-radius: 8px;
+    padding: 3px;
+    gap: 2px;
+  }
+
+  .pill-group button {
+    font: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 14px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: #9a958e;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .pill-group button.active {
+    background: #3a3734;
+    color: #e8e4df;
+  }
+
+  .pill-group button:hover:not(.active) {
+    color: #c5c0b8;
+  }
+
+  /* ── Page layout ───────────────────────────────────── */
+  h1 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .subtitle {
+    font-size: 13px;
+    color: #9a958e;
+    margin-bottom: 28px;
+  }
+
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #6a655e;
+    margin: 36px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #2a2826;
+  }
+
+  /* ── Menubar simulation ────────────────────────────── */
+  .menubar-row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 14px;
+  }
+
+  .style-label {
+    width: 170px;
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 500;
+    color: #c5c0b8;
+  }
+
+  .style-desc {
+    font-size: 11px;
+    color: #6a655e;
+    font-weight: 400;
+    margin-top: 1px;
+  }
+
+  .menubar {
+    height: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 10px;
+    border-radius: 4px;
+    min-width: 360px;
+    position: relative;
+    gap: 0;
+  }
+
+  /* Dark menubar (macOS dark mode) */
+  .menubar.dark {
+    background: rgba(30, 28, 27, 0.85);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  /* Light menubar (macOS light mode) */
+  .menubar.light {
+    background: rgba(246, 243, 238, 0.82);
+    border: 1px solid rgba(0,0,0,0.08);
+  }
+
+  /* Fake system tray items (to give context) */
+  .sys-items {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-right: 10px;
+  }
+
+  .sys-item {
+    font-size: 13px;
+    opacity: 0.35;
+  }
+
+  .menubar.dark .sys-item { color: #fff; }
+  .menubar.light .sys-item { color: #1d1b1a; }
+
+  /* Flint tray section */
+  .flint-tray {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0 4px;
+    height: 100%;
+  }
+
+  .flint-icon {
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .flint-icon svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .menubar.dark .flint-icon svg { fill: #e8e4df; stroke: #e8e4df; }
+  .menubar.light .flint-icon svg { fill: #1d1b1a; stroke: #1d1b1a; }
+
+  .tray-text {
+    font-size: 12.5px;
+    font-weight: 400;
+    letter-spacing: -0.1px;
+    white-space: nowrap;
+  }
+
+  .menubar.dark .tray-text { color: #e8e4df; }
+  .menubar.light .tray-text { color: #1d1b1a; }
+
+  .tray-text .sep {
+    opacity: 0.3;
+    margin: 0 3px;
+  }
+
+  .tray-text .dim {
+    opacity: 0.55;
+  }
+
+  .tray-text .time {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tray-text .urgent {
+    color: #e06040;
+  }
+
+  .menubar.light .tray-text .urgent {
+    color: #c84830;
+  }
+
+  .tray-text .dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-right: 5px;
+    vertical-align: middle;
+    position: relative;
+    top: -0.5px;
+  }
+
+  .dot.green { background: #4aba6a; }
+  .dot.red { background: #e06040; }
+  .dot.orange { background: #e89a40; }
+
+  .tray-text .bold {
+    font-weight: 600;
+  }
+
+  /* Clock on the right */
+  .menubar-clock {
+    font-size: 13px;
+    margin-left: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .menubar.dark .menubar-clock { color: rgba(255,255,255,0.85); }
+  .menubar.light .menubar-clock { color: rgba(0,0,0,0.85); }
+
+  /* ── State badge ───────────────────────────────────── */
+  .state-badge {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
+    width: 80px;
+    text-align: center;
+  }
+
+  .state-badge.normal { background: #2a3a2e; color: #6aba7a; }
+  .state-badge.imminent { background: #3a2e28; color: #e89a40; }
+  .state-badge.active { background: #3a2828; color: #e06040; }
+  .state-badge.empty { background: #2a2826; color: #6a655e; }
+
+  /* ── Variant grid ──────────────────────────────────── */
+  .variant-block {
+    margin-bottom: 10px;
+  }
+
+  .states-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  .hidden { display: none !important; }
+
+  /* ── Notes ─────────────────────────────────────────── */
+  .notes {
+    margin-top: 48px;
+    padding: 20px;
+    background: #222;
+    border-radius: 8px;
+    font-size: 12px;
+    color: #9a958e;
+    line-height: 1.7;
+  }
+
+  .notes strong { color: #c5c0b8; }
+</style>
+</head>
+<body>
+
+<h1>Menubar Event Display — Style Showcase</h1>
+<p class="subtitle">How should Flint show upcoming events next to the tray icon? Each row simulates the macOS menubar.</p>
+
+<div class="controls">
+  <label>Theme</label>
+  <div class="pill-group" id="theme-toggle">
+    <button class="active" data-val="dark">Dark</button>
+    <button data-val="light">Light</button>
+  </div>
+
+  <label style="margin-left:16px">Scenario</label>
+  <div class="pill-group" id="state-toggle">
+    <button class="active" data-val="normal">Next in 32m</button>
+    <button data-val="imminent">Next in 3m</button>
+    <button data-val="active">In meeting</button>
+    <button data-val="allday">All-day only</button>
+    <button data-val="empty">No meetings</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════ -->
+<div class="section-title">A — Minimal</div>
+
+<!-- A1: Off -->
+<div class="variant-block" id="v-off">
+  <div class="menubar-row">
+    <div class="style-label">Off<div class="style-desc">Icon only, no text</div></div>
+    <div class="menubar dark" id="bar-off"></div>
+  </div>
+</div>
+
+<!-- A2: Count -->
+<div class="variant-block" id="v-count">
+  <div class="menubar-row">
+    <div class="style-label">Count<div class="style-desc">Number of remaining meetings</div></div>
+    <div class="menubar dark" id="bar-count"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════ -->
+<div class="section-title">B — Time-focused</div>
+
+<!-- B1: Next time -->
+<div class="variant-block" id="v-next-time">
+  <div class="menubar-row">
+    <div class="style-label">Next time<div class="style-desc">Start time of next meeting</div></div>
+    <div class="menubar dark" id="bar-next-time"></div>
+  </div>
+</div>
+
+<!-- B2: Countdown -->
+<div class="variant-block" id="v-countdown">
+  <div class="menubar-row">
+    <div class="style-label">Countdown<div class="style-desc">Minutes until next meeting</div></div>
+    <div class="menubar dark" id="bar-countdown"></div>
+  </div>
+</div>
+
+<!-- B3: Countdown labeled -->
+<div class="variant-block" id="v-countdown-label">
+  <div class="menubar-row">
+    <div class="style-label">Countdown (labeled)<div class="style-desc">With "in" prefix</div></div>
+    <div class="menubar dark" id="bar-countdown-label"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════ -->
+<div class="section-title">C — Event info</div>
+
+<!-- C1: Title only -->
+<div class="variant-block" id="v-title">
+  <div class="menubar-row">
+    <div class="style-label">Title<div class="style-desc">Next meeting name, truncated</div></div>
+    <div class="menubar dark" id="bar-title"></div>
+  </div>
+</div>
+
+<!-- C2: Time + title -->
+<div class="variant-block" id="v-time-title">
+  <div class="menubar-row">
+    <div class="style-label">Time · Title<div class="style-desc">Start time and name</div></div>
+    <div class="menubar dark" id="bar-time-title"></div>
+  </div>
+</div>
+
+<!-- C3: Countdown + title -->
+<div class="variant-block" id="v-cd-title">
+  <div class="menubar-row">
+    <div class="style-label">Countdown · Title<div class="style-desc">Minutes left and name</div></div>
+    <div class="menubar dark" id="bar-cd-title"></div>
+  </div>
+</div>
+
+<!-- C4: Relative + title -->
+<div class="variant-block" id="v-rel-title">
+  <div class="menubar-row">
+    <div class="style-label">in Xm · Title<div class="style-desc">Labeled countdown and name</div></div>
+    <div class="menubar dark" id="bar-rel-title"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════ -->
+<div class="section-title">D — Rich / Status</div>
+
+<!-- D1: Time range + title -->
+<div class="variant-block" id="v-range-title">
+  <div class="menubar-row">
+    <div class="style-label">Range · Title<div class="style-desc">Start–end and name</div></div>
+    <div class="menubar dark" id="bar-range-title"></div>
+  </div>
+</div>
+
+<!-- D2: Status dot + time + title -->
+<div class="variant-block" id="v-dot-time">
+  <div class="menubar-row">
+    <div class="style-label">● Time · Title<div class="style-desc">Colored dot, time and name</div></div>
+    <div class="menubar dark" id="bar-dot-time"></div>
+  </div>
+</div>
+
+<!-- D3: Status text -->
+<div class="variant-block" id="v-status">
+  <div class="menubar-row">
+    <div class="style-label">Status text<div class="style-desc">Sentence-style status</div></div>
+    <div class="menubar dark" id="bar-status"></div>
+  </div>
+</div>
+
+<!-- D4: Dot + countdown -->
+<div class="variant-block" id="v-dot-cd">
+  <div class="menubar-row">
+    <div class="style-label">● Countdown<div class="style-desc">Colored dot with countdown</div></div>
+    <div class="menubar dark" id="bar-dot-cd"></div>
+  </div>
+</div>
+
+<!-- D5: Bold time + dim title -->
+<div class="variant-block" id="v-bold-time">
+  <div class="menubar-row">
+    <div class="style-label"><b>Time</b> Title<div class="style-desc">Weighted time, dimmed title</div></div>
+    <div class="menubar dark" id="bar-bold-time"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════ -->
+
+<div class="notes">
+  <strong>How this works:</strong> macOS <code>Tray.setTitle()</code> renders plain text next to the tray icon in the system menu bar.
+  Text is rendered in the system font (SF Pro) at the system's menubar size. The text cannot be styled (no bold, color, etc.) —
+  visual weight and dots shown above are simulated to explore options. In the real implementation, styles marked "rich" would need
+  ANSI-attributed strings or may be limited to plain text only.<br><br>
+  <strong>Constraints:</strong> Menubar space is shared with other apps. Wider text pushes system icons left. Aim for ≤20 chars.
+  On smaller screens or laptops with notch, space is even tighter.
+</style>
+</div>
+
+<script>
+// ── Data fixtures ─────────────────────────────────────
+const SCENARIOS = {
+  normal: {
+    meeting: { title: 'Sprint Planning', start: '10:30', end: '11:00', mins: 32 },
+    count: 3,
+    inMeeting: false,
+    allDay: false,
+    none: false,
+  },
+  imminent: {
+    meeting: { title: 'Standup', start: '10:03', end: '10:15', mins: 3 },
+    count: 4,
+    inMeeting: false,
+    allDay: false,
+    none: false,
+  },
+  active: {
+    meeting: { title: 'Design Review', start: '09:30', end: '10:15', mins: -12 },
+    count: 2,
+    inMeeting: true,
+    allDay: false,
+    none: false,
+  },
+  allday: {
+    meeting: { title: 'Company Offsite', start: 'All day', end: '', mins: null },
+    count: 1,
+    inMeeting: false,
+    allDay: true,
+    none: false,
+  },
+  empty: {
+    meeting: null,
+    count: 0,
+    inMeeting: false,
+    allDay: false,
+    none: true,
+  },
+};
+
+let currentTheme = 'dark';
+let currentState = 'normal';
+
+// ── Tray icon SVG ─────────────────────────────────────
+const FLINT_ICON = `<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M8 1.5L4 5.5L5.5 7L8 4.5L10.5 7L12 5.5L8 1.5Z" fill="currentColor"/>
+  <path d="M8 7.5L4 11.5L5.5 13L8 10.5L10.5 13L12 11.5L8 7.5Z" fill="currentColor"/>
+</svg>`;
+
+// ── Helpers ───────────────────────────────────────────
+function esc(s) { return s.replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function trunc(s, n) { return s.length > n ? s.slice(0, n) + '…' : s; }
+
+// ── Render each style ─────────────────────────────────
+function renderBar(id, content) {
+  const bar = document.getElementById(id);
+  if (!bar) return;
+  bar.className = `menubar ${currentTheme}`;
+  bar.innerHTML = `
+    <div class="sys-items">
+      <span class="sys-item">⌘</span>
+      <span class="sys-item">◆</span>
+      <span class="sys-item">▸</span>
+    </div>
+    <div class="flint-tray">
+      <div class="flint-icon">${FLINT_ICON}</div>
+      ${content ? `<span class="tray-text">${content}</span>` : ''}
+    </div>
+    <span class="menubar-clock">10:01</span>
+  `;
+}
+
+function render() {
+  const s = SCENARIOS[currentState];
+  const m = s.meeting;
+  const isUrgent = m && m.mins !== null && m.mins <= 5 && m.mins >= 0;
+  const urgentClass = isUrgent ? ' urgent' : '';
+
+  // A1: Off
+  renderBar('bar-off', '');
+
+  // A2: Count
+  renderBar('bar-count', s.none ? '' : `${s.count}`);
+
+  // B1: Next time
+  if (s.none) renderBar('bar-next-time', '<span class="dim">—</span>');
+  else if (s.allDay) renderBar('bar-next-time', '<span class="dim">All day</span>');
+  else if (s.inMeeting) renderBar('bar-next-time', `<span class="time">${m.start}</span>`);
+  else renderBar('bar-next-time', `<span class="time${urgentClass}">${m.start}</span>`);
+
+  // B2: Countdown
+  if (s.none) renderBar('bar-countdown', '');
+  else if (s.allDay) renderBar('bar-countdown', '<span class="dim">All day</span>');
+  else if (s.inMeeting) renderBar('bar-countdown', '<span class="urgent">now</span>');
+  else renderBar('bar-countdown', `<span class="${urgentClass}">${m.mins}m</span>`);
+
+  // B3: Countdown labeled
+  if (s.none) renderBar('bar-countdown-label', '');
+  else if (s.allDay) renderBar('bar-countdown-label', '<span class="dim">All day</span>');
+  else if (s.inMeeting) renderBar('bar-countdown-label', '<span class="urgent">now</span>');
+  else renderBar('bar-countdown-label', `<span class="${urgentClass}">in ${m.mins}m</span>`);
+
+  // C1: Title
+  if (s.none) renderBar('bar-title', '');
+  else renderBar('bar-title', esc(trunc(m.title, 18)));
+
+  // C2: Time + title
+  if (s.none) renderBar('bar-time-title', '');
+  else if (s.allDay) renderBar('bar-time-title', esc(trunc(m.title, 18)));
+  else if (s.inMeeting) renderBar('bar-time-title', `<span class="time">${m.start}</span><span class="sep">·</span>${esc(trunc(m.title, 14))}`);
+  else renderBar('bar-time-title', `<span class="time${urgentClass}">${m.start}</span><span class="sep">·</span>${esc(trunc(m.title, 14))}`);
+
+  // C3: Countdown + title
+  if (s.none) renderBar('bar-cd-title', '');
+  else if (s.allDay) renderBar('bar-cd-title', esc(trunc(m.title, 18)));
+  else if (s.inMeeting) renderBar('bar-cd-title', `<span class="urgent">now</span><span class="sep">·</span>${esc(trunc(m.title, 14))}`);
+  else renderBar('bar-cd-title', `<span class="${urgentClass}">${m.mins}m</span><span class="sep">·</span>${esc(trunc(m.title, 14))}`);
+
+  // C4: Relative + title
+  if (s.none) renderBar('bar-rel-title', '');
+  else if (s.allDay) renderBar('bar-rel-title', esc(trunc(m.title, 18)));
+  else if (s.inMeeting) renderBar('bar-rel-title', `<span class="urgent">now</span><span class="sep">·</span>${esc(trunc(m.title, 14))}`);
+  else renderBar('bar-rel-title', `<span class="${urgentClass}">in ${m.mins}m</span><span class="sep">·</span>${esc(trunc(m.title, 12))}`);
+
+  // D1: Range + title
+  if (s.none) renderBar('bar-range-title', '');
+  else if (s.allDay) renderBar('bar-range-title', `All day<span class="sep">·</span>${esc(trunc(m.title, 10))}`);
+  else renderBar('bar-range-title', `<span class="time">${m.start}–${m.end}</span><span class="sep">·</span>${esc(trunc(m.title, 10))}`);
+
+  // D2: Dot + time + title
+  if (s.none) renderBar('bar-dot-time', '<span class="dot green"></span><span class="dim">Clear</span>');
+  else if (s.allDay) renderBar('bar-dot-time', `<span class="dot orange"></span>${esc(trunc(m.title, 16))}`);
+  else if (s.inMeeting) renderBar('bar-dot-time', `<span class="dot red"></span><span class="time">${m.start}</span><span class="sep">·</span>${esc(trunc(m.title, 12))}`);
+  else if (isUrgent) renderBar('bar-dot-time', `<span class="dot orange"></span><span class="time">${m.start}</span><span class="sep">·</span>${esc(trunc(m.title, 12))}`);
+  else renderBar('bar-dot-time', `<span class="dot green"></span><span class="time">${m.start}</span><span class="sep">·</span>${esc(trunc(m.title, 12))}`);
+
+  // D3: Status text
+  if (s.none) renderBar('bar-status', '<span class="dim">All clear</span>');
+  else if (s.allDay) renderBar('bar-status', esc(trunc(m.title, 18)));
+  else if (s.inMeeting) renderBar('bar-status', `<span class="urgent">In meeting</span>`);
+  else renderBar('bar-status', `Free until <span class="time">${m.start}</span>`);
+
+  // D4: Dot + countdown
+  if (s.none) renderBar('bar-dot-cd', '<span class="dot green"></span>');
+  else if (s.allDay) renderBar('bar-dot-cd', '<span class="dot orange"></span><span class="dim">All day</span>');
+  else if (s.inMeeting) renderBar('bar-dot-cd', '<span class="dot red"></span><span class="urgent">now</span>');
+  else if (isUrgent) renderBar('bar-dot-cd', `<span class="dot orange"></span><span class="urgent">${m.mins}m</span>`);
+  else renderBar('bar-dot-cd', `<span class="dot green"></span>${m.mins}m`);
+
+  // D5: Bold time + dim title
+  if (s.none) renderBar('bar-bold-time', '');
+  else if (s.allDay) renderBar('bar-bold-time', `<span class="bold">All day</span><span class="sep">·</span><span class="dim">${esc(trunc(m.title, 12))}</span>`);
+  else if (s.inMeeting) renderBar('bar-bold-time', `<span class="bold urgent">Now</span><span class="sep">·</span><span class="dim">${esc(trunc(m.title, 12))}</span>`);
+  else renderBar('bar-bold-time', `<span class="bold time${urgentClass}">${m.start}</span><span class="sep">·</span><span class="dim">${esc(trunc(m.title, 12))}</span>`);
+}
+
+// ── Controls ──────────────────────────────────────────
+function setupPillGroup(id, onChange) {
+  const group = document.getElementById(id);
+  group.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      group.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      onChange(btn.dataset.val);
+    });
+  });
+}
+
+setupPillGroup('theme-toggle', val => { currentTheme = val; render(); });
+setupPillGroup('state-toggle', val => { currentState = val; render(); });
+
+render();
+</script>
+</body>
+</html>
