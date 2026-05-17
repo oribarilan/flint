@@ -14,6 +14,7 @@ export const IPC_CHANNELS = {
   NOTIFICATION_TEST: "notification:test",
   SPOTLIGHT_DISMISS: "spotlight:dismiss",
   SPOTLIGHT_JOIN: "spotlight:join",
+  BLOCKS_ACTION: "blocks:action",
 
   // main → renderer
   THEME_CHANGED: "theme:changed",
@@ -23,4 +24,5 @@ export const IPC_CHANNELS = {
   CONNECTION_STATUS: "connection:status",
   MODEL_CHANGED: "model:changed",
   SPOTLIGHT_SHOW: "spotlight:show",
+  BLOCKS_UPDATE: "blocks:update",
 } as const;

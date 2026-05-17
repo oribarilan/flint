@@ -106,6 +106,19 @@ const flintAPI = {
   spotlightJoin: (joinUrl: string): void => {
     ipcRenderer.send(IPC_CHANNELS.SPOTLIGHT_JOIN, joinUrl);
   },
+
+  onBlocksUpdate: (callback: (block: unknown) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, block: unknown): void => {
+      callback(block);
+    };
+    ipcRenderer.on(IPC_CHANNELS.BLOCKS_UPDATE, handler);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.BLOCKS_UPDATE, handler);
+    };
+  },
+  sendBlocksAction: (action: { type: string; payload: Record<string, string> }): void => {
+    ipcRenderer.send(IPC_CHANNELS.BLOCKS_ACTION, action);
+  },
 };
 
 contextBridge.exposeInMainWorld("flint", flintAPI);

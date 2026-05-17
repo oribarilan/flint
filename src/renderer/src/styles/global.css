@@ -129,6 +129,10 @@
   --pill-briefing-radius: 28px;
   --pill-chat-width: 340px;
   --pill-chat-radius: 22px;
+  --pill-meeting-focus-width: 320px;
+  --pill-meeting-focus-radius: 24px;
+  --pill-action-confirm-width: 280px;
+  --pill-action-confirm-radius: 40px;
   --pill-max-height: 540px;
   --pill-morph-duration: 450ms;
 }

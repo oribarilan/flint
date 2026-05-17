@@ -44,6 +44,11 @@ const mockFlint = {
   setModel: vi.fn(),
   onModelChanged: mockOnModelChanged,
   onThemeChanged: vi.fn((_callback: (theme: string) => void) => vi.fn()),
+  onSpotlightShow: vi.fn((_callback: (meeting: unknown) => void) => vi.fn()),
+  spotlightDismiss: vi.fn(),
+  spotlightJoin: vi.fn(),
+  onBlocksUpdate: vi.fn((_callback: (block: unknown) => void) => vi.fn()),
+  sendBlocksAction: vi.fn(),
 };
 
 Object.defineProperty(window, "flint", { value: mockFlint, writable: true });
@@ -125,15 +130,27 @@ vi.mock("../components/ChatPanel", () => ({
   ChatPanel: vi.fn().mockImplementation(() => <div data-testid="chat-panel">ChatPanel</div>),
 }));
 
+vi.mock("../components/blocks/BlockRenderer", () => ({
+  BlockRenderer: ({ block }: { block: { type: string } }) => (
+    <div data-testid={`block-${block.type}`}>BlockRenderer</div>
+  ),
+}));
+
+vi.mock("../components/blocks/SuggestionChips", () => ({
+  SuggestionChips: () => <div data-testid="suggestion-chips">SuggestionChips</div>,
+}));
+
 import App from "../App";
 import { useModelStore } from "../stores/modelStore";
 import { useAttentionStore } from "../stores/attentionStore";
+import { useBlockStore } from "../stores/blockStore";
 
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
   useModelStore.setState({ currentModel: "gpt-4.1", models: [] });
   useAttentionStore.setState({ items: [], selectedIds: new Set() });
+  useBlockStore.setState({ activeBlock: null, previousPillState: "briefing" });
   // Reset chat mock state
   mockChatState.messages = [];
   mockChatState.streamingContent = "";

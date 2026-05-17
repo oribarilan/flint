@@ -39,6 +39,16 @@
   border-radius: var(--pill-chat-radius);
 }
 
+.pill[data-state="meeting-focus"] {
+  width: var(--pill-meeting-focus-width);
+  border-radius: var(--pill-meeting-focus-radius);
+}
+
+.pill[data-state="action-confirm"] {
+  width: var(--pill-action-confirm-width);
+  border-radius: var(--pill-action-confirm-radius);
+}
+
 /* ── Content wrapper — fade-in on view change ───────────── */
 
 .content {
@@ -50,8 +60,14 @@
 }
 
 @keyframes contentIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ── Scrollable body ──────────────────────────────────────── */
@@ -170,14 +186,32 @@
 
 /* ── Stagger animations ───────────────────────────────────── */
 
-.stagger1 { animation: slideUp 200ms var(--ease-out-expo) 50ms both; }
-.stagger2 { animation: slideUp 180ms var(--ease-out-expo) 100ms both; }
-.stagger3 { animation: slideUp 180ms var(--ease-out-expo) 170ms both; }
-.stagger4 { animation: slideUp 120ms var(--ease-out-expo) 230ms both; }
-.stagger5 { animation: slideUp 180ms var(--ease-out-expo) 270ms both; }
-.stagger6 { animation: slideUp 180ms var(--ease-out-expo) 310ms both; }
+.stagger1 {
+  animation: slideUp 200ms var(--ease-out-expo) 50ms both;
+}
+.stagger2 {
+  animation: slideUp 180ms var(--ease-out-expo) 100ms both;
+}
+.stagger3 {
+  animation: slideUp 180ms var(--ease-out-expo) 170ms both;
+}
+.stagger4 {
+  animation: slideUp 120ms var(--ease-out-expo) 230ms both;
+}
+.stagger5 {
+  animation: slideUp 180ms var(--ease-out-expo) 270ms both;
+}
+.stagger6 {
+  animation: slideUp 180ms var(--ease-out-expo) 310ms both;
+}
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(5px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
