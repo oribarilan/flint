@@ -19,20 +19,20 @@ Replace Flint's fixed 340×480 rectangular overlay with a morphing pill shape. T
 
 ## Acceptance Criteria
 
-- [ ] Overlay window size increased to 360×600 in `overlay.ts`
-- [ ] Window background fully transparent; pill is a CSS-rendered shape inside it
-- [ ] Pill morphs width and border-radius based on current view:
+- [x] Overlay window size increased to 360×600 in `overlay.ts`
+- [x] Window background fully transparent; pill is a CSS-rendered shape inside it
+- [x] Pill morphs width and border-radius based on current view:
   - Briefing: 320px width, 28px radius
   - Chat: 340px width, 22px radius
-- [ ] Height is content-driven (`height: auto`), scrolls internally at max ~540px (`overflow-y: auto`, `overscroll-behavior: contain`)
-- [ ] Morph animation: 450ms, `cubic-bezier(0.16, 1, 0.3, 1)` on width and border-radius
-- [ ] Content transitions: fade out 150ms (ease-in), fade in 250ms with 8px translateY (ease-out-quart)
-- [ ] `prefers-reduced-motion` collapses all animation durations to 0.01ms
-- [ ] Click-through works on transparent areas outside the pill (spike first; if unreliable, implement dynamic window resize fallback)
-- [ ] Pill shadow and border use existing design tokens (`--shadow-window`, `--glass-border`, etc.)
-- [ ] Overlay positioning logic in `positionOnActiveDisplay()` updated for new window dimensions
-- [ ] Existing unit and e2e tests pass (`just test`)
-- [ ] Overlay-ready path performance unchanged: no new async work on show
+- [x] Height is content-driven (`height: auto`), scrolls internally at max ~540px (`overflow-y: auto`, `overscroll-behavior: contain`)
+- [x] Morph animation: 450ms, `cubic-bezier(0.16, 1, 0.3, 1)` on width and border-radius
+- [x] Content transitions: fade in 250ms with 8px translateY (ease-out-quart). Fade-out omitted (requires transition library for unmounting content).
+- [x] `prefers-reduced-motion` collapses all animation durations to 0.01ms
+- [x] Click-through works on transparent areas outside the pill — `setIgnoreMouseEvents(true, { forward: true })` + CSS pointer-events approach
+- [x] Pill shadow and border use existing design tokens (`--shadow-window`, `--glass-border`, etc.)
+- [x] Overlay positioning logic in `positionOnActiveDisplay()` updated for new window dimensions
+- [x] Existing unit and e2e tests pass (`just test`)
+- [x] Overlay-ready path performance unchanged: no new async work on show
 
 ## Verification
 

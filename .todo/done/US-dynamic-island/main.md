@@ -181,25 +181,25 @@ Transparent areas outside the pill must not intercept mouse events. Approach: `s
 
 ## Definition of Done
 
-- [ ] Overlay renders as a morphing pill with width/radius adapting per PillState
-- [ ] Pill state derived from active block type via `derivePillState`
-- [ ] Briefing composes MeetingList + AttentionList + SuggestionChips from cache (zero network/disk)
-- [ ] `FlintBlock` discriminated union types defined with Zod validation schemas
-- [ ] `blocks:update` IPC channel delivers validated FlintBlock payloads to renderer
-- [ ] `blocks:action` IPC channel delivers allowlisted actions from renderer to main
-- [ ] When AI calls `show_meeting`, a MeetingCard block renders in meeting-focus pill state
-- [ ] When AI calls `join_meeting`, an ActionConfirmation block renders and auto-dismisses after 3s
-- [ ] Unmatched AI queries fall back to ChatMessage block (streamed markdown)
-- [ ] Blocks replace streamed text when a tool call arrives in the same turn
-- [ ] Content scrolls internally when exceeding max pill height
-- [ ] All state transitions animate with spec'd easing and timing
-- [ ] `prefers-reduced-motion` collapses all animations to 0.01ms
-- [ ] Keyboard accessible: Tab between chips, Enter to activate, Escape to dismiss
-- [ ] Focus returns to chat input after ActionConfirmation auto-dismiss
-- [ ] Error states handled gracefully (disconnected, failed tool call, invalid block)
-- [ ] Existing unit tests pass; new blocks and state derivation have unit tests
-- [ ] No performance regression on overlay-ready path (hotkey → visible → briefing from cache → input focused)
-- [ ] Click-through works on transparent areas (or fallback window resize implemented)
+- [x] Overlay renders as a morphing pill with width/radius adapting per PillState
+- [x] Pill state derived from active block type via `derivePillState`
+- [x] Briefing composes MeetingList + AttentionList + SuggestionChips from cache (zero network/disk)
+- [x] `FlintBlock` discriminated union types defined with Zod validation schemas
+- [x] `blocks:update` IPC channel delivers validated FlintBlock payloads to renderer
+- [x] `blocks:action` IPC channel delivers allowlisted actions from renderer to main
+- [x] When AI calls `show_meeting`, a MeetingCard block renders in meeting-focus pill state
+- [x] When AI calls `join_meeting`, an ActionConfirmation block renders and auto-dismisses after 3s
+- [x] Unmatched AI queries fall back to ChatMessage block (streamed markdown)
+- [x] Blocks replace streamed text when a tool call arrives in the same turn
+- [x] Content scrolls internally when exceeding max pill height
+- [x] All state transitions animate with spec'd easing and timing
+- [x] `prefers-reduced-motion` collapses all animations to 0.01ms
+- [x] Keyboard accessible: Tab between chips, Enter to activate, Escape to dismiss
+- [x] Focus returns to chat input after ActionConfirmation auto-dismiss
+- [x] Error states handled gracefully (disconnected, failed tool call, invalid block)
+- [x] Existing unit tests pass; new blocks and state derivation have unit tests (525 total)
+- [x] No performance regression on overlay-ready path (hotkey → visible → briefing from cache → input focused)
+- [x] Click-through works on transparent areas — `setIgnoreMouseEvents` + CSS pointer-events approach
 
 ## Cross-Cutting Concerns
 

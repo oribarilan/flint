@@ -25,64 +25,64 @@ Introduce the typed block protocol that powers the Fluid Pill's content. Define 
 
 ### Types & Validation
 
-- [ ] `FlintBlock` discriminated union type defined (shared between main and renderer):
+- [x] `FlintBlock` discriminated union type defined (shared between main and renderer):
   ```
   meeting-list | meeting-card | attention-list | action-confirmation | chat-message | suggestion-chips
   ```
-- [ ] `MeetingCardData` interface defined (extends `Meeting` with optional `aiPrep: string[]`)
-- [ ] `ActionConfirmData` interface defined (`action`, `label`, `status: 'pending' | 'done'`)
-- [ ] `SuggestionChip` interface defined (`label`, `prompt`)
-- [ ] `PillState` type defined: `'briefing' | 'meeting-focus' | 'action-confirm' | 'chat'`
-- [ ] Zod schemas defined for each block type; parse-don't-validate at IPC boundary
-- [ ] Invalid blocks rejected with structured `[blocks]` log warnings
+- [x] `MeetingCardData` interface defined (extends `Meeting` with optional `aiPrep: string[]`)
+- [x] `ActionConfirmData` interface defined (`action`, `label`, `status: 'pending' | 'done'`)
+- [x] `SuggestionChip` interface defined (`label`, `prompt`)
+- [x] `PillState` type defined: `'briefing' | 'meeting-focus' | 'action-confirm' | 'chat'`
+- [x] Zod schemas defined for each block type; parse-don't-validate at IPC boundary
+- [x] Invalid blocks rejected with structured `[blocks]` log warnings
 
 ### Block Rendering
 
-- [ ] Block registry maps `type` string to React component
-- [ ] `BlockRenderer` component accepts `FlintBlock` and renders the correct component
-- [ ] Briefing view composes `MeetingList` + `AttentionList` + `SuggestionChips` blocks from Zustand stores
-- [ ] `MeetingList` block wraps existing `MeetingRow` components
-- [ ] `AttentionList` block wraps existing `AttentionRow` components
-- [ ] `SuggestionChips` component renders hardcoded chips per pill state
-- [ ] Clicking a suggestion chip sends its `prompt` to `chat:send`
-- [ ] "Back" chip clears active AI block (returns to briefing)
+- [x] Block registry maps `type` string to React component
+- [x] `BlockRenderer` component accepts `FlintBlock` and renders the correct component
+- [x] Briefing view composes `MeetingList` + `AttentionList` + `SuggestionChips` blocks from Zustand stores
+- [x] `MeetingList` block wraps existing `MeetingRow` components
+- [x] `AttentionList` block wraps existing `AttentionRow` components
+- [x] `SuggestionChips` component renders hardcoded chips per pill state
+- [x] Clicking a suggestion chip sends its `prompt` to `chat:send`
+- [x] "Back" chip clears active AI block (returns to briefing)
 
 ### State Derivation
 
-- [ ] `derivePillState(activeBlock, isStreaming)` function implemented per spec in main.md
-- [ ] Pill container reads state from derivation function and morphs width/radius accordingly
-- [ ] Pill morphs correctly between all four states (briefing, meeting-focus, action-confirm, chat)
+- [x] `derivePillState(activeBlock, isStreaming)` function implemented per spec in main.md
+- [x] Pill container reads state from derivation function and morphs width/radius accordingly
+- [x] Pill morphs correctly between all four states (briefing, meeting-focus, action-confirm, chat)
 
 ### IPC
 
-- [ ] `BLOCKS_UPDATE` and `BLOCKS_ACTION` added to `IPC_CHANNELS`
-- [ ] `blocks:update` channel added to preload API (`onBlocksUpdate` callback)
-- [ ] `blocks:action` channel added to preload API (`sendBlocksAction` method)
-- [ ] `blocks:action` handler on main process validates action type against allowlist (`join`, `dismiss`, `open`)
-- [ ] Unknown action types rejected with structured `[ipc]` log warning
-- [ ] `join` action validates URL against cached meeting data before opening
-- [ ] Existing `attention:update` and `chat:delta` channels unchanged and functional
+- [x] `BLOCKS_UPDATE` and `BLOCKS_ACTION` added to `IPC_CHANNELS`
+- [x] `blocks:update` channel added to preload API (`onBlocksUpdate` callback)
+- [x] `blocks:action` channel added to preload API (`sendBlocksAction` method)
+- [x] `blocks:action` handler on main process validates action type against allowlist (`join`, `dismiss`, `open`)
+- [x] Unknown action types rejected with structured `[ipc]` log warning
+- [x] `join` action validates URL against cached meeting data before opening
+- [x] Existing `attention:update` and `chat:delta` channels unchanged and functional
 
 ### Zustand Store
 
-- [ ] `blockStore.ts` created with `activeBlock: FlintBlock | null`, `previousPillState: PillState`
-- [ ] `setActiveBlock(block)` stores previous state before setting new block
-- [ ] `clearActiveBlock()` resets to null (returns to briefing)
-- [ ] Active block cleared when user sends a new message
-- [ ] Active block cleared when overlay is hidden
+- [x] `blockStore.ts` created with `activeBlock: FlintBlock | null`, `previousPillState: PillState`
+- [x] `setActiveBlock(block)` stores previous state before setting new block
+- [x] `clearActiveBlock()` resets to null (returns to briefing)
+- [x] Active block cleared when user sends a new message
+- [x] Active block cleared when overlay is hidden
 
 ### Tests
 
-- [ ] Unit tests for `derivePillState` covering all state mappings and edge cases
-- [ ] Unit tests for Zod schema validation (valid payloads, invalid payloads, partial payloads)
-- [ ] Unit tests for block registry (known types resolve, unknown types handled)
-- [ ] Unit tests for `blocks:action` allowlist enforcement
-- [ ] Render tests for `MeetingList`, `AttentionList`, `SuggestionChips` block components
-- [ ] Existing tests pass (`just test`)
+- [x] Unit tests for `derivePillState` covering all state mappings and edge cases
+- [x] Unit tests for Zod schema validation (valid payloads, invalid payloads, partial payloads)
+- [x] Unit tests for block registry (known types resolve, unknown types handled)
+- [x] Unit tests for `blocks:action` allowlist enforcement
+- [x] Render tests for `MeetingList`, `AttentionList`, `SuggestionChips` block components
+- [x] Existing tests pass (`just test`)
 
 ### Performance
 
-- [ ] Overlay-ready path unchanged: briefing blocks composed from cache stores, no new async work, no network, no disk
+- [x] Overlay-ready path unchanged: briefing blocks composed from cache stores, no new async work, no network, no disk
 
 ## Verification
 

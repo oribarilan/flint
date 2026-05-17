@@ -24,55 +24,55 @@ Wire Copilot tools to produce `FlintBlock` payloads that the renderer displays a
 
 ### Copilot Tools
 
-- [ ] `show_meeting` tool defined: takes `{ meetingId: string }`, looks up meeting from in-memory cache, validates it exists, pushes `meeting-card` FlintBlock via `blocks:update` IPC
-- [ ] `show_meeting` returns error string to AI if meeting not found in cache ("meeting not found")
-- [ ] `join_meeting` updated: takes `{ meetingId: string }` (not raw URL), validates meeting exists in cache, validates `joinUrl` exists, pushes `action-confirmation` FlintBlock via `blocks:update`, then opens URL
-- [ ] `join_meeting` returns error string if meeting not found or has no join URL
-- [ ] Both tools explicitly registered in chat session config (no `--allow-all`)
-- [ ] Tool parameter schemas use descriptive `description` fields so the AI knows when to call them
+- [x] `show_meeting` tool defined: takes `{ meetingId: string }`, looks up meeting from in-memory cache, validates it exists, pushes `meeting-card` FlintBlock via `blocks:update` IPC
+- [x] `show_meeting` returns error string to AI if meeting not found in cache ("meeting not found")
+- [x] `join_meeting` updated: takes `{ meetingId: string }` (not raw URL), validates meeting exists in cache, validates `joinUrl` exists, pushes `action-confirmation` FlintBlock via `blocks:update`, then opens URL
+- [x] `join_meeting` returns error string if meeting not found or has no join URL
+- [x] Both tools explicitly registered in chat session config (no `--allow-all`)
+- [x] Tool parameter schemas use descriptive `description` fields so the AI knows when to call them
 
 ### ActionConfirmation Behavior
 
-- [ ] `ActionConfirmation` block renders with pending → done status transition
-- [ ] Auto-dismisses after 3s, returns to *previous* pill state (stored in blockStore)
-- [ ] Auto-dismiss timer cancelled if user sends a new message
-- [ ] Auto-dismiss timer cancelled on overlay hide
-- [ ] Focus returns to chat input after auto-dismiss
+- [x] `ActionConfirmation` block renders with pending → done status transition
+- [x] Auto-dismisses after 3s, returns to *previous* pill state (stored in blockStore)
+- [x] Auto-dismiss timer cancelled if user sends a new message
+- [x] Auto-dismiss timer cancelled on overlay hide
+- [x] Focus returns to chat input after auto-dismiss
 
 ### Streaming + Tool Coexistence
 
-- [ ] Text streaming via `chat:delta` renders immediately as `ChatMessage` (pill in Chat state)
-- [ ] If `blocks:update` arrives during active streaming, block replaces streamed text (pill morphs to block's state)
-- [ ] If `chat:done` arrives with no blocks, streamed text stays as final `ChatMessage`
-- [ ] New user message clears both streamed text and active block (return to streaming/waiting)
+- [x] Text streaming via `chat:delta` renders immediately as `ChatMessage` (pill in Chat state)
+- [x] If `blocks:update` arrives during active streaming, block replaces streamed text (pill morphs to block's state)
+- [x] If `chat:done` arrives with no blocks, streamed text stays as final `ChatMessage`
+- [x] New user message clears both streamed text and active block (return to streaming/waiting)
 
 ### System Prompt
 
-- [ ] System prompt updated with tool-preference instructions: "When the user asks about a specific meeting, call show_meeting with the meeting ID. When the user wants to join a meeting, call join_meeting. Only use text responses when no tool fits the request."
-- [ ] System prompt provides meeting context (IDs, titles) so the AI can match user queries to meeting IDs
+- [x] System prompt updated with tool-preference instructions: "When the user asks about a specific meeting, call show_meeting with the meeting ID. When the user wants to join a meeting, call join_meeting. Only use text responses when no tool fits the request."
+- [x] System prompt provides meeting context (IDs, titles) so the AI can match user queries to meeting IDs
 
 ### ChatMessage Block
 
-- [ ] `ChatMessage` block renders markdown via existing `MarkdownContent` component
-- [ ] Streaming content renders incrementally (same behavior as current chat, but in block form)
+- [x] `ChatMessage` block renders markdown via existing `MarkdownContent` component
+- [x] Streaming content renders incrementally (same behavior as current chat, but in block form)
 
 ### Tests
 
-- [ ] Unit tests for `show_meeting` tool handler: mock cache with meetings, verify `blocks:update` emission with correct `meeting-card` block
-- [ ] Unit tests for `show_meeting` with missing meeting: verify error return
-- [ ] Unit tests for `join_meeting` tool handler: mock cache, verify `action-confirmation` block + URL opening
-- [ ] Unit tests for `join_meeting` with missing meeting / missing joinUrl: verify error returns
-- [ ] Unit tests for streaming + block replacement logic in block store
-- [ ] Unit tests for auto-dismiss timer (fires after 3s, cancelled on new message)
-- [ ] Render tests for `ActionConfirmation` component (pending state, done state)
-- [ ] Render tests for `ChatMessage` block with markdown content
-- [ ] Existing tests pass (`just test`)
+- [x] Unit tests for `show_meeting` tool handler: mock cache with meetings, verify `blocks:update` emission with correct `meeting-card` block
+- [x] Unit tests for `show_meeting` with missing meeting: verify error return
+- [x] Unit tests for `join_meeting` tool handler: mock cache, verify `action-confirmation` block + URL opening
+- [x] Unit tests for `join_meeting` with missing meeting / missing joinUrl: verify error returns
+- [x] Unit tests for streaming + block replacement logic in block store
+- [x] Unit tests for auto-dismiss timer (fires after 3s, cancelled on new message)
+- [x] Render tests for `ActionConfirmation` component (pending state, done state)
+- [x] Render tests for `ChatMessage` block with markdown content
+- [x] Existing tests pass (`just test`)
 
 ### Security
 
-- [ ] `join_meeting` validates meeting ID exists in cache (no arbitrary URL opening from AI)
-- [ ] `show_meeting` only returns data already in cache (no new network calls)
-- [ ] Tool handlers validate input schemas; invalid calls return error strings to the AI
+- [x] `join_meeting` validates meeting ID exists in cache (no arbitrary URL opening from AI)
+- [x] `show_meeting` only returns data already in cache (no new network calls)
+- [x] Tool handlers validate input schemas; invalid calls return error strings to the AI
 
 ## Verification
 
