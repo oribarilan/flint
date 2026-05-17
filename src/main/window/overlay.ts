@@ -31,8 +31,8 @@ export function createOverlayWindow(): BrowserWindow {
     void overlayWindow.loadFile(join(__dirname, "../renderer/index.html"));
   }
 
-  // Click-through on transparent areas; CSS pointer-events: auto on the pill recaptures events
-  overlayWindow.setIgnoreMouseEvents(true, { forward: true });
+  // On macOS, transparent: true already makes fully-transparent regions click-through.
+  // The pill's glass background keeps it interactive. No setIgnoreMouseEvents needed.
 
   overlayWindow.on("blur", () => {
     hideOverlay();
