@@ -2,7 +2,12 @@ import { execSync } from "child_process";
 import { app, ipcMain, nativeTheme } from "electron";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { createOverlayWindow, getOverlayWindow } from "./window/overlay";
-import { createTray } from "./window/tray";
+import {
+  createTray,
+  updateTrayMeetings,
+  updateTrayBadge,
+  countUpcomingMeetings,
+} from "./window/tray";
 import { registerHotkey, unregisterAllHotkeys } from "./window/hotkey";
 import { registerIpcHandlers, getConfigStore, getAttentionStore } from "./ipc/handlers";
 import { IPC_CHANNELS } from "./ipc/channels";
@@ -10,17 +15,17 @@ import { createCopilotManager, type CopilotManager } from "./copilot/client";
 import { createSessionManager, type SessionManager } from "./copilot/sessions";
 import { getChatTools } from "./copilot/tools";
 import { filterModels, handleSetModel } from "./ipc/model-handlers";
-import {
-  createMeetingScheduler,
-  type MeetingScheduler,
-} from "./scheduler/meeting-scheduler";
+import { createMeetingScheduler, type MeetingScheduler } from "./scheduler/meeting-scheduler";
+import { createAgencyCalendarSource, type AgencyCalendarSource } from "./calendar/agency-calendar";
 import { resolveTheme } from "./theme";
 import { ChatSendPromptSchema } from "./lib/schemas";
-import type { FlintConfig, Meeting } from "./types";
+import { openExternalUrl } from "./lib/url";
+import type { FlintConfig } from "./types";
 
 let copilotManager: CopilotManager | null = null;
 let sessionManager: SessionManager | null = null;
 let meetingScheduler: MeetingScheduler | null = null;
+let agencyCalendar: AgencyCalendarSource | null = null;
 
 /** Resolve the Copilot CLI binary path using env → PATH → macOS fallback. */
 function resolveCopilotCliPath(): string | undefined {
@@ -51,21 +56,7 @@ function resolveCopilotCliPath(): string | undefined {
   return undefined;
 }
 
-/**
- * V1 stub: returns no upcoming meetings. The deterministic scheduler is wired,
- * but the real Work IQ data source for meetings is deferred until the `workiq`
- * CLI's structured-output shape is settled. See V1 scope decision doc.
- *
- * TODO(meeting-data-source): replace with `execFile("npx", ["-y", "@microsoft/workiq",
- * "ask", "list my meetings for the next 24 hours as JSON"])` once tested,
- * or with a dedicated MCP client.
- */
-// eslint-disable-next-line @typescript-eslint/require-await
-async function fetchUpcomingMeetings(): Promise<Meeting[]> {
-  return [];
-}
-
-void app.whenReady().then(() => {
+void app.whenReady().then(async () => {
   electronApp.setAppUserModelId("sh.oribi.flint");
 
   app.on("browser-window-created", (_, window) => {
@@ -111,6 +102,10 @@ void app.whenReady().then(() => {
       sendThemeToRenderer(resolved);
     }
   });
+
+  // ── Agency Calendar ──
+  agencyCalendar = createAgencyCalendarSource();
+  const calendarStartPromise = agencyCalendar.start();
 
   // ── Copilot lifecycle ──
   const cliPath = resolveCopilotCliPath();
@@ -230,9 +225,16 @@ void app.whenReady().then(() => {
   });
 
   // ── Meeting scheduler (deterministic, no LLM) ──
+  // Wait for calendar to be ready before starting the scheduler
+  await calendarStartPromise;
   meetingScheduler = createMeetingScheduler({
-    fetchUpcomingMeetings,
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- agencyCalendar is set above in the same async flow
+    fetchUpcomingMeetings: () => agencyCalendar!.fetchTodayMeetings(),
     getAlertMinutes: () => configStore.getAll().alertMinutes,
+    onMeetingsUpdated: (meetings) => {
+      updateTrayMeetings(meetings, { onJoin: (url) => openExternalUrl(url) });
+      updateTrayBadge(countUpcomingMeetings(meetings));
+    },
   });
   meetingScheduler.start();
 
@@ -244,6 +246,9 @@ app.on("will-quit", () => {
     unregisterAllHotkeys();
     if (meetingScheduler) {
       meetingScheduler.stop();
+    }
+    if (agencyCalendar) {
+      agencyCalendar.stop();
     }
     if (copilotManager) {
       await copilotManager.stop();

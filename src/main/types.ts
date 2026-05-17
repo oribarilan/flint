@@ -7,6 +7,7 @@ export interface Meeting {
   organizer: string;
   joinUrl?: string;
   agenda?: string;
+  isAllDay?: boolean;
 }
 
 export type FontSizePreference = "extra-small" | "small" | "medium" | "large";

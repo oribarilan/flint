@@ -23,6 +23,8 @@ export interface MeetingSchedulerConfig {
   getAlertMinutes: () => number;
   /** Optional notification factory (test seam). Defaults to Electron's `Notification`. */
   notificationFactory?: (options: { title: string; body: string }) => { show: () => void };
+  /** Called after a successful poll with the fetched meetings. */
+  onMeetingsUpdated?: (meetings: Meeting[]) => void;
   /** Clock seam — `Date.now` by default. */
   now?: () => number;
 }
@@ -47,6 +49,14 @@ export function createMeetingScheduler(config: MeetingSchedulerConfig): MeetingS
       const liveIds = new Set(meetings.map((m) => m.id));
       for (const id of [...alerted]) {
         if (!liveIds.has(id)) alerted.delete(id);
+      }
+      try {
+        config.onMeetingsUpdated?.(meetings);
+      } catch (err) {
+        console.error(
+          "[meeting-scheduler] onMeetingsUpdated callback failed:",
+          err instanceof Error ? err.message : String(err),
+        );
       }
     } catch (err) {
       console.error(

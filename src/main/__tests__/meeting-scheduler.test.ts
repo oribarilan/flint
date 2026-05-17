@@ -30,7 +30,11 @@ interface MockNotification {
   show: ReturnType<typeof vi.fn>;
 }
 
-function setup(opts: { meetings: Meeting[]; alertMinutes?: number }) {
+function setup(opts: {
+  meetings: Meeting[];
+  alertMinutes?: number;
+  onMeetingsUpdated?: (meetings: Meeting[]) => void;
+}) {
   const fetchUpcomingMeetings = vi.fn().mockResolvedValue(opts.meetings);
   const created: MockNotification[] = [];
   const factory = vi.fn((n: { title: string; body: string }): MockNotification => {
@@ -42,6 +46,7 @@ function setup(opts: { meetings: Meeting[]; alertMinutes?: number }) {
     fetchUpcomingMeetings,
     getAlertMinutes: () => opts.alertMinutes ?? 5,
     notificationFactory: factory,
+    onMeetingsUpdated: opts.onMeetingsUpdated,
     now: () => Date.now(),
   });
   return { scheduler, fetchUpcomingMeetings, created };
@@ -170,6 +175,47 @@ describe("MeetingScheduler", () => {
     await flush();
     // No throw, error is logged
     expect(console.error).toHaveBeenCalled();
+    scheduler.stop();
+  });
+
+  it("calls onMeetingsUpdated after successful poll", async () => {
+    const meetings = [meetingAt(5)];
+    const onMeetingsUpdated = vi.fn();
+    const { scheduler } = setup({ meetings, onMeetingsUpdated });
+    scheduler.start();
+    await flush();
+    expect(onMeetingsUpdated).toHaveBeenCalledTimes(1);
+    expect(onMeetingsUpdated).toHaveBeenCalledWith(meetings);
+    scheduler.stop();
+  });
+
+  it("does not call onMeetingsUpdated on fetch failure", async () => {
+    const onMeetingsUpdated = vi.fn();
+    const fetchUpcomingMeetings = vi.fn().mockRejectedValue(new Error("net"));
+    const scheduler = createMeetingScheduler({
+      fetchUpcomingMeetings,
+      getAlertMinutes: () => 5,
+      notificationFactory: () => ({ show: vi.fn() }),
+      onMeetingsUpdated,
+    });
+    scheduler.start();
+    await flush();
+    expect(onMeetingsUpdated).not.toHaveBeenCalled();
+    scheduler.stop();
+  });
+
+  it("does not crash when onMeetingsUpdated callback throws", async () => {
+    const onMeetingsUpdated = vi.fn().mockImplementation(() => {
+      throw new Error("callback boom");
+    });
+    const { scheduler } = setup({ meetings: [meetingAt(5)], onMeetingsUpdated });
+    scheduler.start();
+    await flush();
+    expect(onMeetingsUpdated).toHaveBeenCalledTimes(1);
+    expect(console.error).toHaveBeenCalled();
+    // Scheduler should still be running — verify next poll works
+    await vi.advanceTimersByTimeAsync(15 * 60_000);
+    expect(onMeetingsUpdated).toHaveBeenCalledTimes(2);
     scheduler.stop();
   });
 });

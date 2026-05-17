@@ -1,6 +1,8 @@
 # wire-meeting-scheduler-data-source
 
-## Context
+**Superseded by `US-menubar-agenda`.** The data source approach changed from `workiq ask` CLI to `agency mcp calendar` HTTP subprocess, which handles the org's Conditional Access policy via native MSAL broker. The MeetingScheduler's `fetchUpcomingMeetings` is now wired to `agencyCalendar.fetchTodayMeetings()`.
+
+## Original Context
 
 The deterministic `MeetingScheduler` (alert window logic, dedupe, 60s tick, 15-min poll, start/stop) is fully implemented, wired in `src/main/index.ts`, and tested. However its data source is currently a stub: `fetchUpcomingMeetings()` in `src/main/index.ts:64` returns `[]`. As a result, **no meeting alerts will ever fire in production**, even though every other piece of the alert pipeline works.
 
