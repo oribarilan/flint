@@ -31,11 +31,27 @@ export function createConfigStore(): ConfigStore {
           untyped.delete(key);
         }
       },
+      "0.6.0": (s) => {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- migration safety
+        if (s.get("menubarEnabled") === undefined) {
+          s.set("menubarEnabled", DEFAULT_CONFIG.menubarEnabled);
+          s.set("menubarTime", DEFAULT_CONFIG.menubarTime);
+          s.set("menubarTitle", DEFAULT_CONFIG.menubarTitle);
+        }
+      },
+      "0.7.0": (s) => {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- migration safety
+        if (s.get("spotlightEnabled") === undefined) {
+          s.set("spotlightEnabled", DEFAULT_CONFIG.spotlightEnabled);
+          s.set("spotlightMinutes", DEFAULT_CONFIG.spotlightMinutes);
+        }
+      },
     },
   });
 
   const VALID_FONT_SIZES = new Set(["extra-small", "small", "medium", "large"]);
   const VALID_THEMES = new Set(["dark", "light", "system"]);
+  const VALID_MENUBAR_TIMES = new Set(["off", "next-time", "countdown"]);
 
   return {
     getAll(): FlintConfig {
@@ -53,6 +69,15 @@ export function createConfigStore(): ConfigStore {
           // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- runtime validation against corrupt data
           return VALID_THEMES.has(rawTheme) ? rawTheme : DEFAULT_CONFIG.theme;
         })(),
+        menubarEnabled: store.get("menubarEnabled", DEFAULT_CONFIG.menubarEnabled),
+        menubarTime: (() => {
+          const raw = store.get("menubarTime", DEFAULT_CONFIG.menubarTime);
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- runtime validation against corrupt data
+          return VALID_MENUBAR_TIMES.has(raw) ? raw : DEFAULT_CONFIG.menubarTime;
+        })(),
+        menubarTitle: store.get("menubarTitle", DEFAULT_CONFIG.menubarTitle),
+        spotlightEnabled: store.get("spotlightEnabled", DEFAULT_CONFIG.spotlightEnabled),
+        spotlightMinutes: store.get("spotlightMinutes", DEFAULT_CONFIG.spotlightMinutes),
       };
     },
 

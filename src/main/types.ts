@@ -14,6 +14,8 @@ export type FontSizePreference = "extra-small" | "small" | "medium" | "large";
 
 export type ThemePreference = "dark" | "light" | "system";
 
+export type MenubarTimeStyle = "off" | "next-time" | "countdown";
+
 export interface FlintConfig {
   hotkey: string;
   alertMinutes: number;
@@ -22,6 +24,11 @@ export interface FlintConfig {
   model: string;
   fontSize: FontSizePreference;
   theme: ThemePreference;
+  menubarEnabled: boolean;
+  menubarTime: MenubarTimeStyle;
+  menubarTitle: boolean;
+  spotlightEnabled: boolean;
+  spotlightMinutes: number;
 }
 
 export const DEFAULT_CONFIG: FlintConfig = {
@@ -32,6 +39,11 @@ export const DEFAULT_CONFIG: FlintConfig = {
   model: "gpt-4.1",
   fontSize: "medium",
   theme: "dark",
+  menubarEnabled: true,
+  menubarTime: "countdown",
+  menubarTitle: true,
+  spotlightEnabled: true,
+  spotlightMinutes: 1,
 };
 
 export interface AttentionItem {

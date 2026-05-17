@@ -90,6 +90,22 @@ const flintAPI = {
       ipcRenderer.removeListener(IPC_CHANNELS.THEME_CHANGED, handler);
     };
   },
+
+  onSpotlightShow: (callback: (meeting: unknown) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, meeting: unknown): void => {
+      callback(meeting);
+    };
+    ipcRenderer.on(IPC_CHANNELS.SPOTLIGHT_SHOW, handler);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.SPOTLIGHT_SHOW, handler);
+    };
+  },
+  spotlightDismiss: (): void => {
+    ipcRenderer.send(IPC_CHANNELS.SPOTLIGHT_DISMISS);
+  },
+  spotlightJoin: (joinUrl: string): void => {
+    ipcRenderer.send(IPC_CHANNELS.SPOTLIGHT_JOIN, joinUrl);
+  },
 };
 
 contextBridge.exposeInMainWorld("flint", flintAPI);

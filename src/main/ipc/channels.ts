@@ -12,6 +12,8 @@ export const IPC_CHANNELS = {
   ATTENTION_OPEN: "attention:open",
   LINK_OPEN: "link:open",
   NOTIFICATION_TEST: "notification:test",
+  SPOTLIGHT_DISMISS: "spotlight:dismiss",
+  SPOTLIGHT_JOIN: "spotlight:join",
 
   // main → renderer
   THEME_CHANGED: "theme:changed",
@@ -20,4 +22,5 @@ export const IPC_CHANNELS = {
   ATTENTION_UPDATE: "attention:update",
   CONNECTION_STATUS: "connection:status",
   MODEL_CHANGED: "model:changed",
+  SPOTLIGHT_SHOW: "spotlight:show",
 } as const;

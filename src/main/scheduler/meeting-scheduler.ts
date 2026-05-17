@@ -25,6 +25,10 @@ export interface MeetingSchedulerConfig {
   notificationFactory?: (options: { title: string; body: string }) => { show: () => void };
   /** Called after a successful poll with the fetched meetings. */
   onMeetingsUpdated?: (meetings: Meeting[]) => void;
+  /** Minutes before a meeting to show the spotlight overlay. Null/undefined disables. */
+  getSpotlightMinutes?: () => number | null;
+  /** Called when a meeting enters the spotlight window. */
+  onSpotlight?: (meeting: Meeting) => void;
   /** Clock seam — `Date.now` by default. */
   now?: () => number;
 }
@@ -38,6 +42,7 @@ export function createMeetingScheduler(config: MeetingSchedulerConfig): MeetingS
   let tickTimer: ReturnType<typeof setInterval> | null = null;
   let cache: Meeting[] = [];
   const alerted = new Set<string>();
+  const spotlighted = new Set<string>();
   let running = false;
 
   async function poll(): Promise<void> {
@@ -49,6 +54,9 @@ export function createMeetingScheduler(config: MeetingSchedulerConfig): MeetingS
       const liveIds = new Set(meetings.map((m) => m.id));
       for (const id of [...alerted]) {
         if (!liveIds.has(id)) alerted.delete(id);
+      }
+      for (const id of [...spotlighted]) {
+        if (!liveIds.has(id)) spotlighted.delete(id);
       }
       try {
         config.onMeetingsUpdated?.(meetings);
@@ -70,24 +78,46 @@ export function createMeetingScheduler(config: MeetingSchedulerConfig): MeetingS
     if (!running) return;
     const alertMs = config.getAlertMinutes() * 60_000;
     const t = now();
+
     for (const meeting of cache) {
-      if (alerted.has(meeting.id)) continue;
       const start = new Date(meeting.startTime).getTime();
       if (Number.isNaN(start)) continue;
       const delta = start - t;
-      if (delta <= 0) continue; // already started
-      if (delta > alertMs) continue; // not yet within alert window
-      const minutes = Math.max(1, Math.round(delta / 60_000));
-      const body = `Meeting starting in ${String(minutes)} min: ${meeting.title}`;
-      try {
-        factory({ title: "Flint", body }).show();
-      } catch (err) {
-        console.error(
-          "[meeting-scheduler] notification failed:",
-          err instanceof Error ? err.message : String(err),
-        );
+      if (delta <= 0 || meeting.isAllDay) continue;
+
+      // Notification check
+      if (!alerted.has(meeting.id) && delta <= alertMs) {
+        const minutes = Math.max(1, Math.round(delta / 60_000));
+        const body = `Meeting starting in ${String(minutes)} min: ${meeting.title}`;
+        try {
+          factory({ title: "Flint", body }).show();
+        } catch (err) {
+          console.error(
+            "[meeting-scheduler] notification failed:",
+            err instanceof Error ? err.message : String(err),
+          );
+        }
+        alerted.add(meeting.id);
       }
-      alerted.add(meeting.id);
+
+      // Spotlight check — separate threshold, separate tracking
+      const spotlightMins = config.getSpotlightMinutes?.();
+      if (
+        spotlightMins != null &&
+        spotlightMins > 0 &&
+        !spotlighted.has(meeting.id) &&
+        delta <= spotlightMins * 60_000
+      ) {
+        try {
+          config.onSpotlight?.(meeting);
+        } catch (err) {
+          console.error(
+            "[meeting-scheduler] spotlight callback failed:",
+            err instanceof Error ? err.message : String(err),
+          );
+        }
+        spotlighted.add(meeting.id);
+      }
     }
   }
 
@@ -115,6 +145,7 @@ export function createMeetingScheduler(config: MeetingSchedulerConfig): MeetingS
         tickTimer = null;
       }
       alerted.clear();
+      spotlighted.clear();
       cache = [];
       console.log("[meeting-scheduler] stopped");
     },

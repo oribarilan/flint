@@ -2,7 +2,8 @@ import { Tray, Menu, nativeImage, app } from "electron";
 import type { MenuItemConstructorOptions } from "electron";
 import { join } from "path";
 import { showOverlay } from "./overlay";
-import type { Meeting } from "../types";
+import { selectDisplayMeeting, formatMenubarText } from "../lib/menubar-format";
+import type { Meeting, FlintConfig } from "../types";
 
 let tray: Tray | null = null;
 
@@ -187,4 +188,16 @@ export function updateTrayBadge(count: number): void {
   } else {
     tray.setTitle(count > 0 ? String(count) : "");
   }
+}
+
+export function updateTrayTitle(meetings: Meeting[], config: FlintConfig, now?: () => number): void {
+  if (!tray) return;
+  if (!config.menubarEnabled) {
+    tray.setTitle("");
+    return;
+  }
+  const nowMs = (now ?? Date.now)();
+  const display = selectDisplayMeeting(meetings, nowMs);
+  const text = formatMenubarText(display, config.menubarTime, config.menubarTitle, nowMs);
+  tray.setTitle(text);
 }

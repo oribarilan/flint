@@ -2,8 +2,10 @@ import { BrowserWindow, screen } from "electron";
 import { join } from "path";
 import { is } from "@electron-toolkit/utils";
 
-const SETTINGS_WIDTH = 660;
-const SETTINGS_HEIGHT = 520;
+const MIN_SETTINGS_WIDTH = 600;
+const MIN_SETTINGS_HEIGHT = 480;
+const DISPLAY_WIDTH_RATIO = 0.4;
+const DISPLAY_HEIGHT_RATIO = 0.6;
 
 let settingsWindow: BrowserWindow | null = null;
 
@@ -16,16 +18,20 @@ export function showSettingsWindow(): BrowserWindow {
 
   const cursor = screen.getCursorScreenPoint();
   const { workArea } = screen.getDisplayNearestPoint(cursor);
-  const x = Math.round(workArea.x + (workArea.width - SETTINGS_WIDTH) / 2);
-  const y = Math.round(workArea.y + (workArea.height - SETTINGS_HEIGHT) / 2);
+  const width = Math.max(MIN_SETTINGS_WIDTH, Math.round(workArea.width * DISPLAY_WIDTH_RATIO));
+  const height = Math.max(MIN_SETTINGS_HEIGHT, Math.round(workArea.height * DISPLAY_HEIGHT_RATIO));
+  const x = Math.round(workArea.x + (workArea.width - width) / 2);
+  const y = Math.round(workArea.y + (workArea.height - height) / 2);
 
   settingsWindow = new BrowserWindow({
-    width: SETTINGS_WIDTH,
-    height: SETTINGS_HEIGHT,
+    width,
+    height,
+    minWidth: MIN_SETTINGS_WIDTH,
+    minHeight: MIN_SETTINGS_HEIGHT,
     x,
     y,
     show: false,
-    resizable: false,
+    resizable: true,
     minimizable: true,
     maximizable: false,
     fullscreenable: false,

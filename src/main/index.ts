@@ -3,12 +3,8 @@ import { app, ipcMain, nativeTheme } from "electron";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { createOverlayWindow, getOverlayWindow } from "./window/overlay";
 import { showSettingsWindow, getSettingsWindow } from "./window/settings-window";
-import {
-  createTray,
-  updateTrayMeetings,
-  updateTrayBadge,
-  countUpcomingMeetings,
-} from "./window/tray";
+import { showSpotlight, registerSpotlightHandlers, getSpotlightWindow } from "./window/spotlight-window";
+import { createTray, updateTrayMeetings, updateTrayTitle } from "./window/tray";
 import { registerHotkey, unregisterAllHotkeys } from "./window/hotkey";
 import { registerIpcHandlers, getConfigStore, getAttentionStore } from "./ipc/handlers";
 import { IPC_CHANNELS } from "./ipc/channels";
@@ -21,8 +17,9 @@ import { createAgencyCalendarSource, type AgencyCalendarSource } from "./calenda
 import { resolveTheme } from "./theme";
 import { ChatSendPromptSchema } from "./lib/schemas";
 import { openExternalUrl } from "./lib/url";
-import type { FlintConfig } from "./types";
+import type { FlintConfig, Meeting } from "./types";
 
+let latestMeetings: Meeting[] = [];
 let copilotManager: CopilotManager | null = null;
 let sessionManager: SessionManager | null = null;
 let meetingScheduler: MeetingScheduler | null = null;
@@ -65,6 +62,7 @@ void app.whenReady().then(async () => {
   });
 
   registerIpcHandlers();
+  registerSpotlightHandlers();
 
   const configStore = getConfigStore();
   const config = configStore.getAll();
@@ -86,7 +84,7 @@ void app.whenReady().then(async () => {
 
   // ── Theme IPC ──
   const sendThemeToRenderer = (theme: string): void => {
-    for (const win of [getOverlayWindow(), getSettingsWindow()]) {
+    for (const win of [getOverlayWindow(), getSettingsWindow(), getSpotlightWindow()]) {
       if (win && !win.isDestroyed()) {
         win.webContents.send(IPC_CHANNELS.THEME_CHANGED, theme);
       }
@@ -114,6 +112,9 @@ void app.whenReady().then(async () => {
     if ("theme" in partial) {
       const resolved = resolveTheme(configStore.getAll().theme);
       sendThemeToRenderer(resolved);
+    }
+    if ("menubarEnabled" in partial || "menubarTime" in partial || "menubarTitle" in partial) {
+      updateTrayTitle(latestMeetings, configStore.getAll());
     }
   });
 
@@ -245,12 +246,20 @@ void app.whenReady().then(async () => {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- agencyCalendar is set above in the same async flow
     fetchUpcomingMeetings: () => agencyCalendar!.fetchTodayMeetings(),
     getAlertMinutes: () => configStore.getAll().alertMinutes,
+    getSpotlightMinutes: () => {
+      const cfg = configStore.getAll();
+      return cfg.spotlightEnabled ? cfg.spotlightMinutes : null;
+    },
+    onSpotlight: (meeting) => {
+      showSpotlight(meeting);
+    },
     onMeetingsUpdated: (meetings) => {
+      latestMeetings = meetings;
       updateTrayMeetings(meetings, {
         onJoin: (url) => openExternalUrl(url),
         onShowSettings: openSettings,
       });
-      updateTrayBadge(countUpcomingMeetings(meetings));
+      updateTrayTitle(meetings, configStore.getAll());
     },
   });
   meetingScheduler.start();

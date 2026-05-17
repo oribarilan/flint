@@ -10,6 +10,7 @@ import { z } from "zod";
 // ── FlintConfig ──
 export const FontSizeSchema = z.enum(["extra-small", "small", "medium", "large"]);
 export const ThemeSchema = z.enum(["dark", "light", "system"]);
+export const MenubarTimeSchema = z.enum(["off", "next-time", "countdown"]);
 
 export const FlintConfigSchema = z.object({
   hotkey: z.string().min(1).max(100),
@@ -19,6 +20,11 @@ export const FlintConfigSchema = z.object({
   model: z.string().min(1).max(200),
   fontSize: FontSizeSchema,
   theme: ThemeSchema,
+  menubarEnabled: z.boolean(),
+  menubarTime: MenubarTimeSchema,
+  menubarTitle: z.boolean(),
+  spotlightEnabled: z.boolean(),
+  spotlightMinutes: z.number().int().min(1).max(30),
 });
 
 // ── AttentionItem ──
