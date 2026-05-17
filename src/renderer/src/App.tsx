@@ -59,6 +59,11 @@ export default function App() {
     clearActiveBlock();
   }, [clearActiveBlock]);
 
+  const handleBlockDismiss = useCallback(() => {
+    clearActiveBlock();
+    chatInputRef.current?.focus();
+  }, [clearActiveBlock]);
+
   const handleJoin = useCallback(() => {
     if (activeBlock?.type === "meeting-card") {
       window.flint?.sendBlocksAction({ type: "join", payload: { meetingId: activeBlock.data.id } });
@@ -155,7 +160,7 @@ export default function App() {
       <div className={styles.window}>
         <div className={styles.pill} data-state={pillState} data-testid="app-root">
           <div className={styles.content} key={pillState}>
-            <BlockRenderer block={activeBlock} />
+            <BlockRenderer block={activeBlock} onDismiss={handleBlockDismiss} />
             <SuggestionChips
               pillState={pillState}
               onSend={handleSend}

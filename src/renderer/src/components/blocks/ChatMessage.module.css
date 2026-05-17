@@ -1,0 +1,6 @@
+.message {
+  padding: var(--space-md) var(--space-lg);
+  font-size: var(--font-sm);
+  color: var(--text-primary);
+  line-height: 1.6;
+}

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 
 vi.mock("../../MeetingRow", () => ({
   MeetingRow: ({ meeting }: { meeting: { id: string } }) => (
@@ -11,6 +11,12 @@ vi.mock("../../MeetingRow", () => ({
 vi.mock("../../AttentionRow", () => ({
   AttentionRow: ({ item }: { item: { id: string } }) => (
     <div data-testid={`attention-row-${item.id}`}>AttentionRow</div>
+  ),
+}));
+
+vi.mock("../../MarkdownContent", () => ({
+  MarkdownContent: ({ content }: { content: string }) => (
+    <div data-testid="markdown-content">{content}</div>
   ),
 }));
 
@@ -58,23 +64,34 @@ describe("BlockRenderer", () => {
     expect(getByTestId("attention-row-a1")).toBeTruthy();
   });
 
-  it("returns null for meeting-card (not yet implemented)", () => {
+  it("renders MeetingCard for meeting-card block", () => {
     const block: FlintBlock = {
       type: "meeting-card",
       data: {
         id: "m1",
-        title: "Test",
+        title: "Test Meeting",
         startTime: "2026-05-18T10:00:00Z",
         endTime: "2026-05-18T10:30:00Z",
         attendees: [],
         organizer: "Alice",
       },
     };
-    const { container } = render(<BlockRenderer block={block} />);
-    expect(container.innerHTML).toBe("");
+    render(<BlockRenderer block={block} />);
+    expect(screen.getByTestId("meeting-card")).toBeTruthy();
+    expect(screen.getByText("Test Meeting")).toBeTruthy();
   });
 
-  it("returns null for action-confirmation (not yet implemented)", () => {
+  it("renders ActionConfirmation when onDismiss is provided", () => {
+    const block: FlintBlock = {
+      type: "action-confirmation",
+      data: { action: "join", label: "Joining...", status: "pending" },
+    };
+    render(<BlockRenderer block={block} onDismiss={vi.fn()} />);
+    expect(screen.getByTestId("action-confirmation")).toBeTruthy();
+    expect(screen.getByText("Joining...")).toBeTruthy();
+  });
+
+  it("returns null for action-confirmation without onDismiss", () => {
     const block: FlintBlock = {
       type: "action-confirmation",
       data: { action: "join", label: "Joining...", status: "pending" },
@@ -83,16 +100,17 @@ describe("BlockRenderer", () => {
     expect(container.innerHTML).toBe("");
   });
 
-  it("returns null for chat-message (not yet implemented)", () => {
+  it("renders ChatMessage for chat-message block", () => {
     const block: FlintBlock = {
       type: "chat-message",
       data: { role: "assistant", content: "Hello" },
     };
-    const { container } = render(<BlockRenderer block={block} />);
-    expect(container.innerHTML).toBe("");
+    render(<BlockRenderer block={block} />);
+    expect(screen.getByTestId("chat-message")).toBeTruthy();
+    expect(screen.getByTestId("markdown-content").textContent).toBe("Hello");
   });
 
-  it("returns null for suggestion-chips (not yet implemented)", () => {
+  it("returns null for suggestion-chips (rendered separately)", () => {
     const block: FlintBlock = {
       type: "suggestion-chips",
       data: [{ label: "Test", prompt: "test" }],

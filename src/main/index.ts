@@ -3,7 +3,12 @@ import { app, ipcMain, nativeTheme } from "electron";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { createOverlayWindow, getOverlayWindow } from "./window/overlay";
 import { showSettingsWindow, getSettingsWindow } from "./window/settings-window";
-import { showSpotlight, registerSpotlightHandlers, getSpotlightWindow, cachePrepData } from "./window/spotlight-window";
+import {
+  showSpotlight,
+  registerSpotlightHandlers,
+  getSpotlightWindow,
+  cachePrepData,
+} from "./window/spotlight-window";
 import { createTray, updateTrayMeetings, updateTrayTitle } from "./window/tray";
 import { registerHotkey, unregisterAllHotkeys } from "./window/hotkey";
 import { registerIpcHandlers, getConfigStore, getAttentionStore } from "./ipc/handlers";
@@ -169,12 +174,20 @@ void app.whenReady().then(async () => {
         win.webContents.send(IPC_CHANNELS.ATTENTION_UPDATE, items);
       }
     },
+    onBlocksUpdate: (block) => {
+      const win = getOverlayWindow();
+      if (win && !win.isDestroyed()) {
+        win.webContents.send(IPC_CHANNELS.BLOCKS_UPDATE, block);
+      }
+    },
+    getMeetings: () => latestMeetings,
   });
 
   // ── Session manager ──
   sessionManager = createSessionManager({
     client,
     getModel: () => configStore.getAll().model,
+    getMeetings: () => latestMeetings,
     chatTools,
     onChatDelta: (delta) => {
       const overlay = getOverlayWindow();

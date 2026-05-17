@@ -86,6 +86,10 @@ async function runOneSample(spec: EvalSpec, client: CopilotClient): Promise<Eval
       toolCalls.push("set_attention_items");
       attentionItems.push(...items);
     },
+    onBlocksUpdate: () => {
+      toolCalls.push("blocks_update");
+    },
+    getMeetings: () => [],
   });
 
   // Session per sample — fresh context, no cross-sample contamination.

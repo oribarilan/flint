@@ -1,6 +1,7 @@
 import type { CopilotSession, Tool } from "@github/copilot-sdk";
 import type { CopilotClient } from "@github/copilot-sdk";
-import { CHAT_SYSTEM_PROMPT } from "./system-prompt";
+import { CHAT_SYSTEM_PROMPT, buildChatSystemPrompt } from "./system-prompt";
+import type { Meeting } from "../types";
 import { createPermissionPolicy } from "./permissions";
 
 /**
@@ -20,6 +21,7 @@ import { createPermissionPolicy } from "./permissions";
 const CHAT_AVAILABLE_TOOLS = [
   "show_notification",
   "join_meeting",
+  "show_meeting",
   "show_overlay",
   "set_attention_items",
 ] as const;
@@ -29,6 +31,7 @@ const CHAT_TIMEOUT_MS = 60_000; // 60s timeout for chat
 interface SessionManagerConfig {
   client: CopilotClient;
   getModel: () => string;
+  getMeetings?: () => Meeting[];
   chatTools?: Tool[];
   onChatDelta: (delta: string) => void;
   onChatDone: () => void;
@@ -82,7 +85,9 @@ export function createSessionManager(config: SessionManagerConfig): SessionManag
       onPermissionRequest: createPermissionPolicy(),
       streaming: true,
       systemMessage: {
-        content: CHAT_SYSTEM_PROMPT,
+        content: config.getMeetings
+          ? buildChatSystemPrompt(config.getMeetings())
+          : CHAT_SYSTEM_PROMPT,
       },
       tools: config.chatTools,
       availableTools: [...CHAT_AVAILABLE_TOOLS],

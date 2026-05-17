@@ -1,4 +1,5 @@
 import chatPromptRaw from "./prompts/chat.md?raw";
+import type { Meeting } from "../types";
 
 /**
  * Registry of all loaded system prompts. Single source of truth.
@@ -21,3 +22,25 @@ export function loadPrompt(name: PromptName): string {
 
 /** Public re-export for the chat session's system message. */
 export const CHAT_SYSTEM_PROMPT = loadPrompt("chat");
+
+/** Build a chat system prompt with current meeting context injected. */
+export function buildChatSystemPrompt(meetings: Meeting[]): string {
+  const base = loadPrompt("chat");
+  if (meetings.length === 0) return base;
+
+  const context = meetings
+    .map((m) => {
+      const start = new Date(m.startTime).toLocaleTimeString([], {
+        hour: "numeric",
+        minute: "2-digit",
+      });
+      const end = new Date(m.endTime).toLocaleTimeString([], {
+        hour: "numeric",
+        minute: "2-digit",
+      });
+      return `- ID: "${m.id}" | "${m.title}" | ${start} - ${end}`;
+    })
+    .join("\n");
+
+  return `${base}\n\n# Current meetings\n\n${context}`;
+}

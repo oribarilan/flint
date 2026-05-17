@@ -1,12 +1,15 @@
 import { Notification } from "electron";
 import { defineTool, type Tool } from "@github/copilot-sdk";
-import type { AttentionItem } from "../types";
+import type { AttentionItem, Meeting } from "../types";
+import type { FlintBlock } from "../lib/blocks";
 import { openExternalUrl } from "../lib/url";
 import { AttentionItemSchema } from "../lib/schemas";
 
 interface ToolCallbacks {
   onShowOverlay: () => void;
   onAttentionUpdate: (items: AttentionItem[]) => void;
+  onBlocksUpdate: (block: FlintBlock) => void;
+  getMeetings: () => Meeting[];
 }
 
 export function createAllTools(callbacks: ToolCallbacks): Tool[] {
@@ -35,17 +38,60 @@ export function createAllTools(callbacks: ToolCallbacks): Tool[] {
   });
 
   const joinMeeting = defineTool("join_meeting", {
-    description: "Open a meeting join URL in the default browser.",
+    description:
+      "Join a meeting by opening its join URL. Use when the user wants to join a meeting.",
     parameters: {
       type: "object",
-      properties: { joinUrl: { type: "string" } },
-      required: ["joinUrl"],
+      properties: { meetingId: { type: "string", description: "The meeting ID to join" } },
+      required: ["meetingId"],
     },
     // eslint-disable-next-line @typescript-eslint/require-await -- SDK tool handlers must be async
     handler: async (args) => {
-      const result = openExternalUrl((args as { joinUrl: string }).joinUrl);
+      const { meetingId } = args as { meetingId: string };
+      const meetings = callbacks.getMeetings();
+      const meeting = meetings.find((m) => m.id === meetingId);
+      if (!meeting) return "Meeting not found in cache.";
+      if (!meeting.joinUrl) return "Meeting has no join URL.";
+
+      callbacks.onBlocksUpdate({
+        type: "action-confirmation",
+        data: { action: "join_meeting", label: `Joining ${meeting.title}...`, status: "pending" },
+      });
+
+      const result = openExternalUrl(meeting.joinUrl);
       if (!result.ok) return `blocked: ${result.reason}`;
+
+      callbacks.onBlocksUpdate({
+        type: "action-confirmation",
+        data: { action: "join_meeting", label: `Joined ${meeting.title}`, status: "done" },
+      });
       return "opened";
+    },
+  });
+
+  const showMeeting = defineTool("show_meeting", {
+    description:
+      "Show detailed information about a specific meeting. Use when the user asks about a meeting.",
+    parameters: {
+      type: "object",
+      properties: {
+        meetingId: { type: "string", description: "The meeting ID to display" },
+      },
+      required: ["meetingId"],
+    },
+    // eslint-disable-next-line @typescript-eslint/require-await -- SDK tool handlers must be async
+    handler: async (args) => {
+      const { meetingId } = args as { meetingId: string };
+      const meetings = callbacks.getMeetings();
+      const meeting = meetings.find((m) => m.id === meetingId);
+      if (!meeting) return "Meeting not found in cache.";
+
+      const block: FlintBlock = {
+        type: "meeting-card",
+        data: { ...meeting },
+      };
+      callbacks.onBlocksUpdate(block);
+      return `Showing meeting: ${meeting.title}`;
     },
   });
 
@@ -135,7 +181,7 @@ export function createAllTools(callbacks: ToolCallbacks): Tool[] {
     },
   });
 
-  return [showNotification, joinMeeting, showOverlay, setAttentionItems];
+  return [showNotification, joinMeeting, showMeeting, showOverlay, setAttentionItems];
 }
 
 export function getChatTools(callbacks: ToolCallbacks): Tool[] {
