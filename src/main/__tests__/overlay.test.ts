@@ -13,6 +13,8 @@ interface FakeBrowserWindow {
   isVisible: ReturnType<typeof vi.fn>;
   loadURL: ReturnType<typeof vi.fn>;
   loadFile: ReturnType<typeof vi.fn>;
+  getBounds: ReturnType<typeof vi.fn>;
+  setPosition: ReturnType<typeof vi.fn>;
   listeners: Map<string, Listener[]>;
   emit: (event: string, ...args: unknown[]) => void;
 }
@@ -36,6 +38,8 @@ function makeFakeWindow(): FakeBrowserWindow {
     isVisible: vi.fn(() => true),
     loadURL: vi.fn(() => Promise.resolve()),
     loadFile: vi.fn(() => Promise.resolve()),
+    getBounds: vi.fn(() => ({ x: 0, y: 0, width: 340, height: 480 })),
+    setPosition: vi.fn(),
     emit: (event: string, ...args: unknown[]) => {
       for (const cb of listeners.get(event) ?? []) cb(...args);
     },
@@ -49,10 +53,19 @@ vi.mock("electron", () => ({
     createdWindows.push(win);
     return win;
   }),
+  screen: {
+    getPrimaryDisplay: () => ({
+      workArea: { x: 0, y: 0, width: 1920, height: 1080 },
+    }),
+  },
 }));
 
 vi.mock("@electron-toolkit/utils", () => ({
   is: { dev: false },
+}));
+
+vi.mock("../window/tray", () => ({
+  getTray: vi.fn(() => null),
 }));
 
 beforeEach(() => {
@@ -65,21 +78,19 @@ afterEach(() => {
 });
 
 describe("overlay window", () => {
-  it("does NOT auto-hide when the window emits 'blur'", async () => {
+  it("auto-hides when the window emits 'blur'", async () => {
     const { createOverlayWindow } = await import("../window/overlay");
     createOverlayWindow();
 
     expect(createdWindows).toHaveLength(1);
     const win = createdWindows[0];
 
-    // Sanity: no 'blur' listener should have been registered by overlay.ts
-    // (the auto-hide footgun has been removed).
-    expect(win.listeners.get("blur") ?? []).toHaveLength(0);
+    // A blur listener should be registered for click-outside dismissal
+    expect(win.listeners.get("blur") ?? []).toHaveLength(1);
 
-    // Even if external code later attaches a blur listener and the window is
-    // blurred, hide() must not be called by us.
+    win.isVisible.mockReturnValue(true);
     win.emit("blur");
-    expect(win.hide).not.toHaveBeenCalled();
+    expect(win.hide).toHaveBeenCalledTimes(1);
   });
 
   it("hideOverlay still hides the window when called explicitly", async () => {

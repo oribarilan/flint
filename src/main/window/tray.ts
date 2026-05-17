@@ -1,7 +1,7 @@
 import { Tray, Menu, nativeImage, app } from "electron";
 import type { MenuItemConstructorOptions } from "electron";
 import { join } from "path";
-import { showOverlay } from "./overlay";
+import { toggleOverlay, showOverlay } from "./overlay";
 import type { Meeting } from "../types";
 
 let tray: Tray | null = null;
@@ -153,9 +153,13 @@ export function createTray(): Tray {
   tray.setContextMenu(contextMenu);
 
   tray.on("click", () => {
-    showOverlay();
+    toggleOverlay();
   });
 
+  return tray;
+}
+
+export function getTray(): Tray | null {
   return tray;
 }
 

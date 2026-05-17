@@ -1,35 +1,19 @@
 import { useState, useCallback, forwardRef, type KeyboardEvent } from "react";
-import { CornerDownLeft } from "lucide-react";
+import { ArrowUp } from "lucide-react";
 import styles from "./ChatInput.module.css";
-
-interface SelectedItemSummary {
-  id: string;
-  title: string;
-}
 
 interface ChatInputProps {
   onSend: (message: string) => void;
   disabled?: boolean;
   placeholder?: string;
-  selectedItems?: SelectedItemSummary[];
-}
-
-const MAX_VISIBLE_TITLES = 3;
-
-function formatSelectedLabel(items: SelectedItemSummary[]): string {
-  const visible = items.slice(0, MAX_VISIBLE_TITLES).map((i) => i.title);
-  const remainder = items.length - MAX_VISIBLE_TITLES;
-  return remainder > 0 ? `${visible.join(", ")}...` : visible.join(", ");
+  selectedItems?: { id: string; title: string }[];
 }
 
 export const ChatInput = forwardRef<HTMLInputElement, ChatInputProps>(function ChatInput(
-  { onSend, disabled, placeholder = "Ask about your schedule…", selectedItems = [] },
+  { onSend, disabled, placeholder = "Ask Flint anything…" },
   ref,
 ) {
   const [value, setValue] = useState("");
-  const [focused, setFocused] = useState(false);
-
-  const showSlashHint = !focused && value === "";
 
   const handleSubmit = useCallback(() => {
     const trimmed = value.trim();
@@ -60,29 +44,21 @@ export const ChatInput = forwardRef<HTMLInputElement, ChatInputProps>(function C
             setValue(e.target.value);
           }}
           onKeyDown={handleKeyDown}
-          onFocus={() => {
-            setFocused(true);
-          }}
-          onBlur={() => {
-            setFocused(false);
-          }}
           placeholder={placeholder}
+          aria-label="Chat with Flint"
           aria-disabled={disabled ?? undefined}
           autoFocus
         />
-        {showSlashHint && (
-          <span className={styles.slashHint} aria-hidden="true">
-            <kbd className={styles.slashKey}>/</kbd>
-            <span className={styles.slashLabel}>to focus</span>
-          </span>
-        )}
       </div>
-      <span className={styles.hint} aria-hidden="true">
-        <CornerDownLeft size={14} />
-      </span>
-      {selectedItems.length > 0 && (
-        <div className={styles.withIndicator}>With: {formatSelectedLabel(selectedItems)}</div>
-      )}
+      <button
+        className={styles.hint}
+        onClick={handleSubmit}
+        aria-label="Send"
+        type="button"
+        tabIndex={-1}
+      >
+        <ArrowUp size={12} />
+      </button>
     </div>
   );
 });

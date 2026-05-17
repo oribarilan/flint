@@ -1,12 +1,18 @@
-/* ── Chat input ─────────────────────────────────────────────── */
+/* ── Chat input — pill shape ────────────────────────────────── */
 
 .container {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-lg);
-  border-top: 1px solid var(--border-subtle);
+  padding: var(--space-xs) var(--space-xs) var(--space-xs) var(--space-md);
+  background: var(--glass-input-bg);
+  border: 1px solid var(--glass-input-border);
+  border-radius: var(--radius-full);
+  transition: border-color 120ms;
+}
+
+.container:focus-within {
+  border-color: var(--accent);
 }
 
 .inputWrapper {
@@ -16,21 +22,17 @@
 
 .input {
   width: 100%;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: var(--space-sm) var(--space-md);
-  font-size: var(--font-md);
-  color: var(--text-primary);
+  background: transparent;
+  border: none;
   outline: none;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--text-primary);
+  padding: 0;
 }
 
 .input::placeholder {
   color: var(--text-placeholder);
-}
-
-.input:focus {
-  border-color: var(--accent);
 }
 
 .input[aria-disabled] {
@@ -38,52 +40,36 @@
   cursor: not-allowed;
 }
 
-/* ── Slash hint (inside input, right side) ──────────────────── */
-
-.slashHint {
-  position: absolute;
-  right: var(--space-sm);
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  pointer-events: none;
-}
-
-.slashKey {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 var(--space-xs);
-  font-family: var(--font-mono);
-  font-size: var(--font-xs);
-  color: var(--text-placeholder);
-  background: var(--bg-hover);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-}
-
-.slashLabel {
-  font-size: var(--font-xs);
-  color: var(--text-placeholder);
-}
+/* ── Send button ──────────────────────────────────────────── */
 
 .hint {
   flex-shrink: 0;
-  font-size: var(--font-xs);
-  color: var(--text-secondary);
-  opacity: 0.5;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--text-on-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 100ms, opacity 100ms;
+  opacity: 0.35;
 }
 
+.container:focus-within .hint {
+  opacity: 1;
+}
+
+.hint:hover {
+  background: var(--accent-hover);
+}
+
+/* ── Hidden in pill mode ──────────────────────────────────── */
+
+.slashHint,
+.slashKey,
+.slashLabel,
 .withIndicator {
-  width: 100%;
-  font-size: var(--font-xs);
-  color: var(--text-secondary);
-  padding: 0 var(--space-md);
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  display: none;
 }

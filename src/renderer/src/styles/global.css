@@ -104,8 +104,19 @@
     "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", Menlo, Consolas, "DejaVu Sans Mono",
     monospace;
 
+  /* ── Glass surface ─────────────────────────────────── */
+  --glass-bg: oklch(6% 0.004 60 / 0.62);
+  --glass-border: oklch(100% 0 0 / 0.06);
+  --glass-inner-glow: inset 0 1px 0 oklch(100% 0 0 / 0.04);
+  --glass-row-hover: oklch(100% 0 0 / 0.04);
+  --glass-divider: oklch(100% 0 0 / 0.05);
+  --glass-input-bg: oklch(0% 0 0 / 0.25);
+  --glass-input-border: oklch(100% 0 0 / 0.06);
+  --glass-icon-bg: oklch(100% 0 0 / 0.04);
+
   /* ── Easing ──────────────────────────────────────── */
   --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
 
@@ -204,6 +215,16 @@ html[data-theme="light"] {
   /* Scrollbar */
   --scrollbar-thumb: oklch(82% 0.012 65);
   --scrollbar-thumb-hover: oklch(76% 0.016 65);
+
+  /* Glass surface — light */
+  --glass-bg: oklch(97% 0.008 65 / 0.68);
+  --glass-border: oklch(0% 0 0 / 0.08);
+  --glass-inner-glow: inset 0 1px 0 oklch(100% 0 0 / 0.5);
+  --glass-row-hover: oklch(0% 0 0 / 0.04);
+  --glass-divider: oklch(0% 0 0 / 0.06);
+  --glass-input-bg: oklch(100% 0 0 / 0.35);
+  --glass-input-border: oklch(0% 0 0 / 0.06);
+  --glass-icon-bg: oklch(0% 0 0 / 0.04);
 }
 
 /* ── Body ──────────────────────────────────────────────────── */

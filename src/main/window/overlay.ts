@@ -1,20 +1,23 @@
-import { BrowserWindow } from "electron";
+import { BrowserWindow, screen } from "electron";
 import { join } from "path";
 import { is } from "@electron-toolkit/utils";
+import { getTray } from "./tray";
+
+const POPOVER_WIDTH = 340;
+const POPOVER_HEIGHT = 480;
 
 let overlayWindow: BrowserWindow | null = null;
 
 export function createOverlayWindow(): BrowserWindow {
   overlayWindow = new BrowserWindow({
-    width: 1032,
-    height: 520,
+    width: POPOVER_WIDTH,
+    height: POPOVER_HEIGHT,
     show: false,
     frame: false,
     transparent: true,
     alwaysOnTop: true,
     skipTaskbar: true,
     resizable: false,
-    center: true,
     backgroundColor: "#00000000",
     webPreferences: {
       preload: join(__dirname, "../preload/index.mjs"),
@@ -28,18 +31,37 @@ export function createOverlayWindow(): BrowserWindow {
     void overlayWindow.loadFile(join(__dirname, "../renderer/index.html"));
   }
 
-  // NOTE: We intentionally do NOT hide the overlay on blur.
-  // The overlay is a hotkey-toggled surface, not a strict modal — clicking
-  // outside (e.g. opening a meeting, copying from another app) must not dismiss it.
-  // Hiding is driven by: Esc (renderer), global hotkey toggle, tray click,
-  // or the explicit `overlay:hide` IPC.
+  overlayWindow.on("blur", () => {
+    hideOverlay();
+  });
 
   return overlayWindow;
 }
 
+/** Position the popover below the tray icon, aligned to the right edge. */
+function positionNearTray(): void {
+  if (!overlayWindow) return;
+
+  const tray = getTray();
+  const windowBounds = overlayWindow.getBounds();
+
+  if (tray) {
+    const trayBounds = tray.getBounds();
+    const x = Math.round(trayBounds.x + trayBounds.width / 2 - windowBounds.width + 12);
+    const y = Math.round(trayBounds.y + trayBounds.height + 4);
+    overlayWindow.setPosition(x, y);
+  } else {
+    // Fallback: top-right of primary display
+    const { workArea } = screen.getPrimaryDisplay();
+    const x = workArea.x + workArea.width - windowBounds.width - 8;
+    const y = workArea.y + 4;
+    overlayWindow.setPosition(x, y);
+  }
+}
+
 export function showOverlay(): void {
   if (!overlayWindow) return;
-  overlayWindow.center();
+  positionNearTray();
   overlayWindow.show();
   overlayWindow.focus();
 }

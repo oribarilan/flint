@@ -1,0 +1,35 @@
+/* ── Greeting ──────────────────────────────────────────────── */
+
+.greeting {
+  padding: var(--space-lg) var(--space-lg) var(--space-xs);
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.sub {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--font-xs);
+  color: var(--text-secondary);
+  margin-top: var(--space-2xs);
+}
+
+.dot {
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: var(--text-placeholder);
+  flex-shrink: 0;
+}
+
+.highlight {
+  color: var(--accent);
+  font-weight: 500;
+}

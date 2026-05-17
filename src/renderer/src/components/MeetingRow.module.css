@@ -1,0 +1,102 @@
+/* ── Meeting row ───────────────────────────────────────────── */
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-lg);
+  cursor: pointer;
+  transition: background 100ms;
+  position: relative;
+}
+
+.row:hover {
+  background: var(--glass-row-hover);
+}
+
+/* Imminent accent bar */
+.imminent::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: var(--space-sm);
+  bottom: var(--space-sm);
+  width: 2px;
+  background: var(--accent);
+  border-radius: 1px;
+}
+
+/* Icon container */
+.icon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  background: var(--glass-icon-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+}
+
+.iconImminent {
+  background: var(--bg-accent-subtle);
+  color: var(--accent);
+}
+
+/* Body */
+.body {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 1px;
+}
+
+/* Time label */
+.time {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.timeSoon {
+  color: var(--color-warning);
+}
+
+/* Join button */
+.joinBtn {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: var(--accent);
+  color: var(--text-on-accent);
+  cursor: pointer;
+  transition: background 100ms;
+  flex-shrink: 0;
+}
+
+.joinBtn:hover {
+  background: var(--accent-hover);
+}
