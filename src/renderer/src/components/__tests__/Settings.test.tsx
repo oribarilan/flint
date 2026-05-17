@@ -31,8 +31,10 @@ const DEFAULT_TEST_CONFIG: FlintConfig = {
   menubarEnabled: true,
   menubarTime: "countdown",
   menubarTitle: true,
+  menubarAllDay: true,
   spotlightEnabled: true,
   spotlightMinutes: 1,
+  spotlightPrep: true,
 };
 
 function renderSettings(overrides: Partial<FlintConfig> = {}) {

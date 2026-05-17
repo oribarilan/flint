@@ -6,9 +6,19 @@ import { openExternalUrl } from "../lib/url";
 import type { Meeting } from "../types";
 
 let spotlightWindow: BrowserWindow | null = null;
+const prepCache = new Map<string, string[]>();
+
+/** Cache AI prep results for a meeting. Called when the prep query completes. */
+export function cachePrepData(meetingId: string, items: string[]): void {
+  prepCache.set(meetingId, items);
+}
+
+export interface SpotlightOptions {
+  showPrep: boolean;
+}
 
 /** Show the spotlight overlay for a meeting. Singleton — dismisses existing before showing new. */
-export function showSpotlight(meeting: Meeting): void {
+export function showSpotlight(meeting: Meeting, options: SpotlightOptions): void {
   if (spotlightWindow && !spotlightWindow.isDestroyed()) {
     spotlightWindow.close();
     spotlightWindow = null;
@@ -51,7 +61,11 @@ export function showSpotlight(meeting: Meeting): void {
 
   spotlightWindow.webContents.on("did-finish-load", () => {
     if (spotlightWindow && !spotlightWindow.isDestroyed()) {
-      spotlightWindow.webContents.send(IPC_CHANNELS.SPOTLIGHT_SHOW, meeting);
+      const prepItems = options.showPrep ? (prepCache.get(meeting.id) ?? null) : null;
+      spotlightWindow.webContents.send(IPC_CHANNELS.SPOTLIGHT_SHOW, {
+        meeting,
+        prepItems,
+      });
     }
   });
 

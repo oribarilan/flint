@@ -97,7 +97,7 @@ describe("buildTrayMenuTemplate", () => {
     expect(items[1].label).toContain("Second");
   });
 
-  it("formats all-day events with 'All day' and sorts them first", () => {
+  it("shows all-day events in a separate section with header", () => {
     const timed = makeMeeting({ id: "m1", title: "Timed" });
     const allDay = makeMeeting({
       id: "m2",
@@ -107,10 +107,32 @@ describe("buildTrayMenuTemplate", () => {
       endTime: new Date(NOW.getTime() + 24 * 60 * 60_000).toISOString(),
     });
     const template = buildTrayMenuTemplate([timed, allDay], defaultOptions());
-    const items = getMeetingItems(template);
-    expect(items[0].label).toMatch(/^All day/);
-    expect(items[0].label).toContain("All Day Event");
-    expect(items[1].label).toContain("Timed");
+    // All-day section: header + item + separator, then timed items
+    expect(template[0].label).toBe("All day");
+    expect(template[0].enabled).toBe(false);
+    expect(template[1].label).toContain("All Day Event");
+    expect(template[2].type).toBe("separator");
+    // Timed meeting follows
+    expect(template[3].label).toContain("Timed");
+  });
+
+  it("hides all-day events when showAllDay is false", () => {
+    const timed = makeMeeting({ id: "m1", title: "Timed" });
+    const allDay = makeMeeting({
+      id: "m2",
+      title: "Hidden Event",
+      isAllDay: true,
+      startTime: NOW.toISOString(),
+      endTime: new Date(NOW.getTime() + 24 * 60 * 60_000).toISOString(),
+    });
+    const template = buildTrayMenuTemplate(
+      [timed, allDay],
+      defaultOptions({ showAllDay: false }),
+    );
+    const labels = template.map((item) => item.label).filter(Boolean);
+    expect(labels).not.toContain("All day");
+    expect(labels.join(" ")).not.toContain("Hidden Event");
+    expect(labels.join(" ")).toContain("Timed");
   });
 
   it("filters out past meetings (endTime before now)", () => {

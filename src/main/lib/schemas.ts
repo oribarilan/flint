@@ -23,8 +23,10 @@ export const FlintConfigSchema = z.object({
   menubarEnabled: z.boolean(),
   menubarTime: MenubarTimeSchema,
   menubarTitle: z.boolean(),
+  menubarAllDay: z.boolean(),
   spotlightEnabled: z.boolean(),
   spotlightMinutes: z.number().int().min(1).max(30),
+  spotlightPrep: z.boolean(),
 });
 
 // ── AttentionItem ──

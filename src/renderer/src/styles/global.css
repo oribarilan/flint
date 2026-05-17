@@ -105,7 +105,7 @@
     monospace;
 
   /* ── Glass surface ─────────────────────────────────── */
-  --glass-bg: oklch(6% 0.004 60 / 0.62);
+  --glass-bg: oklch(8% 0.005 60 / 0.94);
   --glass-border: oklch(100% 0 0 / 0.06);
   --glass-inner-glow: inset 0 1px 0 oklch(100% 0 0 / 0.04);
   --glass-row-hover: oklch(100% 0 0 / 0.04);
@@ -217,7 +217,7 @@ html[data-theme="light"] {
   --scrollbar-thumb-hover: oklch(76% 0.016 65);
 
   /* Glass surface — light */
-  --glass-bg: oklch(97% 0.008 65 / 0.68);
+  --glass-bg: oklch(96% 0.006 65 / 0.94);
   --glass-border: oklch(0% 0 0 / 0.08);
   --glass-inner-glow: inset 0 1px 0 oklch(100% 0 0 / 0.5);
   --glass-row-hover: oklch(0% 0 0 / 0.04);

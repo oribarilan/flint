@@ -27,8 +27,10 @@ export interface FlintConfig {
   menubarEnabled: boolean;
   menubarTime: MenubarTimeStyle;
   menubarTitle: boolean;
+  menubarAllDay: boolean;
   spotlightEnabled: boolean;
   spotlightMinutes: number;
+  spotlightPrep: boolean;
 }
 
 export const DEFAULT_CONFIG: FlintConfig = {
@@ -42,8 +44,10 @@ export const DEFAULT_CONFIG: FlintConfig = {
   menubarEnabled: true,
   menubarTime: "countdown",
   menubarTitle: true,
+  menubarAllDay: true,
   spotlightEnabled: true,
   spotlightMinutes: 1,
+  spotlightPrep: true,
 };
 
 export interface AttentionItem {

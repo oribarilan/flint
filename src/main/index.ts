@@ -3,7 +3,7 @@ import { app, ipcMain, nativeTheme } from "electron";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { createOverlayWindow, getOverlayWindow } from "./window/overlay";
 import { showSettingsWindow, getSettingsWindow } from "./window/settings-window";
-import { showSpotlight, registerSpotlightHandlers, getSpotlightWindow } from "./window/spotlight-window";
+import { showSpotlight, registerSpotlightHandlers, getSpotlightWindow, cachePrepData } from "./window/spotlight-window";
 import { createTray, updateTrayMeetings, updateTrayTitle } from "./window/tray";
 import { registerHotkey, unregisterAllHotkeys } from "./window/hotkey";
 import { registerIpcHandlers, getConfigStore, getAttentionStore } from "./ipc/handlers";
@@ -115,6 +115,14 @@ void app.whenReady().then(async () => {
     }
     if ("menubarEnabled" in partial || "menubarTime" in partial || "menubarTitle" in partial) {
       updateTrayTitle(latestMeetings, configStore.getAll());
+    }
+    if ("menubarAllDay" in partial) {
+      const cfg = configStore.getAll();
+      updateTrayMeetings(latestMeetings, {
+        onJoin: (url) => openExternalUrl(url),
+        onShowSettings: openSettings,
+        showAllDay: cfg.menubarAllDay,
+      });
     }
   });
 
@@ -251,13 +259,23 @@ void app.whenReady().then(async () => {
       return cfg.spotlightEnabled ? cfg.spotlightMinutes : null;
     },
     onSpotlight: (meeting) => {
-      showSpotlight(meeting);
+      const cfg = configStore.getAll();
+      showSpotlight(meeting, { showPrep: cfg.spotlightPrep });
+    },
+    onPrepare: (meeting) => {
+      const cfg = configStore.getAll();
+      if (!cfg.spotlightPrep) return;
+      console.log("[main] Prep triggered for:", meeting.title);
+      // TODO: query Copilot SDK for meeting context, then call cachePrepData(meeting.id, items)
+      // For now, cache empty to signal "prep enabled but no data yet"
+      cachePrepData(meeting.id, []);
     },
     onMeetingsUpdated: (meetings) => {
       latestMeetings = meetings;
-      updateTrayMeetings(meetings, {
+      updateTrayMeetings(latestMeetings, {
         onJoin: (url) => openExternalUrl(url),
         onShowSettings: openSettings,
+        showAllDay: configStore.getAll().menubarAllDay,
       });
       updateTrayTitle(meetings, configStore.getAll());
     },

@@ -80,10 +80,10 @@ describe("selectDisplayMeeting", () => {
     expect(result?.isActive).toBe(false);
   });
 
-  it("falls back to all-day event if no timed meetings", () => {
+  it("returns null when only all-day events exist", () => {
     const allDay = makeMeeting({ id: "allday", isAllDay: true, title: "Company Offsite" });
     const result = selectDisplayMeeting([allDay], NOW_MS);
-    expect(result).toEqual({ meeting: allDay, isActive: false });
+    expect(result).toBeNull();
   });
 
   it("returns the earliest upcoming meeting when multiple exist", () => {
@@ -165,11 +165,5 @@ describe("formatMenubarText", () => {
     const text = formatMenubarText({ meeting: m, isActive: false }, "off", true, NOW_MS);
     expect(text.length).toBeLessThanOrEqual(16);
     expect(text).toContain("\u2026");
-  });
-
-  it("all-day events skip time component, show title only", () => {
-    const m = makeMeeting({ id: "1", isAllDay: true, title: "Company Offsite" });
-    const text = formatMenubarText({ meeting: m, isActive: false }, "countdown", true, NOW_MS);
-    expect(text).toBe("Company Offsite");
   });
 });

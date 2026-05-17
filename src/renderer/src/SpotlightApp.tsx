@@ -11,6 +11,11 @@ interface MeetingData {
   agenda?: string;
 }
 
+interface SpotlightPayload {
+  meeting: MeetingData;
+  prepItems: string[] | null;
+}
+
 const MAX_VISIBLE_ATTENDEES = 4;
 
 function formatTime(iso: string): string {
@@ -31,10 +36,13 @@ function formatTimeUntil(iso: string): string {
 
 export function SpotlightApp() {
   const [meeting, setMeeting] = useState<MeetingData | null>(null);
+  const [prepItems, setPrepItems] = useState<string[] | null>(null);
 
   useEffect(() => {
     const unsub = window.flint?.onSpotlightShow((raw) => {
-      setMeeting(raw as MeetingData);
+      const payload = raw as SpotlightPayload;
+      setMeeting(payload.meeting);
+      setPrepItems(payload.prepItems);
     });
     return () => {
       unsub?.();
@@ -86,26 +94,34 @@ export function SpotlightApp() {
                 </span>
               ))}
               {overflowCount > 0 && (
-                <span className={styles.attendeeOverflow}>
-                  +{String(overflowCount)} more
-                </span>
+                <span className={styles.attendeeOverflow}>+{String(overflowCount)} more</span>
               )}
             </div>
           </div>
         </div>
 
-        <div className={styles.aiSection}>
-          <div className={styles.aiHeader}>
-            <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-              <path d="M8 1.5L4 5.5L5.5 7L8 4.5L10.5 7L12 5.5L8 1.5Z" />
-              <path d="M8 7.5L4 11.5L5.5 13L8 10.5L10.5 13L12 11.5L8 7.5Z" />
-            </svg>
-            Flint Prep
+        {prepItems !== null && (
+          <div className={styles.aiSection}>
+            <div className={styles.aiHeader}>
+              <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <path d="M8 1.5L4 5.5L5.5 7L8 4.5L10.5 7L12 5.5L8 1.5Z" />
+                <path d="M8 7.5L4 11.5L5.5 13L8 10.5L10.5 13L12 11.5L8 7.5Z" />
+              </svg>
+              Flint Prep
+            </div>
+            {prepItems.length > 0 ? (
+              <div className={styles.aiItems}>
+                {prepItems.map((item, i) => (
+                  <div key={i} className={styles.aiItem}>
+                    {item}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className={styles.aiPlaceholder}>Preparing meeting context…</div>
+            )}
           </div>
-          <div className={styles.aiPlaceholder}>
-            Preparing meeting context…
-          </div>
-        </div>
+        )}
 
         <div className={styles.actions}>
           <button

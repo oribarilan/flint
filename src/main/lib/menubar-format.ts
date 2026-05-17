@@ -48,10 +48,6 @@ export function selectDisplayMeeting(
   }
   if (earliest) return { meeting: earliest, isActive: false };
 
-  // Fall back to an all-day event (today only — caller filters)
-  const allDay = meetings.find((m) => m.isAllDay);
-  if (allDay) return { meeting: allDay, isActive: false };
-
   return null;
 }
 
@@ -79,8 +75,6 @@ export function formatMenubarText(
   if (timeStyle !== "off") {
     if (isActive) {
       parts.push("now");
-    } else if (meeting.isAllDay) {
-      // Skip time component for all-day events
     } else if (timeStyle === "next-time") {
       parts.push(timeFormatter.format(new Date(meeting.startTime)));
     } else {

@@ -81,10 +81,13 @@ export default function App() {
     }
   }, [view]);
 
-  // Reset to briefing on window focus
+  // Re-sync config (font size, etc.) when overlay regains focus
   useEffect(() => {
     const handleWindowFocus = (): void => {
       chatInputRef.current?.focus();
+      void window.flint?.getConfig().then((cfg) => {
+        document.documentElement.dataset.fontSize = cfg.fontSize;
+      });
     };
     window.addEventListener("focus", handleWindowFocus);
     return () => {

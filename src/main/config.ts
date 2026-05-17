@@ -45,6 +45,10 @@ export function createConfigStore(): ConfigStore {
           s.set("spotlightEnabled", DEFAULT_CONFIG.spotlightEnabled);
           s.set("spotlightMinutes", DEFAULT_CONFIG.spotlightMinutes);
         }
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- migration safety
+        if (s.get("spotlightPrep") === undefined) {
+          s.set("spotlightPrep", DEFAULT_CONFIG.spotlightPrep);
+        }
       },
     },
   });
@@ -76,8 +80,10 @@ export function createConfigStore(): ConfigStore {
           return VALID_MENUBAR_TIMES.has(raw) ? raw : DEFAULT_CONFIG.menubarTime;
         })(),
         menubarTitle: store.get("menubarTitle", DEFAULT_CONFIG.menubarTitle),
+        menubarAllDay: store.get("menubarAllDay", DEFAULT_CONFIG.menubarAllDay),
         spotlightEnabled: store.get("spotlightEnabled", DEFAULT_CONFIG.spotlightEnabled),
         spotlightMinutes: store.get("spotlightMinutes", DEFAULT_CONFIG.spotlightMinutes),
+        spotlightPrep: store.get("spotlightPrep", DEFAULT_CONFIG.spotlightPrep),
       };
     },
 

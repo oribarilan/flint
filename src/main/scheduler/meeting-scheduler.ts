@@ -3,6 +3,8 @@ import type { Meeting } from "../types";
 
 const POLL_INTERVAL_MS = 15 * 60_000; // 15 minutes
 const TICK_INTERVAL_MS = 60_000; // 60 seconds
+/** Prep runs this many minutes before the spotlight appears. */
+const PREP_LEAD_MINUTES = 5;
 
 export interface MeetingScheduler {
   start(): void;
@@ -29,6 +31,8 @@ export interface MeetingSchedulerConfig {
   getSpotlightMinutes?: () => number | null;
   /** Called when a meeting enters the spotlight window. */
   onSpotlight?: (meeting: Meeting) => void;
+  /** Called PREP_LEAD_MINUTES before the spotlight to pre-fetch AI context. */
+  onPrepare?: (meeting: Meeting) => void;
   /** Clock seam — `Date.now` by default. */
   now?: () => number;
 }
@@ -43,6 +47,7 @@ export function createMeetingScheduler(config: MeetingSchedulerConfig): MeetingS
   let cache: Meeting[] = [];
   const alerted = new Set<string>();
   const spotlighted = new Set<string>();
+  const prepared = new Set<string>();
   let running = false;
 
   async function poll(): Promise<void> {
@@ -57,6 +62,9 @@ export function createMeetingScheduler(config: MeetingSchedulerConfig): MeetingS
       }
       for (const id of [...spotlighted]) {
         if (!liveIds.has(id)) spotlighted.delete(id);
+      }
+      for (const id of [...prepared]) {
+        if (!liveIds.has(id)) prepared.delete(id);
       }
       try {
         config.onMeetingsUpdated?.(meetings);
@@ -100,8 +108,24 @@ export function createMeetingScheduler(config: MeetingSchedulerConfig): MeetingS
         alerted.add(meeting.id);
       }
 
-      // Spotlight check — separate threshold, separate tracking
+      // Prep check — fires PREP_LEAD_MINUTES before the spotlight
       const spotlightMins = config.getSpotlightMinutes?.();
+      if (spotlightMins != null && spotlightMins > 0) {
+        const prepMs = (spotlightMins + PREP_LEAD_MINUTES) * 60_000;
+        if (!prepared.has(meeting.id) && delta <= prepMs) {
+          try {
+            config.onPrepare?.(meeting);
+          } catch (err) {
+            console.error(
+              "[meeting-scheduler] prep callback failed:",
+              err instanceof Error ? err.message : String(err),
+            );
+          }
+          prepared.add(meeting.id);
+        }
+      }
+
+      // Spotlight check — separate threshold, separate tracking
       if (
         spotlightMins != null &&
         spotlightMins > 0 &&
@@ -146,6 +170,7 @@ export function createMeetingScheduler(config: MeetingSchedulerConfig): MeetingS
       }
       alerted.clear();
       spotlighted.clear();
+      prepared.clear();
       cache = [];
       console.log("[meeting-scheduler] stopped");
     },

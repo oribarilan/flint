@@ -43,6 +43,7 @@ export interface TrayMenuOptions {
   onJoin: (url: string) => void;
   onShowOverlay: () => void;
   onShowSettings: () => void;
+  showAllDay?: boolean;
   now?: () => number;
 }
 
@@ -74,28 +75,44 @@ export function buildTrayMenuTemplate(
   const nowMs = (options.now ?? Date.now)();
   const template: MenuItemConstructorOptions[] = [];
 
-  // Filter to upcoming/in-progress meetings
+  // Filter to upcoming/in-progress meetings, split by type
   const upcoming = meetings.filter((m) => isUpcoming(m, nowMs));
+  const allDay = upcoming.filter((m) => m.isAllDay);
+  const timed = upcoming.filter((m) => !m.isAllDay);
 
-  // Sort: all-day first, then by startTime
-  upcoming.sort((a, b) => {
-    if (a.isAllDay && !b.isAllDay) return -1;
-    if (!a.isAllDay && b.isAllDay) return 1;
+  // Sort timed by start time
+  timed.sort((a, b) => {
     return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
   });
 
-  const overflow = upcoming.length > MAX_MENU_ITEMS ? upcoming.length - MAX_MENU_ITEMS : 0;
-  const visible = overflow > 0 ? upcoming.slice(0, MAX_MENU_ITEMS) : upcoming;
+  // All-day section (if enabled and present)
+  const showingAllDay = options.showAllDay !== false && allDay.length > 0;
+  if (showingAllDay) {
+    template.push({ label: "All day", enabled: false });
+    for (const meeting of allDay) {
+      const sanitized = sanitizeSubject(meeting.title);
+      const subject = truncate(sanitized, MAX_SUBJECT_LENGTH);
+      template.push({
+        label: `    ${subject}`,
+        enabled: false,
+      });
+    }
+    if (timed.length > 0) {
+      template.push({ type: "separator" });
+    }
+  }
 
-  if (visible.length === 0) {
+  // Timed meetings
+  const overflow = timed.length > MAX_MENU_ITEMS ? timed.length - MAX_MENU_ITEMS : 0;
+  const visible = overflow > 0 ? timed.slice(0, MAX_MENU_ITEMS) : timed;
+
+  if (visible.length === 0 && !showingAllDay) {
     template.push({ label: "No more meetings today", enabled: false });
   } else {
     for (const meeting of visible) {
       const sanitized = sanitizeSubject(meeting.title);
       const subject = truncate(sanitized, MAX_SUBJECT_LENGTH);
-      const timeLabel = meeting.isAllDay
-        ? "All day"
-        : timeFormatter.format(new Date(meeting.startTime));
+      const timeLabel = timeFormatter.format(new Date(meeting.startTime));
       const label = `${timeLabel}  ${subject}`;
 
       template.push({
@@ -170,13 +187,14 @@ export function getTray(): Tray | null {
 
 export function updateTrayMeetings(
   meetings: Meeting[],
-  options: { onJoin: (url: string) => void; onShowSettings: () => void },
+  options: { onJoin: (url: string) => void; onShowSettings: () => void; showAllDay: boolean },
 ): void {
   if (!tray) return;
   const template = buildTrayMenuTemplate(meetings, {
     onJoin: options.onJoin,
     onShowOverlay: showOverlay,
     onShowSettings: options.onShowSettings,
+    showAllDay: options.showAllDay,
   });
   tray.setContextMenu(Menu.buildFromTemplate(template));
 }

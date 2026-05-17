@@ -11,7 +11,13 @@ const root = document.getElementById("root");
 if (root) {
   createRoot(root).render(
     <StrictMode>
-      {viewParam === "settings" ? <SettingsApp /> : viewParam === "spotlight" ? <SpotlightApp /> : <App />}
+      {viewParam === "settings" ? (
+        <SettingsApp />
+      ) : viewParam === "spotlight" ? (
+        <SpotlightApp />
+      ) : (
+        <App />
+      )}
     </StrictMode>,
   );
 }

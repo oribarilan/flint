@@ -260,6 +260,29 @@ export function Settings({ config, onUpdate }: SettingsProps) {
             </div>
 
             <div className={styles.card}>
+              <div className={styles.row}>
+                <div>
+                  <div className={styles.label}>All-day events</div>
+                  <div className={styles.description}>
+                    Show all-day events in the tray menu
+                  </div>
+                </div>
+                <button
+                  className={`${styles.toggle} ${config.menubarAllDay ? styles.toggleOn : ""}`}
+                  type="button"
+                  role="switch"
+                  aria-checked={config.menubarAllDay}
+                  aria-label="Show all-day events"
+                  onClick={() => {
+                    onUpdate({ menubarAllDay: !config.menubarAllDay });
+                  }}
+                >
+                  <span className={styles.toggleKnob} />
+                </button>
+              </div>
+            </div>
+
+            <div className={styles.card}>
               <div className={styles.cardTitle}>Spotlight</div>
               <div className={styles.row}>
                 <div>
@@ -282,29 +305,51 @@ export function Settings({ config, onUpdate }: SettingsProps) {
                 </button>
               </div>
               {config.spotlightEnabled && (
-                <div className={styles.row}>
-                  <div>
-                    <div className={styles.label}>Show before meeting</div>
-                    <div className={styles.description}>
-                      How early to show the spotlight prompt
+                <>
+                  <div className={styles.row}>
+                    <div>
+                      <div className={styles.label}>Show before meeting</div>
+                      <div className={styles.description}>
+                        How early to show the spotlight prompt
+                      </div>
+                    </div>
+                    <div>
+                      <input
+                        className={styles.numberInput}
+                        type="number"
+                        min={1}
+                        max={30}
+                        value={config.spotlightMinutes}
+                        onChange={(e) => {
+                          const value = Math.max(1, Math.min(30, Number(e.target.value) || 1));
+                          onUpdate({ spotlightMinutes: value });
+                        }}
+                        aria-label="Minutes before meeting for spotlight"
+                      />
+                      <span className={styles.unit}>min</span>
                     </div>
                   </div>
-                  <div>
-                    <input
-                      className={styles.numberInput}
-                      type="number"
-                      min={1}
-                      max={30}
-                      value={config.spotlightMinutes}
-                      onChange={(e) => {
-                        const value = Math.max(1, Math.min(30, Number(e.target.value) || 1));
-                        onUpdate({ spotlightMinutes: value });
+                  <div className={styles.row}>
+                    <div>
+                      <div className={styles.label}>Flint Prep</div>
+                      <div className={styles.description}>
+                        AI-generated meeting context and talking points
+                      </div>
+                    </div>
+                    <button
+                      className={`${styles.toggle} ${config.spotlightPrep ? styles.toggleOn : ""}`}
+                      type="button"
+                      role="switch"
+                      aria-checked={config.spotlightPrep}
+                      aria-label="Flint Prep"
+                      onClick={() => {
+                        onUpdate({ spotlightPrep: !config.spotlightPrep });
                       }}
-                      aria-label="Minutes before meeting for spotlight"
-                    />
-                    <span className={styles.unit}>min</span>
+                    >
+                      <span className={styles.toggleKnob} />
+                    </button>
                   </div>
-                </div>
+                </>
               )}
             </div>
           </div>
