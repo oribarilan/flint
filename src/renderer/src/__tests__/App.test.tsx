@@ -63,7 +63,11 @@ vi.mock("../hooks/useAttention", () => ({
   }),
 }));
 
-const mockClearMessages = vi.fn();
+const mockClearMessages = vi.fn(() => {
+  mockChatState.messages = [];
+  mockChatState.streamingContent = "";
+  mockChatState.isStreaming = false;
+});
 
 const mockChatState = {
   messages: [] as { role: string; content: string }[],
@@ -225,32 +229,33 @@ describe("View toggling", () => {
   });
 
   it("shows back button in chat view", () => {
-    // Trigger chat view by sending a message
-    render(<App />);
+    // Simulate assistant already streaming — chat view only shows once AI responds
+    mockChatState.streamingContent = "Hello there";
+    mockChatState.isStreaming = true;
 
-    const input = screen.getByPlaceholderText(/Ask Flint anything/);
-    fireEvent.change(input, { target: { value: "test" } });
-    fireEvent.keyDown(input, { key: "Enter" });
+    render(<App />);
 
     const backButton = screen.getByLabelText("Back to briefing");
     expect(backButton).toBeTruthy();
   });
 
   it("returns to briefing view when back button is clicked", () => {
-    render(<App />);
+    // Simulate assistant already streaming
+    mockChatState.streamingContent = "Hello there";
+    mockChatState.isStreaming = true;
 
-    // Go to chat view
-    const input = screen.getByPlaceholderText(/Ask Flint anything/);
-    fireEvent.change(input, { target: { value: "test" } });
-    fireEvent.keyDown(input, { key: "Enter" });
+    const { rerender } = render(<App />);
 
     // Click back
     const backButton = screen.getByLabelText("Back to briefing");
     fireEvent.click(backButton);
 
-    // Should be back in briefing view
-    expect(screen.getByTestId("greeting")).toBeTruthy();
     expect(mockClearMessages).toHaveBeenCalled();
+
+    // Re-render picks up the cleared mock state (real Zustand would trigger this automatically)
+    rerender(<App />);
+
+    expect(screen.getByTestId("greeting")).toBeTruthy();
   });
 });
 

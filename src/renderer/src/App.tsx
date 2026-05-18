@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { ArrowLeft, CircleCheck } from "lucide-react";
 import { useAttention } from "./hooks/useAttention";
 import { useChat } from "./hooks/useChat";
@@ -18,7 +18,6 @@ import { SuggestionChips } from "./components/blocks/SuggestionChips";
 import styles from "./App.module.css";
 
 export default function App() {
-  const [chatActive, setChatActive] = useState(false);
   const { items } = useAttention();
   const { messages, streamingContent, isStreaming, sendMessage, clearMessages } = useChat();
   const { config, isLoaded } = useConfig();
@@ -31,7 +30,13 @@ export default function App() {
   const setActiveBlock = useBlockStore((s) => s.setActiveBlock);
   const clearActiveBlock = useBlockStore((s) => s.clearActiveBlock);
 
-  const isInChat = chatActive || messages.length > 0 || isStreaming;
+  // Waiting: sent a message, no response yet (no streaming text, no block)
+  const isWaiting = isStreaming && !streamingContent && !activeBlock;
+
+  // Only enter chat view when the AI has actually produced text content
+  const hasAssistantContent =
+    streamingContent.length > 0 || messages.some((m) => m.role === "assistant");
+  const isInChat = hasAssistantContent;
 
   const pillState: PillState =
     isInChat && !activeBlock ? "chat" : derivePillState(activeBlock, isStreaming);
@@ -44,13 +49,11 @@ export default function App() {
     (prompt: string) => {
       clearActiveBlock();
       sendMessage(prompt);
-      setChatActive(true);
     },
     [sendMessage, clearActiveBlock],
   );
 
   const handleBack = useCallback(() => {
-    setChatActive(false);
     clearActiveBlock();
     clearMessages();
   }, [clearMessages, clearActiveBlock]);
@@ -168,7 +171,7 @@ export default function App() {
               onJoin={handleJoin}
             />
             <div className={styles.footer}>
-              <ChatInput ref={chatInputRef} onSend={handleSend} disabled={isStreaming} />
+              <ChatInput ref={chatInputRef} onSend={handleSend} disabled={isStreaming} isLoading={isWaiting} />
             </div>
           </div>
         </div>
@@ -202,7 +205,7 @@ export default function App() {
                 onSend={sendMessage}
               />
               <div className={styles.footer}>
-                <ChatInput ref={chatInputRef} onSend={sendMessage} disabled={isStreaming} />
+                <ChatInput ref={chatInputRef} onSend={sendMessage} disabled={isStreaming} isLoading={isWaiting} />
               </div>
             </div>
           </div>
@@ -271,6 +274,7 @@ export default function App() {
               ref={chatInputRef}
               onSend={handleSend}
               disabled={isStreaming}
+              isLoading={isWaiting}
               placeholder="Ask Flint anything…"
             />
           </div>
