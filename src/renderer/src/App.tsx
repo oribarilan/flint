@@ -157,127 +157,121 @@ export default function App() {
 
   const isEmpty = meetings.length === 0 && items.length === 0;
 
-  // Active AI block takes priority
-  if (activeBlock) {
-    return (
-      <div className={styles.window}>
-        <div className={styles.pill} data-state={pillState} data-testid="app-root">
-          <div className={styles.content} key={pillState}>
-            <BlockRenderer block={activeBlock} onDismiss={handleBlockDismiss} />
-            <SuggestionChips
-              pillState={pillState}
-              onSend={handleSend}
-              onBack={handleChipBack}
-              onJoin={handleJoin}
+  // Determine what to render in the content area
+  const renderContent = () => {
+    // Active AI block takes priority
+    if (activeBlock) {
+      return <BlockRenderer block={activeBlock} onDismiss={handleBlockDismiss} />;
+    }
+
+    // Chat view (AI is streaming text or has responded)
+    if (isInChat) {
+      return (
+        <>
+          <div className={styles.chatHeader}>
+            <button
+              className={styles.backButton}
+              onClick={handleBack}
+              aria-label="Back to briefing"
+              type="button"
+            >
+              <ArrowLeft size={14} />
+            </button>
+            <span className={styles.chatTitle}>Flint</span>
+          </div>
+          <div className={styles.chatView}>
+            <ChatPanel
+              ref={chatPanelRef}
+              messages={messages}
+              streamingContent={streamingContent}
+              isStreaming={isStreaming}
+              onSend={sendMessage}
             />
-            <div className={styles.footer}>
-              <ChatInput ref={chatInputRef} onSend={handleSend} disabled={isStreaming} isLoading={isWaiting} />
-            </div>
           </div>
-        </div>
-      </div>
-    );
-  }
+        </>
+      );
+    }
 
-  // Chat view
-  if (isInChat) {
+    // Briefing view (default)
     return (
-      <div className={styles.window}>
-        <div className={styles.pill} data-state="chat" data-testid="app-root">
-          <div className={styles.content} key="chat">
-            <div className={styles.chatHeader}>
-              <button
-                className={styles.backButton}
-                onClick={handleBack}
-                aria-label="Back to briefing"
-                type="button"
-              >
-                <ArrowLeft size={14} />
-              </button>
-              <span className={styles.chatTitle}>Flint</span>
+      <div className={styles.body}>
+        {isEmpty ? (
+          <div className={styles.empty}>
+            <div className={styles.emptyIcon}>
+              <CircleCheck size={20} aria-hidden="true" />
             </div>
-            <div className={styles.chatView}>
-              <ChatPanel
-                ref={chatPanelRef}
-                messages={messages}
-                streamingContent={streamingContent}
-                isStreaming={isStreaming}
-                onSend={sendMessage}
-              />
-              <div className={styles.footer}>
-                <ChatInput ref={chatInputRef} onSend={sendMessage} disabled={isStreaming} isLoading={isWaiting} />
-              </div>
-            </div>
+            <h3 className={styles.emptyTitle}>All clear</h3>
+            <p className={styles.emptyDesc}>
+              No meetings or action items right now.
+              <br />
+              Enjoy the focus time.
+            </p>
           </div>
-        </div>
+        ) : (
+          <>
+            <Greeting meetings={meetings} />
+
+            {meetings.length > 0 && (
+              <div className={styles.section}>
+                <div className={styles.sectionLabel}>Next up</div>
+                <div>
+                  {meetings.map((m) => (
+                    <MeetingRow key={m.id} meeting={m} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {meetings.length > 0 && items.length > 0 && <div className={styles.divider} />}
+
+            {items.length > 0 && (
+              <div className={styles.section}>
+                <div className={styles.sectionLabel}>Attention</div>
+                <div>
+                  {items.map((item) => (
+                    <AttentionRow key={item.id} item={item} onOpen={handleOpenAttention} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
     );
-  }
+  };
 
-  // Briefing view
   return (
     <div className={styles.window}>
-      <div className={styles.pill} data-state="briefing" data-testid="app-root">
-        <div className={styles.content} key="briefing">
-          <div className={styles.body}>
-            {isEmpty ? (
-              <div className={styles.empty}>
-                <div className={styles.emptyIcon}>
-                  <CircleCheck size={20} aria-hidden="true" />
-                </div>
-                <h3 className={styles.emptyTitle}>All clear</h3>
-                <p className={styles.emptyDesc}>
-                  No meetings or action items right now.
-                  <br />
-                  Enjoy the focus time.
-                </p>
-              </div>
-            ) : (
-              <>
-                <Greeting meetings={meetings} />
+      <div className={styles.pill} data-state={pillState} data-testid="app-root">
+        {/* Animated content area */}
+        <div className={styles.content} key={activeBlock ? pillState : isInChat ? "chat" : "briefing"}>
+          {renderContent()}
+        </div>
 
-                {meetings.length > 0 && (
-                  <div className={styles.section}>
-                    <div className={styles.sectionLabel}>Next up</div>
-                    <div>
-                      {meetings.map((m) => (
-                        <MeetingRow key={m.id} meeting={m} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {meetings.length > 0 && items.length > 0 && <div className={styles.divider} />}
-
-                {items.length > 0 && (
-                  <div className={styles.section}>
-                    <div className={styles.sectionLabel}>Attention</div>
-                    <div>
-                      {items.map((item) => (
-                        <AttentionRow key={item.id} item={item} onOpen={handleOpenAttention} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
+        {/* Thinking indicator */}
+        {isWaiting && (
+          <div className={styles.thinking} aria-label="Thinking">
+            <span className={styles.dot} />
+            <span className={styles.dot} />
+            <span className={styles.dot} />
           </div>
+        )}
 
-          <SuggestionChips
-            pillState={pillState}
+        {/* Stable footer — always at the bottom, never remounts */}
+        <SuggestionChips
+          pillState={pillState}
+          onSend={handleSend}
+          onBack={handleChipBack}
+          onJoin={handleJoin}
+        />
+        <div className={styles.footer}>
+          <ChatInput
+            ref={chatInputRef}
             onSend={handleSend}
-            onBack={handleChipBack}
-            onJoin={handleJoin}
+            disabled={isStreaming}
+            isLoading={isWaiting}
+            placeholder={isInChat ? undefined : "Ask Flint anything…"}
           />
-          <div className={styles.footer}>
-            <ChatInput
-              ref={chatInputRef}
-              onSend={handleSend}
-              disabled={isStreaming}
-              isLoading={isWaiting}
-              placeholder="Ask Flint anything…"
-            />
-          </div>
         </div>
       </div>
     </div>
