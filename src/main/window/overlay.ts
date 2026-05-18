@@ -15,6 +15,7 @@ export function createOverlayWindow(): BrowserWindow {
     show: false,
     frame: false,
     transparent: true,
+    hasShadow: false,
     alwaysOnTop: true,
     skipTaskbar: true,
     resizable: false,

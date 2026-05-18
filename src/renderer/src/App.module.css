@@ -17,8 +17,6 @@
   flex-direction: column;
   max-height: var(--pill-max-height);
   background: var(--glass-bg);
-  backdrop-filter: blur(180px) saturate(140%) brightness(0.95);
-  -webkit-backdrop-filter: blur(180px) saturate(140%) brightness(0.95);
   border: 1px solid var(--glass-border);
   box-shadow: var(--shadow-window), var(--glass-inner-glow);
   overflow: hidden;
