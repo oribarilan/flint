@@ -71,6 +71,12 @@ export function useGlobalShortcuts({
           closePicker();
         } else if (showSettings) {
           closeSettings();
+        } else if (
+          document.activeElement instanceof HTMLElement &&
+          document.activeElement !== document.body
+        ) {
+          // Something inside the pill is focused (e.g. chat input) — blur it first
+          document.activeElement.blur();
         } else {
           resetFocus();
           onHideOverlay();
