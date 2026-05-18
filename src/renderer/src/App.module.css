@@ -18,7 +18,7 @@
   max-height: var(--pill-max-height);
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
-  box-shadow: var(--shadow-window), var(--glass-inner-glow);
+  box-shadow: var(--glass-inner-glow);
   overflow: hidden;
   user-select: none;
   will-change: width, border-radius;
