@@ -22,6 +22,8 @@ interface FlintAPI {
   onSpotlightShow: (callback: (meeting: unknown) => void) => () => void;
   spotlightDismiss: () => void;
   spotlightJoin: (joinUrl: string) => void;
+  onBlocksUpdate: (callback: (block: unknown) => void) => () => void;
+  sendBlocksAction: (action: { type: string; payload: Record<string, string> }) => void;
 }
 
 declare global {

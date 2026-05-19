@@ -23,6 +23,7 @@ vi.mock("../copilot/permissions", () => ({
 
 vi.mock("../copilot/system-prompt", () => ({
   CHAT_SYSTEM_PROMPT: "system",
+  buildChatSystemPrompt: () => "system",
 }));
 
 import { createSessionManager } from "../copilot/sessions";
@@ -30,6 +31,7 @@ import { createSessionManager } from "../copilot/sessions";
 const EXPECTED_CHAT_TOOLS = [
   "show_notification",
   "join_meeting",
+  "show_meeting",
   "show_overlay",
   "set_attention_items",
 ];

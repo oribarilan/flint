@@ -3,8 +3,8 @@ import { join } from "path";
 import { is } from "@electron-toolkit/utils";
 import { getTray } from "./tray";
 
-const POPOVER_WIDTH = 340;
-const POPOVER_HEIGHT = 480;
+const POPOVER_WIDTH = 360;
+const POPOVER_HEIGHT = 600;
 
 let overlayWindow: BrowserWindow | null = null;
 
@@ -15,6 +15,7 @@ export function createOverlayWindow(): BrowserWindow {
     show: false,
     frame: false,
     transparent: true,
+    hasShadow: false,
     alwaysOnTop: true,
     skipTaskbar: true,
     resizable: false,
@@ -30,6 +31,9 @@ export function createOverlayWindow(): BrowserWindow {
   } else {
     void overlayWindow.loadFile(join(__dirname, "../renderer/index.html"));
   }
+
+  // On macOS, transparent: true already makes fully-transparent regions click-through.
+  // The pill's glass background keeps it interactive. No setIgnoreMouseEvents needed.
 
   overlayWindow.on("blur", () => {
     hideOverlay();

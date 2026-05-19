@@ -1,0 +1,1555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flint — Dynamic Island Showcase</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-primary: oklch(14% 0.006 60);
+    --bg-secondary: oklch(19% 0.007 60);
+    --bg-hover: oklch(23% 0.008 60);
+    --bg-selected: oklch(25% 0.01 60);
+    --text-primary: oklch(93% 0.006 60);
+    --text-secondary: oklch(62% 0.008 60);
+    --text-placeholder: oklch(43% 0.006 60);
+    --accent: oklch(74% 0.15 65);
+    --accent-hover: oklch(70% 0.14 65);
+    --text-on-accent: oklch(16% 0.02 65);
+    --border-subtle: oklch(23% 0.006 60);
+    --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+    --ease-morph: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-enter: cubic-bezier(0.25, 1, 0.5, 1);
+    --morph-duration: 450ms;
+    --fade-duration: 250ms;
+    --stagger: 50ms;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --morph-duration: 0.01ms;
+      --fade-duration: 0.01ms;
+      --stagger: 0ms;
+    }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background: #0a0a09;
+    color: var(--text-primary);
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* ── Top bar ─────────────────────────────────── */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 200;
+    background: rgba(10, 10, 9, 0.92);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .topbar-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+  }
+
+  .topbar-title span {
+    color: var(--accent);
+  }
+
+  .variant-switcher {
+    display: flex;
+    background: rgba(255,255,255,0.04);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 2px;
+  }
+
+  .variant-btn {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 16px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .variant-btn.active {
+    background: rgba(255,255,255,0.08);
+    color: var(--text-primary);
+  }
+
+  .variant-btn:hover:not(.active) {
+    color: var(--text-primary);
+  }
+
+  .variant-desc {
+    font-size: 11px;
+    color: var(--text-placeholder);
+    margin-left: auto;
+    max-width: 360px;
+  }
+
+  /* ── Viewport ───────────────────────────────── */
+  .viewport {
+    position: relative;
+    width: 100%;
+    height: calc(100vh - 56px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .desktop-bg {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(145deg, #1a2a3d 0%, #141e2c 35%, #0f1820 65%, #111518 100%);
+  }
+
+  .desktop-bg::before {
+    content: '';
+    position: absolute;
+    top: 50px; left: 30px;
+    width: 420px; height: 280px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .desktop-bg::after {
+    content: '';
+    position: absolute;
+    top: 100px; right: 60px;
+    width: 500px; height: 320px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .desktop-dim {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(12px);
+    z-index: 1;
+  }
+
+  /* ── Island container (shared) ──────────────── */
+  .island-wrap {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* ── VARIANT A: Fluid Pill ──────────────────── */
+  .island-pill {
+    width: 320px;
+    border-radius: 28px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-subtle);
+    box-shadow: 0 32px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.03);
+    overflow: hidden;
+    transition:
+      width var(--morph-duration) var(--ease-morph),
+      border-radius var(--morph-duration) var(--ease-morph);
+  }
+
+  .island-pill[data-state="action"] {
+    width: 280px;
+    border-radius: 40px;
+  }
+
+  .island-pill[data-state="chat"] {
+    width: 340px;
+    border-radius: 22px;
+  }
+
+  .island-pill[data-state="email"] {
+    width: 330px;
+    border-radius: 24px;
+  }
+
+  .island-pill[data-state="meeting"] {
+    width: 320px;
+    border-radius: 24px;
+  }
+
+  .pill-content {
+    padding: 20px;
+    position: relative;
+  }
+
+  /* ── VARIANT B: Glass Morph ─────────────────── */
+  .island-glass {
+    width: 340px;
+    background: oklch(14% 0.006 60 / 0.85);
+    backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
+    overflow: hidden;
+    transition: border-radius var(--morph-duration) var(--ease-morph);
+  }
+
+  .island-glass[data-state="action"] {
+    border-radius: 24px;
+  }
+
+  .glass-content {
+    padding: 20px;
+    position: relative;
+  }
+
+  /* ── VARIANT C: Floating Blocks ─────────────── */
+  .island-float {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+    width: 320px;
+  }
+
+  .float-block {
+    width: 100%;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+    padding: 16px 18px;
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+    animation: floatIn var(--morph-duration) var(--ease-enter) forwards;
+  }
+
+  .float-block:nth-child(1) { animation-delay: 0ms; }
+  .float-block:nth-child(2) { animation-delay: calc(var(--stagger) * 1); }
+  .float-block:nth-child(3) { animation-delay: calc(var(--stagger) * 2); }
+  .float-block:nth-child(4) { animation-delay: calc(var(--stagger) * 3); }
+  .float-block:nth-child(5) { animation-delay: calc(var(--stagger) * 4); }
+  .float-block:nth-child(6) { animation-delay: calc(var(--stagger) * 5); }
+
+  @keyframes floatIn {
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .float-input-wrap {
+    width: 100%;
+    opacity: 0;
+    transform: translateY(8px);
+    animation: floatIn var(--morph-duration) var(--ease-enter) forwards;
+    animation-delay: calc(var(--stagger) * 5);
+  }
+
+  /* ── Shared content styles ──────────────────── */
+  .state-content {
+    animation: fadeSlideIn var(--fade-duration) var(--ease-enter) forwards;
+  }
+
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .greeting {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+  }
+
+  .greeting-sub {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 14px;
+  }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-placeholder);
+    margin-bottom: 8px;
+    margin-top: 14px;
+  }
+
+  .section-label:first-child {
+    margin-top: 0;
+  }
+
+  /* Meeting rows */
+  .meeting-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.12s;
+    margin: 0 -6px;
+  }
+
+  .meeting-row:hover {
+    background: var(--bg-hover);
+  }
+
+  .meeting-row .icon-box {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .meeting-row .icon-box.imminent {
+    background: oklch(74% 0.15 65 / 0.15);
+  }
+
+  .meeting-row .icon-box.imminent svg {
+    color: var(--accent);
+  }
+
+  .meeting-row .icon-box svg {
+    width: 14px;
+    height: 14px;
+    color: var(--text-secondary);
+  }
+
+  .meeting-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .meeting-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .meeting-meta {
+    font-size: 10px;
+    color: var(--text-secondary);
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .meeting-time {
+    color: var(--text-placeholder);
+  }
+
+  .meeting-time.soon {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* Attention items */
+  .attention-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 6px 0;
+  }
+
+  .attention-item .attn-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: var(--text-placeholder);
+  }
+
+  .attention-item .attn-text {
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.45;
+  }
+
+  .attention-item .attn-text strong {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  /* Meeting detail */
+  .detail-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .back-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: none;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.12s;
+    flex-shrink: 0;
+  }
+
+  .back-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  .back-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .detail-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.2;
+  }
+
+  .detail-time {
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 500;
+    margin-bottom: 12px;
+  }
+
+  .detail-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    padding: 3px 0;
+  }
+
+  .detail-meta-row svg {
+    width: 13px;
+    height: 13px;
+    color: var(--text-placeholder);
+    flex-shrink: 0;
+  }
+
+  .avatars {
+    display: flex;
+    margin: 10px 0;
+    gap: 0;
+  }
+
+  .avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-left: -4px;
+    border: 2px solid var(--bg-primary);
+  }
+
+  .avatar:first-child { margin-left: 0; }
+
+  .ai-prep {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.04);
+    border-radius: 8px;
+  }
+
+  .ai-prep-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--accent);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .ai-prep-label svg {
+    width: 11px;
+    height: 11px;
+  }
+
+  .ai-prep-item {
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.45;
+    padding-left: 10px;
+    position: relative;
+    margin-bottom: 3px;
+  }
+
+  .ai-prep-item::before {
+    content: '·';
+    position: absolute;
+    left: 1px;
+    color: var(--text-placeholder);
+    font-weight: 700;
+  }
+
+  .detail-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .btn-primary {
+    flex: 1;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 9px 20px;
+    border: none;
+    border-radius: 10px;
+    background: var(--accent);
+    color: var(--text-on-accent);
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+
+  .btn-primary:hover { background: var(--accent-hover); }
+
+  .btn-ghost {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 9px 16px;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    background: rgba(255,255,255,0.04);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+
+  .btn-ghost:hover {
+    background: rgba(255,255,255,0.08);
+    color: var(--text-primary);
+  }
+
+  /* Email list */
+  .email-card {
+    display: flex;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    margin: 0 -6px;
+    cursor: pointer;
+    transition: background 0.12s;
+    position: relative;
+  }
+
+  .email-card:hover {
+    background: var(--bg-hover);
+  }
+
+  .email-card:hover .email-actions {
+    opacity: 1;
+  }
+
+  .email-priority {
+    position: absolute;
+    left: 0;
+    top: 12px;
+    bottom: 12px;
+    width: 2px;
+    border-radius: 2px;
+  }
+
+  .email-priority.high { background: oklch(65% 0.2 25); }
+  .email-priority.medium { background: oklch(78% 0.15 85); }
+  .email-priority.low { background: transparent; }
+
+  .email-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 600;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .email-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .email-sender {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+
+  .email-subject {
+    font-size: 11px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .email-preview {
+    font-size: 10px;
+    color: var(--text-placeholder);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 1px;
+  }
+
+  .email-time {
+    font-size: 10px;
+    color: var(--text-placeholder);
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .email-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.12s;
+    align-items: flex-start;
+    margin-top: 2px;
+  }
+
+  .email-action-btn {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    border: none;
+    background: var(--bg-secondary);
+    color: var(--text-placeholder);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.1s;
+  }
+
+  .email-action-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  .email-action-btn svg {
+    width: 11px;
+    height: 11px;
+  }
+
+  /* Action confirmation */
+  .action-confirm {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 4px;
+  }
+
+  .action-spinner {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid var(--border-subtle);
+    border-top-color: var(--accent);
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .action-check {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: scaleIn 0.3s var(--ease-enter);
+  }
+
+  @keyframes scaleIn {
+    from { transform: scale(0); }
+    to { transform: scale(1); }
+  }
+
+  .action-check svg {
+    width: 12px;
+    height: 12px;
+    color: var(--text-on-accent);
+  }
+
+  .action-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+
+  .action-progress {
+    height: 2px;
+    background: var(--border-subtle);
+    border-radius: 2px;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+
+  .action-progress-bar {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    width: 0%;
+    animation: progressFill 2s var(--ease-enter) forwards;
+  }
+
+  @keyframes progressFill {
+    to { width: 100%; }
+  }
+
+  /* Chat fallback */
+  .chat-user-msg {
+    font-size: 11px;
+    color: var(--text-primary);
+    background: oklch(74% 0.15 65 / 0.12);
+    padding: 8px 12px;
+    border-radius: 10px 10px 4px 10px;
+    margin-left: auto;
+    max-width: 85%;
+    width: fit-content;
+    margin-bottom: 8px;
+  }
+
+  .chat-thinking {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 0;
+    margin-bottom: 4px;
+  }
+
+  .thinking-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--text-placeholder);
+    animation: blink 1.4s ease-in-out infinite;
+  }
+
+  .thinking-dot:nth-child(2) { animation-delay: 0.2s; }
+  .thinking-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes blink {
+    0%, 80%, 100% { opacity: 0.25; }
+    40% { opacity: 1; }
+  }
+
+  .chat-response {
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    background: var(--bg-secondary);
+    padding: 10px 12px;
+    border-radius: 4px 10px 10px 10px;
+    max-width: 92%;
+  }
+
+  .chat-response p {
+    margin-bottom: 6px;
+  }
+
+  .chat-response p:last-child {
+    margin-bottom: 0;
+  }
+
+  .chat-response strong {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  /* ── Input + chips (shared) ─────────────────── */
+  .input-area {
+    padding: 12px 0 0;
+    border-top: 1px solid var(--border-subtle);
+    margin-top: 14px;
+  }
+
+  .chips {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+
+  .chip {
+    font-family: var(--font-sans);
+    font-size: 10px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 100px;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.03);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.12s;
+    white-space: nowrap;
+  }
+
+  .chip:hover {
+    background: rgba(255,255,255,0.07);
+    color: var(--text-primary);
+    border-color: rgba(255,255,255,0.1);
+  }
+
+  .chip:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .text-input {
+    flex: 1;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    padding: 8px 12px;
+    border-radius: 100px;
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.12s;
+  }
+
+  .text-input::placeholder {
+    color: var(--text-placeholder);
+  }
+
+  .text-input:focus {
+    border-color: var(--accent);
+  }
+
+  .send-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent);
+    color: var(--text-on-accent);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.12s;
+  }
+
+  .send-btn:hover { background: var(--accent-hover); }
+
+  .send-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* Float variant input — separate from blocks */
+  .float-input-area {
+    width: 100%;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    padding: 12px 16px;
+  }
+
+  .float-input-area .input-area {
+    padding-top: 0;
+    border-top: none;
+    margin-top: 0;
+  }
+
+  /* ── Stagger helpers ────────────────────────── */
+  .stagger-item {
+    opacity: 0;
+    transform: translateY(6px);
+    animation: fadeSlideIn var(--fade-duration) var(--ease-enter) forwards;
+  }
+
+  .stagger-item:nth-child(1) { animation-delay: calc(var(--stagger) * 0); }
+  .stagger-item:nth-child(2) { animation-delay: calc(var(--stagger) * 1); }
+  .stagger-item:nth-child(3) { animation-delay: calc(var(--stagger) * 2); }
+  .stagger-item:nth-child(4) { animation-delay: calc(var(--stagger) * 3); }
+  .stagger-item:nth-child(5) { animation-delay: calc(var(--stagger) * 4); }
+  .stagger-item:nth-child(6) { animation-delay: calc(var(--stagger) * 5); }
+  .stagger-item:nth-child(7) { animation-delay: calc(var(--stagger) * 6); }
+  .stagger-item:nth-child(8) { animation-delay: calc(var(--stagger) * 7); }
+  .stagger-item:nth-child(9) { animation-delay: calc(var(--stagger) * 8); }
+
+  /* ── Rationale ──────────────────────────────── */
+  .rationale {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: rgba(10, 10, 9, 0.88);
+    backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding: 12px 28px;
+  }
+
+  .rationale-text {
+    font-size: 11px;
+    color: var(--text-placeholder);
+    max-width: 700px;
+    line-height: 1.5;
+  }
+
+  .rationale-text strong {
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  /* ── Hidden ─────────────────────────────────── */
+  .hidden { display: none !important; }
+
+  /* ── Divider ────────────────────────────────── */
+  .divider {
+    height: 1px;
+    background: var(--border-subtle);
+    margin: 10px 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-title">Flint — <span>Dynamic Island</span></div>
+  <div class="variant-switcher" id="variant-switcher">
+    <button class="variant-btn active" data-variant="pill">A · Fluid Pill</button>
+    <button class="variant-btn" data-variant="glass">B · Glass Morph</button>
+    <button class="variant-btn" data-variant="float">C · Floating Blocks</button>
+  </div>
+  <div class="variant-desc" id="variant-desc">Morphing pill that reshapes to fit each content type. Width, height, and radius all animate.</div>
+</div>
+
+<div class="viewport">
+  <div class="desktop-bg"></div>
+  <div class="desktop-dim"></div>
+  <div class="island-wrap" id="island-wrap"></div>
+</div>
+
+<div class="rationale">
+  <div class="rationale-text" id="rationale-text">
+    <strong>Fluid Pill:</strong> The container morphs like iOS Dynamic Island — width, height, and corner radius all transition together. Content cross-fades during shape changes. The pill feels alive, adapting to whatever the AI wants to show.
+  </div>
+</div>
+
+<script>
+// ── SVG Icons ────────────────────────────────────
+const ICONS = {
+  calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+  mail: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>',
+  file: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
+  clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+  users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>',
+  chevronLeft: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+  send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>',
+  mapPin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+  sparkle: '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0L6.5 5.5L1 4L5.5 6.5L4 12L6.5 7.5L12 9L7.5 6.5L9 1L6.5 5.5Z" opacity=".5"/><path d="M12 6l-1 3.5L7.5 8l3 1.5L9 13l1.5-3L14 11.5l-3-1.5L12.5 6.5 11 9.5Z"/></svg>',
+  archive: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>',
+  reply: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 00-4-4H4"/></svg>',
+  snooze: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v6l-4 4 4 4v6H4"/><line x1="9" y1="10" x2="15" y2="10"/></svg>',
+  alertTriangle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+};
+
+// ── Data ─────────────────────────────────────────
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
+const MEETINGS = [
+  { name: 'Daily Standup', time: '9:30 AM', soon: true, attendees: 6 },
+  { name: 'Q3 Strategy Review', time: '11:00 AM', soon: false, attendees: 8 },
+  { name: '1:1 with Sarah', time: '2:00 PM', soon: false, attendees: 2 },
+];
+
+const MEETING_DETAIL = {
+  title: 'Daily Standup',
+  timeRange: '9:30 – 9:45 AM',
+  location: 'Sequoia (Floor 3) · Teams',
+  attendees: [
+    { initials: 'SC', color: 'oklch(65% 0.15 25)' },
+    { initials: 'JP', color: 'oklch(65% 0.12 200)' },
+    { initials: 'ER', color: 'oklch(65% 0.15 145)' },
+    { initials: 'KN', color: 'oklch(70% 0.12 280)' },
+    { initials: 'AL', color: 'oklch(68% 0.1 60)' },
+    { initials: 'You', color: 'var(--accent)' },
+  ],
+  prep: [
+    'Blocker from yesterday: API rate limits on staging',
+    'Elena pushed updated wireframes — review before call',
+    'Sprint velocity is 15% below target this week',
+  ],
+};
+
+const EMAILS = [
+  { sender: 'Sarah Chen', initials: 'SC', color: 'oklch(65% 0.15 25)', subject: 'Re: Atlas launch timeline', preview: 'I think we should push to next Thursday given the staging issues...', time: '8:42 AM', priority: 'high' },
+  { sender: 'James Park', initials: 'JP', color: 'oklch(65% 0.12 200)', subject: 'Competitive analysis deck', preview: 'Here\'s the updated deck with Q2 numbers. Let me know if...', time: '8:15 AM', priority: 'medium' },
+  { sender: 'Product Alerts', initials: 'PA', color: 'oklch(55% 0.08 60)', subject: 'Weekly usage digest', preview: 'Your team\'s feature adoption increased 12% this week...', time: '7:30 AM', priority: 'low' },
+  { sender: 'Elena Ruiz', initials: 'ER', color: 'oklch(65% 0.15 145)', subject: 'Wireframe review — v3', preview: 'Updated the onboarding flow based on yesterday\'s feedback...', time: 'Yesterday', priority: 'medium' },
+];
+
+const ATTENTION_ITEMS = [
+  { icon: 'file', text: '<strong>Review Q2 report</strong> — shared by Sarah, 2 days ago' },
+  { icon: 'alertTriangle', text: '<strong>Sprint velocity</strong> is 15% below target this week' },
+];
+
+// ── State ────────────────────────────────────────
+let currentVariant = 'pill';
+let currentState = 'briefing';
+let actionTimeout = null;
+
+const VARIANT_DESCS = {
+  pill: 'Morphing pill that reshapes to fit each content type. Width, height, and radius all animate.',
+  glass: 'Fixed-width glass popover with dynamic height. Blocks slide in vertically. Polished evolution of the current overlay.',
+  float: 'Independent floating cards that stack and stagger. Each block animates on its own. Widget-gallery feel.',
+};
+
+const RATIONALE = {
+  pill: '<strong>Fluid Pill:</strong> The container morphs like iOS Dynamic Island — width, height, and corner radius all transition together. Content cross-fades during shape changes. The pill feels alive, adapting to whatever the AI wants to show.',
+  glass: '<strong>Glass Morph:</strong> Keeps what works about the current overlay — fixed width, glass backdrop, Flint\'s warm dark aesthetic — but makes height dynamic. Content slides up/down with stagger. Lowest risk, highest polish.',
+  float: '<strong>Floating Blocks:</strong> Each content block is independent — they stack, stagger in, and can animate out individually. Feels like a notification center or widget gallery. Most flexible for mixed content types.',
+};
+
+// ── SVG helper ───────────────────────────────────
+function icon(name, size = 14) {
+  const svg = ICONS[name] || ICONS.calendar;
+  return svg.replace('<svg', `<svg width="${size}" height="${size}" style="display:block;flex-shrink:0"`);
+}
+
+// ── Content renderers ────────────────────────────
+function renderMeetingRows(clickable = true) {
+  return MEETINGS.map((m, i) => `
+    <div class="meeting-row stagger-item" ${clickable ? `onclick="setState('meeting')"` : ''} tabindex="0" role="button" aria-label="View ${m.name}">
+      <div class="icon-box${m.soon ? ' imminent' : ''}">
+        ${icon('calendar')}
+      </div>
+      <div class="meeting-info">
+        <div class="meeting-name">${m.name}</div>
+        <div class="meeting-meta">
+          <span class="meeting-time${m.soon ? ' soon' : ''}">${m.soon ? 'In 25 min' : m.time}</span>
+          <span>· ${m.attendees} people</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderAttention() {
+  return ATTENTION_ITEMS.map((item, i) => `
+    <div class="attention-item stagger-item" style="animation-delay: calc(var(--stagger) * ${i + 4})">
+      <span class="attn-icon">${icon(item.icon, 14)}</span>
+      <span class="attn-text">${item.text}</span>
+    </div>
+  `).join('');
+}
+
+function renderBriefingContent() {
+  return `
+    <div class="state-content">
+      <div class="greeting stagger-item">${getGreeting()}</div>
+      <div class="greeting-sub stagger-item">3 meetings today, next in 25 min</div>
+      <div class="section-label stagger-item">Upcoming</div>
+      ${renderMeetingRows()}
+      <div class="section-label stagger-item" style="animation-delay: calc(var(--stagger) * 4)">Needs attention</div>
+      ${renderAttention()}
+    </div>
+  `;
+}
+
+function renderMeetingContent() {
+  const d = MEETING_DETAIL;
+  return `
+    <div class="state-content">
+      <div class="detail-header stagger-item">
+        <button class="back-btn" onclick="setState('briefing')" aria-label="Back to briefing">
+          ${icon('chevronLeft', 14)}
+        </button>
+        <div class="detail-title">${d.title}</div>
+      </div>
+      <div class="detail-time stagger-item">${d.timeRange} · In 25 min</div>
+      <div class="detail-meta-row stagger-item">
+        ${icon('mapPin', 13)}
+        <span>${d.location}</span>
+      </div>
+      <div class="avatars stagger-item">
+        ${d.attendees.map(a => `<div class="avatar" style="background:${a.color}">${a.initials}</div>`).join('')}
+      </div>
+      <div class="ai-prep stagger-item">
+        <div class="ai-prep-label">${icon('sparkle', 11)} AI Prep</div>
+        ${d.prep.map(p => `<div class="ai-prep-item">${p}</div>`).join('')}
+      </div>
+      <div class="detail-actions stagger-item">
+        <button class="btn-ghost" onclick="setState('briefing')">Dismiss</button>
+        <button class="btn-primary" onclick="setState('action')">Join Meeting</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderEmailContent() {
+  return `
+    <div class="state-content">
+      <div class="detail-header stagger-item">
+        <button class="back-btn" onclick="setState('briefing')" aria-label="Back to briefing">
+          ${icon('chevronLeft', 14)}
+        </button>
+        <div class="detail-title">Inbox</div>
+      </div>
+      ${EMAILS.map((e, i) => `
+        <div class="email-card stagger-item" style="animation-delay: calc(var(--stagger) * ${i + 1})">
+          <div class="email-priority ${e.priority}"></div>
+          <div class="email-avatar" style="background:${e.color}">${e.initials}</div>
+          <div class="email-body">
+            <div class="email-sender">${e.sender}</div>
+            <div class="email-subject">${e.subject}</div>
+            <div class="email-preview">${e.preview}</div>
+          </div>
+          <div class="email-time">${e.time}</div>
+          <div class="email-actions">
+            <button class="email-action-btn" aria-label="Archive" title="Archive">${icon('archive', 11)}</button>
+            <button class="email-action-btn" aria-label="Reply" title="Reply">${icon('reply', 11)}</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderActionContent(done = false) {
+  if (done) {
+    return `
+      <div class="state-content">
+        <div class="action-confirm">
+          <div class="action-check">${icon('check', 12)}</div>
+          <span class="action-text">Joined Daily Standup</span>
+        </div>
+      </div>
+    `;
+  }
+  return `
+    <div class="state-content">
+      <div class="action-confirm">
+        <div class="action-spinner"></div>
+        <span class="action-text">Joining Daily Standup…</span>
+      </div>
+      <div class="action-progress"><div class="action-progress-bar"></div></div>
+    </div>
+  `;
+}
+
+function renderChatContent() {
+  return `
+    <div class="state-content">
+      <div class="chat-user-msg stagger-item">Why is sprint velocity down this week?</div>
+      <div class="chat-thinking stagger-item" id="thinking-dots">
+        <div class="thinking-dot"></div>
+        <div class="thinking-dot"></div>
+        <div class="thinking-dot"></div>
+      </div>
+      <div class="chat-response stagger-item" id="chat-response" style="display:none">
+        <p><strong>Sprint velocity is 15% below target</strong> for two main reasons:</p>
+        <p>1. The staging API rate-limit issue blocked James and Elena for ~6 hours on Tuesday. The fix shipped Wednesday morning.</p>
+        <p>2. Two unplanned bugs from the v2.3 release consumed about 8 story points of capacity.</p>
+        <p>You're still on track for the sprint goal if the Atlas PR lands by Thursday.</p>
+      </div>
+    </div>
+  `;
+}
+
+function renderInputArea() {
+  const chips = [
+    { label: "What's next?", action: 'meeting' },
+    { label: 'Show emails', action: 'email' },
+    { label: 'Join standup', action: 'action' },
+    { label: 'Ask anything', action: 'chat' },
+  ];
+  return `
+    <div class="input-area">
+      <div class="chips">
+        ${chips.map(c => `<button class="chip" onclick="setState('${c.action}')" tabindex="0">${c.label}</button>`).join('')}
+      </div>
+      <div class="input-row">
+        <input type="text" class="text-input" placeholder="Ask Flint anything…" id="flint-input" onkeydown="handleInput(event)">
+        <button class="send-btn" onclick="submitInput()" aria-label="Send">${icon('send', 14)}</button>
+      </div>
+    </div>
+  `;
+}
+
+// ── Variant renderers ────────────────────────────
+function getContentForState(state) {
+  switch (state) {
+    case 'briefing': return renderBriefingContent();
+    case 'meeting': return renderMeetingContent();
+    case 'email': return renderEmailContent();
+    case 'action': return renderActionContent();
+    case 'chat': return renderChatContent();
+    default: return renderBriefingContent();
+  }
+}
+
+function showInputArea(state) {
+  return state === 'briefing' || state === 'email' || state === 'chat';
+}
+
+function renderPill(state) {
+  return `
+    <div class="island-pill" data-state="${state}" id="island-pill">
+      <div class="pill-content">
+        ${getContentForState(state)}
+        ${showInputArea(state) ? renderInputArea() : ''}
+      </div>
+    </div>
+  `;
+}
+
+function renderGlass(state) {
+  return `
+    <div class="island-glass" data-state="${state}" id="island-glass">
+      <div class="glass-content">
+        ${getContentForState(state)}
+        ${showInputArea(state) ? renderInputArea() : ''}
+      </div>
+    </div>
+  `;
+}
+
+function renderFloat(state) {
+  if (state === 'briefing') {
+    return `
+      <div class="island-float" id="island-float">
+        <div class="float-block">
+          <div class="greeting">${getGreeting()}</div>
+          <div class="greeting-sub">3 meetings today, next in 25 min</div>
+        </div>
+        ${MEETINGS.map((m, i) => `
+          <div class="float-block" style="animation-delay: calc(var(--stagger) * ${i + 1})" onclick="setState('meeting')" role="button" tabindex="0">
+            <div class="meeting-row" style="margin:0;padding:0">
+              <div class="icon-box${m.soon ? ' imminent' : ''}">
+                ${icon('calendar')}
+              </div>
+              <div class="meeting-info">
+                <div class="meeting-name">${m.name}</div>
+                <div class="meeting-meta">
+                  <span class="meeting-time${m.soon ? ' soon' : ''}">${m.soon ? 'In 25 min' : m.time}</span>
+                  <span>· ${m.attendees} people</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+        <div class="float-block" style="animation-delay: calc(var(--stagger) * 4)">
+          <div class="section-label" style="margin:0 0 6px">Needs attention</div>
+          ${renderAttention()}
+        </div>
+        <div class="float-input-wrap" style="animation-delay: calc(var(--stagger) * 5)">
+          <div class="float-input-area">
+            <div class="input-area" style="padding-top:0;border-top:none;margin-top:0">
+              <div class="chips">
+                <button class="chip" onclick="setState('meeting')" tabindex="0">What's next?</button>
+                <button class="chip" onclick="setState('email')" tabindex="0">Show emails</button>
+                <button class="chip" onclick="setState('action')" tabindex="0">Join standup</button>
+                <button class="chip" onclick="setState('chat')" tabindex="0">Ask anything</button>
+              </div>
+              <div class="input-row">
+                <input type="text" class="text-input" placeholder="Ask Flint anything…" id="flint-input" onkeydown="handleInput(event)">
+                <button class="send-btn" onclick="submitInput()" aria-label="Send">${icon('send', 14)}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  if (state === 'meeting') {
+    const d = MEETING_DETAIL;
+    return `
+      <div class="island-float" id="island-float">
+        <div class="float-block">
+          <div class="detail-header">
+            <button class="back-btn" onclick="setState('briefing')" aria-label="Back">${icon('chevronLeft', 14)}</button>
+            <div class="detail-title">${d.title}</div>
+          </div>
+          <div class="detail-time">${d.timeRange} · In 25 min</div>
+          <div class="detail-meta-row">
+            ${icon('mapPin', 13)}
+            <span>${d.location}</span>
+          </div>
+          <div class="avatars">
+            ${d.attendees.map(a => `<div class="avatar" style="background:${a.color}">${a.initials}</div>`).join('')}
+          </div>
+        </div>
+        <div class="float-block" style="animation-delay: calc(var(--stagger) * 1)">
+          <div class="ai-prep" style="margin:0;border:none;padding:0;background:none">
+            <div class="ai-prep-label">${icon('sparkle', 11)} AI Prep</div>
+            ${d.prep.map(p => `<div class="ai-prep-item">${p}</div>`).join('')}
+          </div>
+        </div>
+        <div class="float-block" style="animation-delay: calc(var(--stagger) * 2)">
+          <div class="detail-actions" style="margin:0">
+            <button class="btn-ghost" onclick="setState('briefing')">Dismiss</button>
+            <button class="btn-primary" onclick="setState('action')">Join Meeting</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  if (state === 'email') {
+    return `
+      <div class="island-float" id="island-float">
+        <div class="float-block">
+          <div class="detail-header" style="margin-bottom:0">
+            <button class="back-btn" onclick="setState('briefing')" aria-label="Back">${icon('chevronLeft', 14)}</button>
+            <div class="detail-title">Inbox</div>
+          </div>
+        </div>
+        ${EMAILS.map((e, i) => `
+          <div class="float-block" style="animation-delay: calc(var(--stagger) * ${i + 1})">
+            <div class="email-card" style="margin:0;padding:0">
+              <div class="email-priority ${e.priority}"></div>
+              <div class="email-avatar" style="background:${e.color}">${e.initials}</div>
+              <div class="email-body">
+                <div class="email-sender">${e.sender}</div>
+                <div class="email-subject">${e.subject}</div>
+                <div class="email-preview">${e.preview}</div>
+              </div>
+              <div class="email-time">${e.time}</div>
+            </div>
+          </div>
+        `).join('')}
+        <div class="float-input-wrap" style="animation-delay: calc(var(--stagger) * 5)">
+          <div class="float-input-area">
+            <div class="input-area" style="padding-top:0;border-top:none;margin-top:0">
+              <div class="chips">
+                <button class="chip" onclick="setState('briefing')" tabindex="0">Back to briefing</button>
+                <button class="chip" onclick="setState('chat')" tabindex="0">Ask anything</button>
+              </div>
+              <div class="input-row">
+                <input type="text" class="text-input" placeholder="Reply to Sarah's email…" id="flint-input" onkeydown="handleInput(event)">
+                <button class="send-btn" onclick="submitInput()" aria-label="Send">${icon('send', 14)}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  if (state === 'action') {
+    return `
+      <div class="island-float" id="island-float">
+        <div class="float-block" style="border-radius:24px">
+          ${renderActionContent()}
+        </div>
+      </div>
+    `;
+  }
+
+  if (state === 'chat') {
+    return `
+      <div class="island-float" id="island-float">
+        <div class="float-block">
+          <div class="chat-user-msg" style="margin-left:auto">Why is sprint velocity down this week?</div>
+        </div>
+        <div class="float-block" style="animation-delay: calc(var(--stagger) * 1)" id="float-chat-response-block">
+          <div class="chat-thinking" id="thinking-dots">
+            <div class="thinking-dot"></div>
+            <div class="thinking-dot"></div>
+            <div class="thinking-dot"></div>
+          </div>
+          <div class="chat-response" id="chat-response" style="display:none;background:none;padding:0;border-radius:0">
+            <p><strong>Sprint velocity is 15% below target</strong> for two main reasons:</p>
+            <p>1. The staging API rate-limit issue blocked James and Elena for ~6 hours on Tuesday. The fix shipped Wednesday morning.</p>
+            <p>2. Two unplanned bugs from the v2.3 release consumed about 8 story points of capacity.</p>
+            <p>You're still on track for the sprint goal if the Atlas PR lands by Thursday.</p>
+          </div>
+        </div>
+        <div class="float-input-wrap" style="animation-delay: calc(var(--stagger) * 2)">
+          <div class="float-input-area">
+            <div class="input-area" style="padding-top:0;border-top:none;margin-top:0">
+              <div class="chips">
+                <button class="chip" onclick="setState('briefing')" tabindex="0">Back to briefing</button>
+                <button class="chip" onclick="setState('email')" tabindex="0">Show emails</button>
+              </div>
+              <div class="input-row">
+                <input type="text" class="text-input" placeholder="Follow up…" id="flint-input" onkeydown="handleInput(event)">
+                <button class="send-btn" onclick="submitInput()" aria-label="Send">${icon('send', 14)}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+}
+
+// ── Render ───────────────────────────────────────
+function render() {
+  const wrap = document.getElementById('island-wrap');
+
+  switch (currentVariant) {
+    case 'pill':
+      wrap.innerHTML = renderPill(currentState);
+      break;
+    case 'glass':
+      wrap.innerHTML = renderGlass(currentState);
+      break;
+    case 'float':
+      wrap.innerHTML = renderFloat(currentState);
+      break;
+  }
+
+  // Chat state: show response after delay
+  if (currentState === 'chat') {
+    setTimeout(() => {
+      const dots = document.getElementById('thinking-dots');
+      const resp = document.getElementById('chat-response');
+      if (dots) dots.style.display = 'none';
+      if (resp) resp.style.display = 'block';
+    }, 1500);
+  }
+
+  // Action state: auto-complete and return to briefing
+  if (currentState === 'action') {
+    clearTimeout(actionTimeout);
+    actionTimeout = setTimeout(() => {
+      // Show "done" state
+      const wrap = document.getElementById('island-wrap');
+      if (currentVariant === 'float') {
+        const block = wrap.querySelector('.float-block');
+        if (block) block.innerHTML = renderActionContent(true);
+      } else {
+        const contentClass = currentVariant === 'pill' ? '.pill-content' : '.glass-content';
+        const container = wrap.querySelector(contentClass);
+        if (container) container.innerHTML = renderActionContent(true);
+      }
+      // Return to briefing
+      setTimeout(() => setState('briefing'), 1200);
+    }, 2000);
+  }
+}
+
+function setState(state) {
+  clearTimeout(actionTimeout);
+  currentState = state;
+  render();
+}
+
+function setVariant(variant) {
+  currentVariant = variant;
+  currentState = 'briefing';
+  document.getElementById('variant-desc').textContent = VARIANT_DESCS[variant];
+  document.getElementById('rationale-text').innerHTML = RATIONALE[variant];
+  render();
+}
+
+// ── Input handling ───────────────────────────────
+function handleInput(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    submitInput();
+  }
+}
+
+function submitInput() {
+  const input = document.getElementById('flint-input');
+  if (!input) return;
+  const val = input.value.trim().toLowerCase();
+  if (!val) return;
+
+  if (val.includes('next') || val.includes('meeting') || val.includes('standup')) {
+    if (val.includes('join')) {
+      setState('action');
+    } else {
+      setState('meeting');
+    }
+  } else if (val.includes('email') || val.includes('mail') || val.includes('inbox')) {
+    setState('email');
+  } else if (val.includes('join')) {
+    setState('action');
+  } else {
+    setState('chat');
+  }
+}
+
+// ── Variant switcher ─────────────────────────────
+document.getElementById('variant-switcher').addEventListener('click', (e) => {
+  const btn = e.target.closest('.variant-btn');
+  if (!btn) return;
+  document.querySelectorAll('.variant-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  setVariant(btn.dataset.variant);
+});
+
+// ── Init ─────────────────────────────────────────
+render();
+</script>
+</body>
+</html>

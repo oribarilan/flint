@@ -1,21 +1,23 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { ArrowLeft, CircleCheck } from "lucide-react";
 import { useAttention } from "./hooks/useAttention";
 import { useChat } from "./hooks/useChat";
 import { useConfig } from "./hooks/useConfig";
 import { useMeetings } from "./hooks/useMeetings";
 import { useModelStore } from "./stores/modelStore";
+import { useBlockStore } from "./stores/blockStore";
+import { derivePillState, FlintBlockSchema } from "../../main/lib/blocks";
+import type { PillState } from "../../main/lib/blocks";
 import { Greeting } from "./components/Greeting";
 import { MeetingRow } from "./components/MeetingRow";
 import { AttentionRow } from "./components/AttentionRow";
 import { ChatPanel } from "./components/ChatPanel";
 import { ChatInput } from "./components/ChatInput";
+import { BlockRenderer } from "./components/blocks/BlockRenderer";
+import { SuggestionChips } from "./components/blocks/SuggestionChips";
 import styles from "./App.module.css";
 
-type View = "briefing" | "chat";
-
 export default function App() {
-  const [view, setView] = useState<View>("briefing");
   const { items } = useAttention();
   const { messages, streamingContent, isStreaming, sendMessage, clearMessages } = useChat();
   const { config, isLoaded } = useConfig();
@@ -24,22 +26,67 @@ export default function App() {
   const chatInputRef = useRef<HTMLInputElement>(null);
   const chatPanelRef = useRef<HTMLDivElement>(null);
 
+  const activeBlock = useBlockStore((s) => s.activeBlock);
+  const setActiveBlock = useBlockStore((s) => s.setActiveBlock);
+  const clearActiveBlock = useBlockStore((s) => s.clearActiveBlock);
+
+  // Waiting: sent a message, no response yet (no streaming text, no block)
+  const isWaiting = isStreaming && !streamingContent && !activeBlock;
+
+  // Only enter chat view when the AI has actually produced text content
+  const hasAssistantContent =
+    streamingContent.length > 0 || messages.some((m) => m.role === "assistant");
+  const isInChat = hasAssistantContent;
+
+  const pillState: PillState =
+    isInChat && !activeBlock ? "chat" : derivePillState(activeBlock, isStreaming);
+
   const handleOpenAttention = useCallback((id: string) => {
     window.flint?.openAttentionItem(id);
   }, []);
 
   const handleSend = useCallback(
     (prompt: string) => {
+      clearActiveBlock();
       sendMessage(prompt);
-      setView("chat");
     },
-    [sendMessage],
+    [sendMessage, clearActiveBlock],
   );
 
   const handleBack = useCallback(() => {
-    setView("briefing");
+    clearActiveBlock();
     clearMessages();
-  }, [clearMessages]);
+  }, [clearMessages, clearActiveBlock]);
+
+  const handleChipBack = useCallback(() => {
+    clearActiveBlock();
+  }, [clearActiveBlock]);
+
+  const handleBlockDismiss = useCallback(() => {
+    clearActiveBlock();
+    chatInputRef.current?.focus();
+  }, [clearActiveBlock]);
+
+  const handleJoin = useCallback(() => {
+    if (activeBlock?.type === "meeting-card") {
+      window.flint?.sendBlocksAction({ type: "join", payload: { meetingId: activeBlock.data.id } });
+    }
+  }, [activeBlock]);
+
+  // Subscribe to blocks:update IPC
+  useEffect(() => {
+    const unsub = window.flint?.onBlocksUpdate((raw) => {
+      const result = FlintBlockSchema.safeParse(raw);
+      if (result.success) {
+        setActiveBlock(result.data);
+      } else {
+        console.warn("[blocks] Invalid block payload dropped", { issues: result.error.issues });
+      }
+    });
+    return () => {
+      unsub?.();
+    };
+  }, [setActiveBlock]);
 
   // Sync model from config
   useEffect(() => {
@@ -74,12 +121,12 @@ export default function App() {
     };
   }, [setCurrentModel]);
 
-  // Focus chat input when switching to briefing
+  // Focus chat input when in briefing
   useEffect(() => {
-    if (view === "briefing") {
+    if (pillState === "briefing") {
       chatInputRef.current?.focus();
     }
-  }, [view]);
+  }, [pillState]);
 
   // Re-sync config (font size, etc.) when overlay regains focus
   useEffect(() => {
@@ -95,40 +142,58 @@ export default function App() {
     };
   }, []);
 
+  // Clear block state when overlay is hidden
+  useEffect(() => {
+    const handleVisibilityChange = (): void => {
+      if (document.hidden) {
+        clearActiveBlock();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [clearActiveBlock]);
+
   const isEmpty = meetings.length === 0 && items.length === 0;
 
-  if (view === "chat") {
-    return (
-      <div className={styles.root} data-testid="app-root">
-        <div className={styles.chatHeader}>
-          <button
-            className={styles.backButton}
-            onClick={handleBack}
-            aria-label="Back to briefing"
-            type="button"
-          >
-            <ArrowLeft size={14} />
-          </button>
-          <span className={styles.chatTitle}>Flint</span>
-        </div>
-        <div className={styles.chatView}>
-          <ChatPanel
-            ref={chatPanelRef}
-            messages={messages}
-            streamingContent={streamingContent}
-            isStreaming={isStreaming}
-            onSend={sendMessage}
-          />
-          <div className={styles.footer}>
-            <ChatInput ref={chatInputRef} onSend={sendMessage} disabled={isStreaming} />
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Determine what to render in the content area
+  const renderContent = () => {
+    // Active AI block takes priority
+    if (activeBlock) {
+      return <BlockRenderer block={activeBlock} onDismiss={handleBlockDismiss} />;
+    }
 
-  return (
-    <div className={styles.root} data-testid="app-root">
+    // Chat view (AI is streaming text or has responded)
+    if (isInChat) {
+      return (
+        <>
+          <div className={styles.chatHeader}>
+            <button
+              className={styles.backButton}
+              onClick={handleBack}
+              aria-label="Back to briefing"
+              type="button"
+            >
+              <ArrowLeft size={14} />
+            </button>
+            <span className={styles.chatTitle}>Flint</span>
+          </div>
+          <div className={styles.chatView}>
+            <ChatPanel
+              ref={chatPanelRef}
+              messages={messages}
+              streamingContent={streamingContent}
+              isStreaming={isStreaming}
+              onSend={sendMessage}
+            />
+          </div>
+        </>
+      );
+    }
+
+    // Briefing view (default)
+    return (
       <div className={styles.body}>
         {isEmpty ? (
           <div className={styles.empty}>
@@ -172,14 +237,42 @@ export default function App() {
           </>
         )}
       </div>
+    );
+  };
 
-      <div className={styles.footer}>
-        <ChatInput
-          ref={chatInputRef}
+  return (
+    <div className={styles.window}>
+      <div className={styles.pill} data-state={pillState} data-testid="app-root">
+        {/* Animated content area */}
+        <div className={styles.content} key={activeBlock ? pillState : isInChat ? "chat" : "briefing"}>
+          {renderContent()}
+        </div>
+
+        {/* Thinking indicator */}
+        {isWaiting && (
+          <div className={styles.thinking} aria-label="Thinking">
+            <span className={styles.dot} />
+            <span className={styles.dot} />
+            <span className={styles.dot} />
+          </div>
+        )}
+
+        {/* Stable footer — always at the bottom, never remounts */}
+        <SuggestionChips
+          pillState={pillState}
           onSend={handleSend}
-          disabled={isStreaming}
-          placeholder="Ask Flint anything…"
+          onBack={handleChipBack}
+          onJoin={handleJoin}
         />
+        <div className={styles.footer}>
+          <ChatInput
+            ref={chatInputRef}
+            onSend={handleSend}
+            disabled={isStreaming}
+            isLoading={isWaiting}
+            placeholder={isInChat ? undefined : "Ask Flint anything…"}
+          />
+        </div>
       </div>
     </div>
   );

@@ -1,16 +1,17 @@
 import { useState, useCallback, forwardRef, type KeyboardEvent } from "react";
-import { ArrowUp } from "lucide-react";
+import { ArrowUp, Loader2 } from "lucide-react";
 import styles from "./ChatInput.module.css";
 
 interface ChatInputProps {
   onSend: (message: string) => void;
   disabled?: boolean;
+  isLoading?: boolean;
   placeholder?: string;
   selectedItems?: { id: string; title: string }[];
 }
 
 export const ChatInput = forwardRef<HTMLInputElement, ChatInputProps>(function ChatInput(
-  { onSend, disabled, placeholder = "Ask Flint anything…" },
+  { onSend, disabled, isLoading, placeholder = "Ask Flint anything…" },
   ref,
 ) {
   const [value, setValue] = useState("");
@@ -44,21 +45,27 @@ export const ChatInput = forwardRef<HTMLInputElement, ChatInputProps>(function C
             setValue(e.target.value);
           }}
           onKeyDown={handleKeyDown}
-          placeholder={placeholder}
+          placeholder={isLoading ? "Thinking…" : placeholder}
           aria-label="Chat with Flint"
           aria-disabled={disabled ?? undefined}
           autoFocus
         />
       </div>
-      <button
-        className={styles.hint}
-        onClick={handleSubmit}
-        aria-label="Send"
-        type="button"
-        tabIndex={-1}
-      >
-        <ArrowUp size={12} />
-      </button>
+      {isLoading ? (
+        <div className={styles.loadingHint} aria-label="Loading">
+          <Loader2 size={12} />
+        </div>
+      ) : (
+        <button
+          className={styles.hint}
+          onClick={handleSubmit}
+          aria-label="Send"
+          type="button"
+          tabIndex={-1}
+        >
+          <ArrowUp size={12} />
+        </button>
+      )}
     </div>
   );
 });

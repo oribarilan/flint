@@ -15,6 +15,7 @@ interface FakeBrowserWindow {
   loadFile: ReturnType<typeof vi.fn>;
   getBounds: ReturnType<typeof vi.fn>;
   setPosition: ReturnType<typeof vi.fn>;
+  setIgnoreMouseEvents: ReturnType<typeof vi.fn>;
   listeners: Map<string, Listener[]>;
   emit: (event: string, ...args: unknown[]) => void;
 }
@@ -38,8 +39,9 @@ function makeFakeWindow(): FakeBrowserWindow {
     isVisible: vi.fn(() => true),
     loadURL: vi.fn(() => Promise.resolve()),
     loadFile: vi.fn(() => Promise.resolve()),
-    getBounds: vi.fn(() => ({ x: 0, y: 0, width: 340, height: 480 })),
+    getBounds: vi.fn(() => ({ x: 0, y: 0, width: 360, height: 600 })),
     setPosition: vi.fn(),
+    setIgnoreMouseEvents: vi.fn(),
     emit: (event: string, ...args: unknown[]) => {
       for (const cb of listeners.get(event) ?? []) cb(...args);
     },

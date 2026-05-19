@@ -44,6 +44,11 @@ const mockFlint = {
   setModel: vi.fn(),
   onModelChanged: mockOnModelChanged,
   onThemeChanged: vi.fn((_callback: (theme: string) => void) => vi.fn()),
+  onSpotlightShow: vi.fn((_callback: (meeting: unknown) => void) => vi.fn()),
+  spotlightDismiss: vi.fn(),
+  spotlightJoin: vi.fn(),
+  onBlocksUpdate: vi.fn((_callback: (block: unknown) => void) => vi.fn()),
+  sendBlocksAction: vi.fn(),
 };
 
 Object.defineProperty(window, "flint", { value: mockFlint, writable: true });
@@ -58,7 +63,11 @@ vi.mock("../hooks/useAttention", () => ({
   }),
 }));
 
-const mockClearMessages = vi.fn();
+const mockClearMessages = vi.fn(() => {
+  mockChatState.messages = [];
+  mockChatState.streamingContent = "";
+  mockChatState.isStreaming = false;
+});
 
 const mockChatState = {
   messages: [] as { role: string; content: string }[],
@@ -125,15 +134,27 @@ vi.mock("../components/ChatPanel", () => ({
   ChatPanel: vi.fn().mockImplementation(() => <div data-testid="chat-panel">ChatPanel</div>),
 }));
 
+vi.mock("../components/blocks/BlockRenderer", () => ({
+  BlockRenderer: ({ block }: { block: { type: string } }) => (
+    <div data-testid={`block-${block.type}`}>BlockRenderer</div>
+  ),
+}));
+
+vi.mock("../components/blocks/SuggestionChips", () => ({
+  SuggestionChips: () => <div data-testid="suggestion-chips">SuggestionChips</div>,
+}));
+
 import App from "../App";
 import { useModelStore } from "../stores/modelStore";
 import { useAttentionStore } from "../stores/attentionStore";
+import { useBlockStore } from "../stores/blockStore";
 
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
   useModelStore.setState({ currentModel: "gpt-4.1", models: [] });
   useAttentionStore.setState({ items: [], selectedIds: new Set() });
+  useBlockStore.setState({ activeBlock: null, previousPillState: "briefing" });
   // Reset chat mock state
   mockChatState.messages = [];
   mockChatState.streamingContent = "";
@@ -208,32 +229,33 @@ describe("View toggling", () => {
   });
 
   it("shows back button in chat view", () => {
-    // Trigger chat view by sending a message
-    render(<App />);
+    // Simulate assistant already streaming — chat view only shows once AI responds
+    mockChatState.streamingContent = "Hello there";
+    mockChatState.isStreaming = true;
 
-    const input = screen.getByPlaceholderText(/Ask Flint anything/);
-    fireEvent.change(input, { target: { value: "test" } });
-    fireEvent.keyDown(input, { key: "Enter" });
+    render(<App />);
 
     const backButton = screen.getByLabelText("Back to briefing");
     expect(backButton).toBeTruthy();
   });
 
   it("returns to briefing view when back button is clicked", () => {
-    render(<App />);
+    // Simulate assistant already streaming
+    mockChatState.streamingContent = "Hello there";
+    mockChatState.isStreaming = true;
 
-    // Go to chat view
-    const input = screen.getByPlaceholderText(/Ask Flint anything/);
-    fireEvent.change(input, { target: { value: "test" } });
-    fireEvent.keyDown(input, { key: "Enter" });
+    const { rerender } = render(<App />);
 
     // Click back
     const backButton = screen.getByLabelText("Back to briefing");
     fireEvent.click(backButton);
 
-    // Should be back in briefing view
-    expect(screen.getByTestId("greeting")).toBeTruthy();
     expect(mockClearMessages).toHaveBeenCalled();
+
+    // Re-render picks up the cleared mock state (real Zustand would trigger this automatically)
+    rerender(<App />);
+
+    expect(screen.getByTestId("greeting")).toBeTruthy();
   });
 });
 
