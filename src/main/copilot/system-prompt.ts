@@ -1,4 +1,5 @@
 import chatPromptRaw from "./prompts/chat.md?raw";
+import heartbeatPromptRaw from "./prompts/heartbeat.md?raw";
 import type { Meeting } from "../types";
 
 /**
@@ -7,6 +8,7 @@ import type { Meeting } from "../types";
  */
 const PROMPTS = {
   chat: chatPromptRaw,
+  heartbeat: heartbeatPromptRaw,
 } as const;
 
 export type PromptName = keyof typeof PROMPTS;
