@@ -13,6 +13,7 @@ const AUTO_APPROVE_CUSTOM_TOOLS = new Set<string>([
   "show_notification",
   "show_meeting",
   "join_meeting",
+  "cache_meeting_prep",
 ]);
 
 /**
