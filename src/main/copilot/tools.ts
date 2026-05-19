@@ -10,6 +10,7 @@ interface ToolCallbacks {
   onAttentionUpdate: (items: AttentionItem[]) => void;
   onBlocksUpdate: (block: FlintBlock) => void;
   getMeetings: () => Meeting[];
+  getPrepData?: (meetingId: string) => string[] | null;
 }
 
 export function createAllTools(callbacks: ToolCallbacks): Tool[] {
@@ -86,9 +87,10 @@ export function createAllTools(callbacks: ToolCallbacks): Tool[] {
       const meeting = meetings.find((m) => m.id === meetingId);
       if (!meeting) return "Meeting not found in cache.";
 
+      const prepItems = callbacks.getPrepData?.(meetingId) ?? undefined;
       const block: FlintBlock = {
         type: "meeting-card",
-        data: { ...meeting },
+        data: { ...meeting, ...(prepItems ? { aiPrep: prepItems } : {}) },
       };
       callbacks.onBlocksUpdate(block);
       return `Showing meeting: ${meeting.title}`;

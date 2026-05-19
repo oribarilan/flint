@@ -99,10 +99,7 @@ export function createHeartbeat(config: HeartbeatConfig): Heartbeat {
       consecutiveFailures = 0;
     } catch (err) {
       consecutiveFailures++;
-      console.error(
-        "[heartbeat] beat failed:",
-        err instanceof Error ? err.message : String(err),
-      );
+      console.error("[heartbeat] beat failed:", err instanceof Error ? err.message : String(err));
       if (consecutiveFailures >= maxFailures) {
         console.warn(
           `[heartbeat] ${String(consecutiveFailures)} consecutive failures, stopping timer`,

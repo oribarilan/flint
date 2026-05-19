@@ -1,5 +1,5 @@
 import { execSync } from "child_process";
-import { app, ipcMain, nativeTheme } from "electron";
+import { app, ipcMain, nativeTheme, powerMonitor } from "electron";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { createOverlayWindow, getOverlayWindow } from "./window/overlay";
 import { showSettingsWindow, getSettingsWindow } from "./window/settings-window";
@@ -8,7 +8,8 @@ import {
   registerSpotlightHandlers,
   getSpotlightWindow,
 } from "./window/spotlight-window";
-import { cachePrepData } from "./heartbeat/prep-cache";
+import { cachePrepData, hasPrepData, getPrepData } from "./heartbeat/prep-cache";
+import { createHeartbeat, type Heartbeat } from "./heartbeat/heartbeat";
 import { createTray, updateTrayMeetings, updateTrayTitle } from "./window/tray";
 import { registerHotkey, unregisterAllHotkeys } from "./window/hotkey";
 import { registerIpcHandlers, getConfigStore, getAttentionStore } from "./ipc/handlers";
@@ -28,6 +29,7 @@ let latestMeetings: Meeting[] = [];
 let copilotManager: CopilotManager | null = null;
 let sessionManager: SessionManager | null = null;
 let meetingScheduler: MeetingScheduler | null = null;
+let heartbeat: Heartbeat | null = null;
 let agencyCalendar: AgencyCalendarSource | null = null;
 
 /** Resolve the Copilot CLI binary path using env → PATH → macOS fallback. */
@@ -102,6 +104,10 @@ void app.whenReady().then(async () => {
     overlay.webContents.on("did-finish-load", () => {
       sendThemeToRenderer(resolveTheme(configStore.getAll().theme));
     });
+
+    // Pause heartbeat while overlay is focused (avoid future two-writer race on AttentionStore)
+    overlay.on("focus", () => heartbeat?.pause());
+    overlay.on("blur", () => heartbeat?.resume());
   }
 
   // Listen for OS theme changes (only matters when config is "system")
@@ -181,6 +187,7 @@ void app.whenReady().then(async () => {
       }
     },
     getMeetings: () => latestMeetings,
+    getPrepData: (meetingId) => getPrepData(meetingId),
   });
 
   // ── Session manager ──
@@ -279,9 +286,12 @@ void app.whenReady().then(async () => {
       const cfg = configStore.getAll();
       if (!cfg.spotlightPrep) return;
       console.log("[main] Prep triggered for:", meeting.title);
-      // TODO: query Copilot SDK for meeting context, then call cachePrepData(meeting.id, items)
-      // For now, cache empty to signal "prep enabled but no data yet"
-      cachePrepData(meeting.id, []);
+      if (hasPrepData(meeting.id)) return;
+      if (heartbeat) {
+        void heartbeat.prepMeeting(meeting);
+      } else {
+        cachePrepData(meeting.id, []);
+      }
     },
     onMeetingsUpdated: (meetings) => {
       latestMeetings = meetings;
@@ -295,12 +305,32 @@ void app.whenReady().then(async () => {
   });
   meetingScheduler.start();
 
+  // ── Heartbeat (background AI) ──
+  if (config.heartbeatEnabled) {
+    heartbeat = createHeartbeat({
+      client,
+      getModel: () => configStore.getAll().model,
+      getMeetings: () => latestMeetings,
+    });
+    heartbeat.start();
+  }
+
+  // ── Power management ──
+  powerMonitor.on("resume", () => {
+    console.log("[main] System resumed — triggering immediate poll and beat");
+    if (meetingScheduler) void meetingScheduler.pollNow();
+    if (heartbeat) void heartbeat.beat();
+  });
+
   console.log("[main] Ready — chat wired with CopilotManager + SessionManager");
 });
 
 app.on("will-quit", () => {
   void (async () => {
     unregisterAllHotkeys();
+    if (heartbeat) {
+      heartbeat.stop();
+    }
     if (meetingScheduler) {
       meetingScheduler.stop();
     }

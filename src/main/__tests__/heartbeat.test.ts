@@ -109,7 +109,10 @@ describe("Heartbeat", () => {
     let resolveFirst: (() => void) | null = null;
     const session = createMockSession();
     session.sendAndWait.mockImplementationOnce(
-      () => new Promise<void>((r) => { resolveFirst = r; }),
+      () =>
+        new Promise<void>((r) => {
+          resolveFirst = r;
+        }),
     );
     const client = createMockClient(session);
     const heartbeat = createHeartbeat({
@@ -128,6 +131,7 @@ describe("Heartbeat", () => {
     expect(session.sendAndWait).toHaveBeenCalledTimes(1);
 
     // Complete first beat
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- test: resolveFirst is assigned in the mock above
     resolveFirst!();
     await flush();
 
@@ -159,9 +163,7 @@ describe("Heartbeat", () => {
     await vi.advanceTimersByTimeAsync(60_000);
     await flush(); // beat 3 fails — should stop
 
-    expect(console.warn).toHaveBeenCalledWith(
-      expect.stringContaining("consecutive failures"),
-    );
+    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining("consecutive failures"));
 
     // No more beats after stop
     session.sendAndWait.mockClear();
@@ -173,9 +175,7 @@ describe("Heartbeat", () => {
 
   it("resets failure count on successful beat", async () => {
     const session = createMockSession();
-    session.sendAndWait
-      .mockRejectedValueOnce(new Error("fail"))
-      .mockResolvedValueOnce(undefined);
+    session.sendAndWait.mockRejectedValueOnce(new Error("fail")).mockResolvedValueOnce(undefined);
     const client = createMockClient(session);
     const heartbeat = createHeartbeat({
       client: client as never,
@@ -235,6 +235,7 @@ describe("Heartbeat", () => {
     const meeting = makeMeeting();
     await heartbeat.prepMeeting(meeting);
     expect(session.sendAndWait).toHaveBeenCalledTimes(1);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- test: accessing mock call args
     const prompt = session.sendAndWait.mock.calls[0][0].prompt as string;
     expect(prompt).toContain(meeting.id);
     heartbeat.stop();

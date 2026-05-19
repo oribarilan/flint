@@ -24,9 +24,7 @@ export function createHeartbeatTools(): Tool[] {
       if (!meetingId || !Array.isArray(items) || items.length === 0) {
         return "error: invalid arguments";
       }
-      const capped = items
-        .slice(0, 10)
-        .map((s) => (typeof s === "string" ? s.slice(0, 2000) : ""));
+      const capped = items.slice(0, 10).map((s) => (typeof s === "string" ? s.slice(0, 2000) : ""));
       cachePrepData(meetingId, capped);
       console.log(`[heartbeat] Cached ${String(capped.length)} prep items for ${meetingId}`);
       return "cached";

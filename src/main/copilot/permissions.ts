@@ -36,9 +36,7 @@ function looksDangerous(name: string): boolean {
  * Evaluate a custom-tool permission request against Flint's policy.
  * Exported so it can be unit-tested directly without constructing the full handler closure.
  */
-export function evaluateCustomTool(
-  toolName: string,
-): PermissionRequestResult {
+export function evaluateCustomTool(toolName: string): PermissionRequestResult {
   if (AUTO_APPROVE_CUSTOM_TOOLS.has(toolName)) {
     return APPROVED;
   }

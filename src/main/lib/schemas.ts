@@ -27,6 +27,7 @@ export const FlintConfigSchema = z.object({
   spotlightEnabled: z.boolean(),
   spotlightMinutes: z.number().int().min(1).max(30),
   spotlightPrep: z.boolean(),
+  heartbeatEnabled: z.boolean(),
 });
 
 // ── AttentionItem ──
