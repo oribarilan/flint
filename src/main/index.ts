@@ -7,8 +7,8 @@ import {
   showSpotlight,
   registerSpotlightHandlers,
   getSpotlightWindow,
-  cachePrepData,
 } from "./window/spotlight-window";
+import { cachePrepData } from "./heartbeat/prep-cache";
 import { createTray, updateTrayMeetings, updateTrayTitle } from "./window/tray";
 import { registerHotkey, unregisterAllHotkeys } from "./window/hotkey";
 import { registerIpcHandlers, getConfigStore, getAttentionStore } from "./ipc/handlers";

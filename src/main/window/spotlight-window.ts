@@ -3,15 +3,10 @@ import { join } from "path";
 import { is } from "@electron-toolkit/utils";
 import { IPC_CHANNELS } from "../ipc/channels";
 import { openExternalUrl } from "../lib/url";
+import { getPrepData } from "../heartbeat/prep-cache";
 import type { Meeting } from "../types";
 
 let spotlightWindow: BrowserWindow | null = null;
-const prepCache = new Map<string, string[]>();
-
-/** Cache AI prep results for a meeting. Called when the prep query completes. */
-export function cachePrepData(meetingId: string, items: string[]): void {
-  prepCache.set(meetingId, items);
-}
 
 export interface SpotlightOptions {
   showPrep: boolean;
@@ -61,7 +56,7 @@ export function showSpotlight(meeting: Meeting, options: SpotlightOptions): void
 
   spotlightWindow.webContents.on("did-finish-load", () => {
     if (spotlightWindow && !spotlightWindow.isDestroyed()) {
-      const prepItems = options.showPrep ? (prepCache.get(meeting.id) ?? null) : null;
+      const prepItems = options.showPrep ? getPrepData(meeting.id) : null;
       spotlightWindow.webContents.send(IPC_CHANNELS.SPOTLIGHT_SHOW, {
         meeting,
         prepItems,
