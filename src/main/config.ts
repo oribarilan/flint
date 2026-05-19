@@ -50,6 +50,12 @@ export function createConfigStore(): ConfigStore {
           s.set("spotlightPrep", DEFAULT_CONFIG.spotlightPrep);
         }
       },
+      "0.8.0": (s) => {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- migration safety
+        if (s.get("heartbeatEnabled") === undefined) {
+          s.set("heartbeatEnabled", DEFAULT_CONFIG.heartbeatEnabled);
+        }
+      },
     },
   });
 
@@ -84,6 +90,7 @@ export function createConfigStore(): ConfigStore {
         spotlightEnabled: store.get("spotlightEnabled", DEFAULT_CONFIG.spotlightEnabled),
         spotlightMinutes: store.get("spotlightMinutes", DEFAULT_CONFIG.spotlightMinutes),
         spotlightPrep: store.get("spotlightPrep", DEFAULT_CONFIG.spotlightPrep),
+        heartbeatEnabled: store.get("heartbeatEnabled", DEFAULT_CONFIG.heartbeatEnabled),
       };
     },
 

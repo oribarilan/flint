@@ -31,6 +31,7 @@ export interface FlintConfig {
   spotlightEnabled: boolean;
   spotlightMinutes: number;
   spotlightPrep: boolean;
+  heartbeatEnabled: boolean;
 }
 
 export const DEFAULT_CONFIG: FlintConfig = {
@@ -48,6 +49,7 @@ export const DEFAULT_CONFIG: FlintConfig = {
   spotlightEnabled: true,
   spotlightMinutes: 1,
   spotlightPrep: true,
+  heartbeatEnabled: true,
 };
 
 export interface AttentionItem {
