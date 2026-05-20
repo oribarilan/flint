@@ -26,6 +26,7 @@ import {
   createTray,
   updateTrayBadge,
 } from "../window/tray";
+import { cachePrepData, clearPrepData } from "../heartbeat/prep-cache";
 import type { Meeting } from "../types";
 
 const NOW = new Date("2026-05-01T10:00:00Z");
@@ -60,6 +61,7 @@ function getMeetingItems(template: ReturnType<typeof buildTrayMenuTemplate>) {
 describe("buildTrayMenuTemplate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearPrepData();
   });
 
   it("shows 'No more meetings today' when there are no meetings", () => {
@@ -178,6 +180,30 @@ describe("buildTrayMenuTemplate", () => {
     const items = getMeetingItems(template);
     (items[0].click as () => void)();
     expect(opts.onMeetingFocus).toHaveBeenCalledWith(meeting);
+  });
+
+  it("shows filled dot for meetings with prep material", () => {
+    const meeting = makeMeeting({ id: "m1", title: "Prepped" });
+    cachePrepData("m1", ["bullet 1"]);
+    const template = buildTrayMenuTemplate([meeting], defaultOptions());
+    const items = getMeetingItems(template);
+    expect(items[0].label).toContain("\u25CF");
+  });
+
+  it("shows empty dot for meetings prepped with no material", () => {
+    const meeting = makeMeeting({ id: "m1", title: "Empty" });
+    cachePrepData("m1", []);
+    const template = buildTrayMenuTemplate([meeting], defaultOptions());
+    const items = getMeetingItems(template);
+    expect(items[0].label).toContain("\u25CB");
+  });
+
+  it("shows no dot for meetings not yet prepped", () => {
+    const meeting = makeMeeting({ id: "m1", title: "Pending" });
+    const template = buildTrayMenuTemplate([meeting], defaultOptions());
+    const items = getMeetingItems(template);
+    expect(items[0].label).not.toContain("\u25CF");
+    expect(items[0].label).not.toContain("\u25CB");
   });
 
   it("truncates subject at 40 chars with ellipsis", () => {

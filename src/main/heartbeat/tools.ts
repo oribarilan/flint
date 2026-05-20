@@ -21,9 +21,10 @@ export function createHeartbeatTools(): Tool[] {
     // eslint-disable-next-line @typescript-eslint/require-await -- SDK tool handlers must be async
     handler: async (args) => {
       const { meetingId, items } = args as { meetingId: string; items: unknown[] };
-      if (!meetingId || !Array.isArray(items) || items.length === 0) {
+      if (!meetingId || !Array.isArray(items)) {
         return "error: invalid arguments";
       }
+      // Empty array is valid — signals "prepped but nothing relevant found"
       const capped = items.slice(0, 10).map((s) => (typeof s === "string" ? s.slice(0, 2000) : ""));
       cachePrepData(meetingId, capped);
       console.log(`[heartbeat] Cached ${String(capped.length)} prep items for ${meetingId}`);

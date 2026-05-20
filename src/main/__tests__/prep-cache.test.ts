@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import {
   cachePrepData,
   getPrepData,
+  getPrepStatus,
   hasPrepData,
   clearPrepData,
   cleanupExpiredPrep,
@@ -51,5 +52,21 @@ describe("prep-cache", () => {
     cachePrepData("m1", ["a"]);
     const removed = cleanupExpiredPrep(new Set(["m1"]));
     expect(removed).toBe(0);
+  });
+
+  describe("getPrepStatus", () => {
+    it("returns 'pending' for unknown meeting", () => {
+      expect(getPrepStatus("unknown")).toBe("pending");
+    });
+
+    it("returns 'ready' when prep has items", () => {
+      cachePrepData("m1", ["bullet 1"]);
+      expect(getPrepStatus("m1")).toBe("ready");
+    });
+
+    it("returns 'empty' when prep ran but found nothing", () => {
+      cachePrepData("m1", []);
+      expect(getPrepStatus("m1")).toBe("empty");
+    });
   });
 });

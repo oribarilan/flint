@@ -38,10 +38,11 @@ describe("heartbeat tools", () => {
       expect(getPrepData("m1")).toHaveLength(10);
     });
 
-    it("rejects empty items", async () => {
+    it("accepts empty items to signal nothing found", async () => {
       const tool = findTool("cache_meeting_prep");
       const result = await tool.handler({ meetingId: "m1", items: [] });
-      expect(result).toBe("error: invalid arguments");
+      expect(result).toBe("cached");
+      expect(getPrepData("m1")).toEqual([]);
     });
 
     it("rejects missing meetingId", async () => {

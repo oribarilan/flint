@@ -3,6 +3,7 @@ import type { MenuItemConstructorOptions } from "electron";
 import { join } from "path";
 import { showOverlay } from "./overlay";
 import { selectDisplayMeeting, formatMenubarText } from "../lib/menubar-format";
+import { getPrepStatus } from "../heartbeat/prep-cache";
 import type { Meeting, FlintConfig } from "../types";
 
 let tray: Tray | null = null;
@@ -113,8 +114,11 @@ export function buildTrayMenuTemplate(
       const sanitized = sanitizeSubject(meeting.title);
       const subject = truncate(sanitized, MAX_SUBJECT_LENGTH);
       const timeLabel = timeFormatter.format(new Date(meeting.startTime));
+      const prepStatus = getPrepStatus(meeting.id);
+      // Subtle prep indicator: ● prepped with notes, ○ prepped/nothing found, no dot = pending
+      const dot = prepStatus === "ready" ? "\u25CF " : prepStatus === "empty" ? "\u25CB " : "  ";
       // LTR mark keeps time on the left when subject is RTL (e.g. Hebrew)
-      const label = `\u200E${timeLabel}  ${subject}`;
+      const label = `\u200E${dot}${timeLabel}  ${subject}`;
 
       template.push({
         label,
