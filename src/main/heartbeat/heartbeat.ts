@@ -60,7 +60,7 @@ export function createHeartbeat(config: HeartbeatConfig): Heartbeat {
     console.log("[heartbeat] Creating monitor session with model:", model);
 
     session = await config.client.createSession({
-      sessionId: "flint-monitor",
+      sessionId: `flint-monitor-${String(Date.now())}`,
       model,
       onPermissionRequest: createPermissionPolicy(),
       streaming: false,
@@ -79,6 +79,20 @@ export function createHeartbeat(config: HeartbeatConfig): Heartbeat {
 
     console.log("[heartbeat] Monitor session created:", session.sessionId);
     return session;
+  }
+
+  async function destroySession(): Promise<void> {
+    if (!session) return;
+    const id = session.sessionId;
+    try {
+      await config.client.deleteSession(id);
+    } catch (err) {
+      console.error(
+        "[heartbeat] session cleanup failed:",
+        err instanceof Error ? err.message : String(err),
+      );
+    }
+    session = null;
   }
 
   async function doBeat(): Promise<void> {
@@ -107,6 +121,7 @@ export function createHeartbeat(config: HeartbeatConfig): Heartbeat {
         stopTimer();
       }
     } finally {
+      await destroySession();
       beating = false;
     }
   }
@@ -122,6 +137,8 @@ export function createHeartbeat(config: HeartbeatConfig): Heartbeat {
         "[heartbeat] on-demand prep failed:",
         err instanceof Error ? err.message : String(err),
       );
+    } finally {
+      await destroySession();
     }
   }
 

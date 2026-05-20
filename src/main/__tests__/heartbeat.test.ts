@@ -45,11 +45,14 @@ function createMockSession() {
 function createMockClient(session = createMockSession()) {
   return {
     createSession: vi.fn().mockResolvedValue(session),
+    deleteSession: vi.fn().mockResolvedValue(undefined),
     resumeSession: vi.fn().mockResolvedValue(session),
   };
 }
 
 async function flush(): Promise<void> {
+  await Promise.resolve();
+  await Promise.resolve();
   await Promise.resolve();
   await Promise.resolve();
   await Promise.resolve();
@@ -85,7 +88,22 @@ describe("Heartbeat", () => {
     heartbeat.stop();
   });
 
-  it("sends periodic beats", async () => {
+  it("destroys session after each beat to prevent accumulation", async () => {
+    const session = createMockSession();
+    const client = createMockClient(session);
+    const heartbeat = createHeartbeat({
+      client: client as never,
+      getModel: () => "gpt-4.1",
+      getMeetings: () => [],
+      now: () => Date.now(),
+    });
+    heartbeat.start();
+    await flush();
+    expect(client.deleteSession).toHaveBeenCalledTimes(1);
+    heartbeat.stop();
+  });
+
+  it("creates a fresh session for each beat", async () => {
     const session = createMockSession();
     const client = createMockClient(session);
     const heartbeat = createHeartbeat({
@@ -97,11 +115,11 @@ describe("Heartbeat", () => {
     });
     heartbeat.start();
     await flush();
-    expect(session.sendAndWait).toHaveBeenCalledTimes(1);
+    expect(client.createSession).toHaveBeenCalledTimes(1);
 
     await vi.advanceTimersByTimeAsync(60_000);
     await flush();
-    expect(session.sendAndWait).toHaveBeenCalledTimes(2);
+    expect(client.createSession).toHaveBeenCalledTimes(2);
     heartbeat.stop();
   });
 
