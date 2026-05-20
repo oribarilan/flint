@@ -51,11 +51,8 @@ function createMockClient(session = createMockSession()) {
 }
 
 async function flush(): Promise<void> {
-  await Promise.resolve();
-  await Promise.resolve();
-  await Promise.resolve();
-  await Promise.resolve();
-  await Promise.resolve();
+  // Enough microtask ticks for: sendAndWait → destroySession → withTimeout → .finally → .catch
+  for (let i = 0; i < 10; i++) await Promise.resolve();
 }
 
 describe("Heartbeat", () => {

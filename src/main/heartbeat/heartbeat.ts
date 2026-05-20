@@ -16,14 +16,15 @@ const HEARTBEAT_AVAILABLE_TOOLS = ["cache_meeting_prep", "show_notification"] as
 
 /** Race a promise against a timeout. Rejects with a descriptive error on expiry. */
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<never>((_, reject) => {
-      setTimeout(() => {
-        reject(new Error(`${label} timed out after ${String(ms)}ms`));
-      }, ms);
-    }),
-  ]);
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${String(ms)}ms`));
+    }, ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timer !== null) clearTimeout(timer);
+  });
 }
 
 export interface Heartbeat {
