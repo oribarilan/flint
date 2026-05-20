@@ -127,10 +127,7 @@ describe("buildTrayMenuTemplate", () => {
       startTime: NOW.toISOString(),
       endTime: new Date(NOW.getTime() + 24 * 60 * 60_000).toISOString(),
     });
-    const template = buildTrayMenuTemplate(
-      [timed, allDay],
-      defaultOptions({ showAllDay: false }),
-    );
+    const template = buildTrayMenuTemplate([timed, allDay], defaultOptions({ showAllDay: false }));
     const labels = template.map((item) => item.label).filter(Boolean);
     expect(labels).not.toContain("All day");
     expect(labels.join(" ")).not.toContain("Hidden Event");

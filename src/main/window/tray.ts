@@ -213,7 +213,11 @@ export function updateTrayBadge(count: number): void {
   }
 }
 
-export function updateTrayTitle(meetings: Meeting[], config: FlintConfig, now?: () => number): void {
+export function updateTrayTitle(
+  meetings: Meeting[],
+  config: FlintConfig,
+  now?: () => number,
+): void {
   if (!tray) return;
   if (!config.menubarEnabled) {
     tray.setTitle("");

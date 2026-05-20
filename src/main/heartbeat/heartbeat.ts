@@ -106,13 +106,16 @@ export function createHeartbeat(config: HeartbeatConfig): Heartbeat {
     const id = session.sessionId;
     session = null;
     // Fire-and-forget with its own timeout — never blocks the next beat
-    void withTimeout(config.client.deleteSession(id), SESSION_DELETE_TIMEOUT_MS, "session delete")
-      .catch((err: unknown) => {
-        console.error(
-          "[heartbeat] session cleanup failed:",
-          err instanceof Error ? err.message : String(err),
-        );
-      });
+    void withTimeout(
+      config.client.deleteSession(id),
+      SESSION_DELETE_TIMEOUT_MS,
+      "session delete",
+    ).catch((err: unknown) => {
+      console.error(
+        "[heartbeat] session cleanup failed:",
+        err instanceof Error ? err.message : String(err),
+      );
+    });
   }
 
   async function doBeat(): Promise<void> {
