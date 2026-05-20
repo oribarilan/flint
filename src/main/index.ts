@@ -23,21 +23,12 @@ import { createAgencyCalendarSource, type AgencyCalendarSource } from "./calenda
 import { resolveTheme } from "./theme";
 import { ChatSendPromptSchema } from "./lib/schemas";
 import type { FlintConfig, Meeting } from "./types";
-import type { FlintBlock } from "./lib/blocks";
 
 let latestMeetings: Meeting[] = [];
 
-/** Show the overlay with a focused meeting card, including aiPrep if available. */
+/** Show the spotlight meeting experience for a meeting clicked in the menubar. */
 function showMeetingFocus(meeting: Meeting): void {
-  const win = getOverlayWindow();
-  if (!win || win.isDestroyed()) return;
-  win.show();
-  const prepItems = getPrepData(meeting.id) ?? undefined;
-  const block: FlintBlock = {
-    type: "meeting-card",
-    data: { ...meeting, ...(prepItems ? { aiPrep: prepItems } : {}) },
-  };
-  win.webContents.send(IPC_CHANNELS.BLOCKS_UPDATE, block);
+  showSpotlight(meeting, { showPrep: true });
 }
 
 let copilotManager: CopilotManager | null = null;
