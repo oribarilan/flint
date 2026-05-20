@@ -89,5 +89,7 @@ export function formatMenubarText(
     parts.push(truncate(meeting.title, MAX_TITLE_LENGTH));
   }
 
-  return parts.join(" \u00b7 ");
+  const text = parts.join(" \u00b7 ");
+  // Prefix with LTR mark so time stays on the left when title is RTL (e.g. Hebrew)
+  return text ? "\u200E" + text : "";
 }

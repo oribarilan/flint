@@ -116,13 +116,13 @@ describe("formatMenubarText", () => {
       startTime: new Date(NOW_MS + 25 * 60_000).toISOString(),
     });
     const text = formatMenubarText({ meeting: m, isActive: false }, "countdown", false, NOW_MS);
-    expect(text).toBe("in 25m");
+    expect(text).toBe("\u200Ein 25m");
   });
 
   it("countdown: shows 'now' when meeting is active", () => {
     const m = makeMeeting({ id: "1" });
     const text = formatMenubarText({ meeting: m, isActive: true }, "countdown", false, NOW_MS);
-    expect(text).toBe("now");
+    expect(text).toBe("\u200Enow");
   });
 
   it("next-time: shows formatted start time", () => {
@@ -139,31 +139,32 @@ describe("formatMenubarText", () => {
   it("next-time: shows 'now' when active", () => {
     const m = makeMeeting({ id: "1" });
     const text = formatMenubarText({ meeting: m, isActive: true }, "next-time", false, NOW_MS);
-    expect(text).toBe("now");
+    expect(text).toBe("\u200Enow");
   });
 
   it("time off + title on: shows just the title", () => {
     const m = makeMeeting({ id: "1", title: "Design Review" });
     const text = formatMenubarText({ meeting: m, isActive: false }, "off", true, NOW_MS);
-    expect(text).toBe("Design Review");
+    expect(text).toBe("\u200EDesign Review");
   });
 
   it("time on + title on: joins with ' · ' separator", () => {
     const m = makeMeeting({ id: "1", title: "Sync" });
     const text = formatMenubarText({ meeting: m, isActive: true }, "countdown", true, NOW_MS);
-    expect(text).toBe("now \u00b7 Sync");
+    expect(text).toBe("\u200Enow \u00b7 Sync");
   });
 
   it("time on + title off: shows just the time", () => {
     const m = makeMeeting({ id: "1" });
     const text = formatMenubarText({ meeting: m, isActive: true }, "countdown", false, NOW_MS);
-    expect(text).toBe("now");
+    expect(text).toBe("\u200Enow");
   });
 
   it("truncates long titles (over 16 chars) with ellipsis", () => {
     const m = makeMeeting({ id: "1", title: "A Very Long Meeting Title Here" });
     const text = formatMenubarText({ meeting: m, isActive: false }, "off", true, NOW_MS);
-    expect(text.length).toBeLessThanOrEqual(16);
+    // +1 for LTR mark prefix
+    expect(text.length).toBeLessThanOrEqual(16 + 1);
     expect(text).toContain("\u2026");
   });
 });
