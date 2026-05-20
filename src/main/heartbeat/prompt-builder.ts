@@ -37,7 +37,7 @@ export function buildBeatPrompt(meetings: Meeting[], preppedIds: Set<string>, no
     "Today's meetings:",
     meetingLines,
     "",
-    "Check for meetings needing prep. Flag anything the user should know about.",
+    "Prep the next unprepped meeting. Flag anything the user should know about.",
   ].join("\n");
 }
 
