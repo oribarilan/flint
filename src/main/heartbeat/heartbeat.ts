@@ -9,8 +9,22 @@ import type { Meeting } from "../types";
 const DEFAULT_INTERVAL_MS = 10 * 60_000; // 10 minutes
 const DEFAULT_TIMEOUT_MS = 90_000; // 90 seconds
 const DEFAULT_MAX_FAILURES = 5;
+const SESSION_CREATE_TIMEOUT_MS = 30_000; // 30 seconds
+const SESSION_DELETE_TIMEOUT_MS = 10_000; // 10 seconds
 
 const HEARTBEAT_AVAILABLE_TOOLS = ["cache_meeting_prep", "show_notification"] as const;
+
+/** Race a promise against a timeout. Rejects with a descriptive error on expiry. */
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(`${label} timed out after ${String(ms)}ms`));
+      }, ms);
+    }),
+  ]);
+}
 
 export interface Heartbeat {
   start(): void;
@@ -59,40 +73,45 @@ export function createHeartbeat(config: HeartbeatConfig): Heartbeat {
     const model = config.getModel();
     console.log("[heartbeat] Creating monitor session with model:", model);
 
-    session = await config.client.createSession({
-      sessionId: `flint-monitor-${String(Date.now())}`,
-      model,
-      onPermissionRequest: createPermissionPolicy(),
-      streaming: false,
-      systemMessage: { content: loadPrompt("heartbeat") },
-      tools: createHeartbeatTools(),
-      availableTools: [...HEARTBEAT_AVAILABLE_TOOLS],
-      mcpServers: {
-        "work-iq": {
-          type: "local",
-          command: "npx",
-          args: ["-y", "@microsoft/workiq", "mcp"],
-          tools: ["*"],
+    session = await withTimeout(
+      config.client.createSession({
+        sessionId: `flint-monitor-${String(Date.now())}`,
+        model,
+        onPermissionRequest: createPermissionPolicy(),
+        streaming: false,
+        systemMessage: { content: loadPrompt("heartbeat") },
+        tools: createHeartbeatTools(),
+        availableTools: [...HEARTBEAT_AVAILABLE_TOOLS],
+        mcpServers: {
+          "work-iq": {
+            type: "local",
+            command: "npx",
+            args: ["-y", "@microsoft/workiq", "mcp"],
+            tools: ["*"],
+          },
         },
-      },
-    });
+      }),
+      SESSION_CREATE_TIMEOUT_MS,
+      "session creation",
+    );
 
     console.log("[heartbeat] Monitor session created:", session.sessionId);
     return session;
   }
 
-  async function destroySession(): Promise<void> {
+  /** Null session immediately so the next beat can proceed, then clean up in the background. */
+  function destroySession(): void {
     if (!session) return;
     const id = session.sessionId;
-    try {
-      await config.client.deleteSession(id);
-    } catch (err) {
-      console.error(
-        "[heartbeat] session cleanup failed:",
-        err instanceof Error ? err.message : String(err),
-      );
-    }
     session = null;
+    // Fire-and-forget with its own timeout — never blocks the next beat
+    void withTimeout(config.client.deleteSession(id), SESSION_DELETE_TIMEOUT_MS, "session delete")
+      .catch((err: unknown) => {
+        console.error(
+          "[heartbeat] session cleanup failed:",
+          err instanceof Error ? err.message : String(err),
+        );
+      });
   }
 
   async function doBeat(): Promise<void> {
@@ -121,7 +140,7 @@ export function createHeartbeat(config: HeartbeatConfig): Heartbeat {
         stopTimer();
       }
     } finally {
-      await destroySession();
+      destroySession();
       beating = false;
     }
   }
@@ -138,7 +157,7 @@ export function createHeartbeat(config: HeartbeatConfig): Heartbeat {
         err instanceof Error ? err.message : String(err),
       );
     } finally {
-      await destroySession();
+      destroySession();
     }
   }
 
