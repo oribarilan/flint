@@ -40,7 +40,7 @@ function endOfLocalDay(timestampMs: number): number {
 }
 
 export interface TrayMenuOptions {
-  onJoin: (url: string) => void;
+  onMeetingFocus: (meeting: Meeting) => void;
   onShowOverlay: () => void;
   onShowSettings: () => void;
   showAllDay?: boolean;
@@ -113,16 +113,13 @@ export function buildTrayMenuTemplate(
       const sanitized = sanitizeSubject(meeting.title);
       const subject = truncate(sanitized, MAX_SUBJECT_LENGTH);
       const timeLabel = timeFormatter.format(new Date(meeting.startTime));
-      const label = `${timeLabel}  ${subject}`;
+      // LTR mark keeps time on the left when subject is RTL (e.g. Hebrew)
+      const label = `\u200E${timeLabel}  ${subject}`;
 
       template.push({
         label,
         click: () => {
-          if (meeting.joinUrl) {
-            options.onJoin(meeting.joinUrl);
-          } else {
-            options.onShowOverlay();
-          }
+          options.onMeetingFocus(meeting);
         },
       });
     }
@@ -171,7 +168,7 @@ export function createTray(options?: { onShowSettings?: () => void }): Tray {
   // Initial menu with no meetings
   const contextMenu = Menu.buildFromTemplate(
     buildTrayMenuTemplate([], {
-      onJoin: () => undefined,
+      onMeetingFocus: () => undefined,
       onShowOverlay: showOverlay,
       onShowSettings: options?.onShowSettings ?? (() => undefined),
     }),
@@ -187,11 +184,15 @@ export function getTray(): Tray | null {
 
 export function updateTrayMeetings(
   meetings: Meeting[],
-  options: { onJoin: (url: string) => void; onShowSettings: () => void; showAllDay: boolean },
+  options: {
+    onMeetingFocus: (meeting: Meeting) => void;
+    onShowSettings: () => void;
+    showAllDay: boolean;
+  },
 ): void {
   if (!tray) return;
   const template = buildTrayMenuTemplate(meetings, {
-    onJoin: options.onJoin,
+    onMeetingFocus: options.onMeetingFocus,
     onShowOverlay: showOverlay,
     onShowSettings: options.onShowSettings,
     showAllDay: options.showAllDay,

@@ -22,10 +22,24 @@ import { createMeetingScheduler, type MeetingScheduler } from "./scheduler/meeti
 import { createAgencyCalendarSource, type AgencyCalendarSource } from "./calendar/agency-calendar";
 import { resolveTheme } from "./theme";
 import { ChatSendPromptSchema } from "./lib/schemas";
-import { openExternalUrl } from "./lib/url";
 import type { FlintConfig, Meeting } from "./types";
+import type { FlintBlock } from "./lib/blocks";
 
 let latestMeetings: Meeting[] = [];
+
+/** Show the overlay with a focused meeting card, including aiPrep if available. */
+function showMeetingFocus(meeting: Meeting): void {
+  const win = getOverlayWindow();
+  if (!win || win.isDestroyed()) return;
+  win.show();
+  const prepItems = getPrepData(meeting.id) ?? undefined;
+  const block: FlintBlock = {
+    type: "meeting-card",
+    data: { ...meeting, ...(prepItems ? { aiPrep: prepItems } : {}) },
+  };
+  win.webContents.send(IPC_CHANNELS.BLOCKS_UPDATE, block);
+}
+
 let copilotManager: CopilotManager | null = null;
 let sessionManager: SessionManager | null = null;
 let meetingScheduler: MeetingScheduler | null = null;
@@ -130,7 +144,7 @@ void app.whenReady().then(async () => {
     if ("menubarAllDay" in partial) {
       const cfg = configStore.getAll();
       updateTrayMeetings(latestMeetings, {
-        onJoin: (url) => openExternalUrl(url),
+        onMeetingFocus: showMeetingFocus,
         onShowSettings: openSettings,
         showAllDay: cfg.menubarAllDay,
       });
@@ -296,7 +310,7 @@ void app.whenReady().then(async () => {
     onMeetingsUpdated: (meetings) => {
       latestMeetings = meetings;
       updateTrayMeetings(latestMeetings, {
-        onJoin: (url) => openExternalUrl(url),
+        onMeetingFocus: showMeetingFocus,
         onShowSettings: openSettings,
         showAllDay: configStore.getAll().menubarAllDay,
       });

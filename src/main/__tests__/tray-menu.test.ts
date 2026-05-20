@@ -43,7 +43,7 @@ function makeMeeting(overrides: Partial<Meeting> & { id: string }): Meeting {
 
 function defaultOptions(overrides?: Partial<Parameters<typeof buildTrayMenuTemplate>[1]>) {
   return {
-    onJoin: vi.fn(),
+    onMeetingFocus: vi.fn(),
     onShowOverlay: vi.fn(),
     onShowSettings: vi.fn(),
     now: () => NOW.getTime(),
@@ -162,25 +162,22 @@ describe("buildTrayMenuTemplate", () => {
     expect(items[0].label).toContain("In Progress");
   });
 
-  it("calls onJoin with joinUrl when meeting has a join URL", () => {
+  it("calls onMeetingFocus with the meeting when a meeting is clicked", () => {
     const opts = defaultOptions();
     const meeting = makeMeeting({ id: "m1", joinUrl: "https://teams.microsoft.com/join/123" });
     const template = buildTrayMenuTemplate([meeting], opts);
     const items = getMeetingItems(template);
-    // Simulate click
     (items[0].click as () => void)();
-    expect(opts.onJoin).toHaveBeenCalledWith("https://teams.microsoft.com/join/123");
-    expect(opts.onShowOverlay).not.toHaveBeenCalled();
+    expect(opts.onMeetingFocus).toHaveBeenCalledWith(meeting);
   });
 
-  it("calls onShowOverlay when meeting has no joinUrl", () => {
+  it("calls onMeetingFocus even when meeting has no joinUrl", () => {
     const opts = defaultOptions();
     const meeting = makeMeeting({ id: "m1" });
     const template = buildTrayMenuTemplate([meeting], opts);
     const items = getMeetingItems(template);
     (items[0].click as () => void)();
-    expect(opts.onShowOverlay).toHaveBeenCalled();
-    expect(opts.onJoin).not.toHaveBeenCalled();
+    expect(opts.onMeetingFocus).toHaveBeenCalledWith(meeting);
   });
 
   it("truncates subject at 40 chars with ellipsis", () => {
@@ -211,7 +208,8 @@ describe("buildTrayMenuTemplate", () => {
     const template = buildTrayMenuTemplate([meeting], defaultOptions());
     const items = getMeetingItems(template);
     expect(items[0].label).toContain("HelloWorld");
-    expect(items[0].label).not.toMatch(/[\r\n\u200B]/);
+    // Allow \u200E (LTR mark) at start of label, but not in the subject portion
+    expect(items[0].label?.replace(/^\u200E/, "")).not.toMatch(/[\r\n\u200B]/);
   });
 
   it("caps menu items at 10 with overflow indicator", () => {
