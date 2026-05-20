@@ -37,14 +37,22 @@ Shared state: `prepCache` (extracted to its own module, read by spotlight window
 
 ## Definition of Done
 
-- [ ] Heartbeat generates real prep content (3-5 bullets) for meetings within 30 minutes
-- [ ] Spotlight window shows prep content instead of "Preparing meeting context..."
-- [ ] `show_meeting` tool attaches `aiPrep` from prepCache when available
-- [ ] Proactive notifications fire for conflicts, back-to-backs, agenda-less meetings
-- [ ] Guardrails work: overlap prevention, failure limit, focus freeze, cleanup
-- [ ] Config: `heartbeatEnabled` toggle (default true) with migration
-- [ ] All new modules have unit tests
-- [ ] `just check` passes (lint + format + typecheck + test)
+- [x] Heartbeat generates real prep content (3-5 bullets) for the next unprepped meeting each beat
+- [x] Spotlight window shows prep content instead of "Preparing meeting context..."
+- [x] `show_meeting` tool attaches `aiPrep` from prepCache when available
+- [x] Proactive notifications fire for conflicts, back-to-backs, agenda-less meetings
+- [x] Guardrails work: overlap prevention, failure limit, focus freeze, cleanup
+- [x] Config: `heartbeatEnabled` toggle (default true) with migration
+- [x] All new modules have unit tests
+- [x] `just check` passes (lint + format + typecheck + test)
+
+## Additional work delivered
+
+- Menubar meeting click opens spotlight meeting focus experience
+- Prep status indicators on menubar items (● ready, ○ empty, no dot = pending)
+- Ephemeral sessions per beat (no message accumulation)
+- Session creation timeout (30s) and non-blocking session cleanup
+- Timer leak prevention in withTimeout utility
 
 ## Task Priority
 
